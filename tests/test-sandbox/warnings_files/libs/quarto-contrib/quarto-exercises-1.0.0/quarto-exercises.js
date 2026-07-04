@@ -427,26 +427,28 @@ function initExercise(ex) {
           if (feedback) feedback.style.display = "none";
 
           if (input.checked) {
-            if (isCorrect) {
-              ans.classList.add("is-correct");
-            } else {
-              ans.classList.add("is-incorrect");
+            if (!isCorrect) {
               selectedAllCorrect = false;
             }
-            if (feedback) feedback.style.display = "block";
           } else {
             if (isCorrect) {
               selectedAllCorrect = false;
-              if (reveal) {
-                ans.classList.add("is-correct");
-                if (feedback) feedback.style.display = "block";
-              }
             }
           }
         });
 
         if (!selectedAllCorrect) {
           allCorrect = false;
+        } else {
+          answers.forEach(ans => {
+            const input = ans.querySelector(".quarto-exercise-input");
+            const feedback = ans.querySelector(".quarto-exercise-feedback");
+            const isCorrect = ans.dataset.correct === "true";
+            if (input.checked && isCorrect) {
+              ans.classList.add("is-correct");
+              if (feedback) feedback.style.display = "block";
+            }
+          });
         }
       }
     }

@@ -161,19 +161,19 @@ body.quarto-dark .quarto-exercise-explanation {
 .quarto-exercise-blank-container,
 .quarto-exercise-choose-container {
   display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
+  align-items: baseline;
+  vertical-align: baseline;
   position: relative;
-  margin: 0 0.15rem;
+  margin: 0;
 }
 
 .quarto-exercise-blank-input {
   display: inline-block;
-  vertical-align: middle;
+  vertical-align: baseline;
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-  padding: 0 0.15rem;
+  padding: 0;
   margin: 0;
   border: none;
   border-bottom: 1px solid #777; /* Clean underline style */
@@ -255,8 +255,8 @@ body.quarto-dark .quarto-exercise-explanation {
 /* Dropdown/Cloze styling */
 .quarto-exercise-choose-select {
   display: inline-block;
-  vertical-align: middle;
-  padding: 0 0.8rem 0 0.15rem;
+  vertical-align: baseline;
+  padding: 0 0.8rem 0 0;
   margin: 0;
   font-family: inherit;
   font-size: inherit;
@@ -282,7 +282,7 @@ body.quarto-dark .quarto-exercise-explanation {
 
 .quarto-exercise-choose-check-btn {
   display: inline-block;
-  vertical-align: middle;
+  vertical-align: baseline;
   padding: 0.15rem 0.5rem;
   font-size: 0.8em;
   border: 1px solid #ced4da;
