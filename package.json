@@ -1,0 +1,17 @@
+{
+  "name": "quarto-exercises",
+  "version": "1.0.0",
+  "description": "Interactive exercises for Quarto HTML documents",
+  "scripts": {
+    "test": "node tests/run.js"
+  },
+  "keywords": [
+    "quarto",
+    "pandoc",
+    "filter",
+    "exercise",
+    "quiz"
+  ],
+  "author": "DeepMind Antigravity",
+  "license": "MIT"
+}

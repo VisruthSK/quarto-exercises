@@ -1,0 +1,131 @@
+---
+title: "Quarto Exercises Extension Example"
+format: html
+filters:
+  - quarto-exercises
+quarto-exercises:
+  instant: false
+  reveal: true
+  lock: false
+  reset: true
+  shuffle: false
+  show-answers: false
+---
+
+This document shows how to use the `quarto-exercises` extension to write interactive practice exercises in Quarto HTML pages.
+
+## Multiple Choice / Multiple Answer
+
+### Minimal Single-Choice
+
+::: {.exercise}
+Who carried the One Ring out of the Shire?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Boromir
+:::
+:::
+
+### Multiple-Correct with Custom Keys & Shuffling
+
+::: {.exercise shuffle=true}
+Which members of the Fellowship are hobbits? Select all that apply.
+
+::: {.answer correct=true key="frodo"}
+Frodo Baggins
+:::
+
+::: {.answer correct=true key="sam"}
+Samwise Gamgee
+:::
+
+::: {.answer key="legolas"}
+Legolas Greenleaf
+:::
+
+::: {.answer correct=true key="merry"}
+Meriadoc Brandybuck
+:::
+:::
+
+### Per-Answer Feedback & Question Explanation
+
+::: {.exercise}
+What is the name of the wizard who guides the Fellowship?
+
+::: {.answer correct=true}
+Gandalf
+
+::: {.feedback}
+Correct! Specifically Gandalf the Grey, who later becomes Gandalf the White.
+:::
+:::
+
+::: {.answer}
+Saruman
+
+::: {.feedback}
+Not quite. Saruman resides in Isengard and betrays the Fellowship.
+:::
+:::
+
+::: {.explanation}
+Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.
+:::
+:::
+
+### Code Blocks in Choices
+
+::: {.exercise}
+What does the following Python statement print?
+
+```python
+print([x * 2 for x in range(3)])
+```
+
+::: {.answer}
+`[1, 2, 3]`
+:::
+
+::: {.answer correct=true}
+`[0, 2, 4]`
+
+::: {.feedback}
+Correct! `range(3)` produces `0, 1, 2`, and multiplying each by 2 yields `0, 2, 4`.
+:::
+:::
+:::
+
+
+## Fill-in-the-blank
+
+### Basic Blank
+
+The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
+
+### Multiple Accepted Answers (Case-insensitive)
+
+The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
+
+### Regex Matching
+
+The full title of the first volume of Lord of the Rings is [`The Fellowship of the Ring`]{.blank answer="^The\s+Fellowship\s+of\s+the\s+Ring$" match="regex" ignore-case=true}.
+
+
+## Inline Choice / Dropdown Cloze
+
+### Standalone Dropdowns
+
+The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
+
+### Nested in a Parent Exercise
+
+Grouping inline choices under a parent `.exercise` block combines their Check and Reset controls:
+
+::: {.exercise}
+The Fellowship leaves [Rivendell / Minas Tirith / Edoras / Bree]{.choose answer="Rivendell"} and travels toward [Mordor / Valinor / Númenor / Dale]{.choose answer="Mordor"}.
+:::

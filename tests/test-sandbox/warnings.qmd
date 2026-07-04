@@ -1,0 +1,21 @@
+---
+title: "Warnings Test"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #no-correct}
+No correct answers here.
+
+::: {.answer}
+Answer 1
+:::
+:::
+
+::: {.exercise #no-answers}
+No answer blocks.
+:::
+
+[`missing-ans`]{.blank match="regex"}
+
+[No Answer]{.choose}

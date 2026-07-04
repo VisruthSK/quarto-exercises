@@ -1,0 +1,9 @@
+---
+title: "Blank Test"
+filters:
+  - quarto-exercises
+---
+
+The wizard is [`Gandalf`]{.blank answer="Gandalf" ignore-case=true}.
+
+The Fellowship leaves [Rivendell / Minas Tirith / Edoras]{.choose answer="Rivendell"}.
