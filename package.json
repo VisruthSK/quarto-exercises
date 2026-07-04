@@ -1,7 +1,8 @@
 {
   "name": "quarto-exercises",
   "version": "1.0.0",
-  "description": "Interactive exercises for Quarto HTML documents",
+  "packageManager": "pnpm@11.9.0",
+  "description": "Interactive practice exercises for Quarto HTML documents",
   "scripts": {
     "test": "node tests/run.js"
   },
@@ -10,8 +11,11 @@
     "pandoc",
     "filter",
     "exercise",
-    "quiz"
+    "practice"
   ],
   "author": "DeepMind Antigravity",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
 }

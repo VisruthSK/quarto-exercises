@@ -1,0 +1,8 @@
+/.quarto/
+/example.html
+/example_files/
+/tests/.tmp/
+/tests/test-sandbox/
+node_modules/
+.pnpm-store/
+*_files/

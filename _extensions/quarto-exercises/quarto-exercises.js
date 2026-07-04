@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", initExercises);
 
-if (window.Quarto) {
+if (window.Quarto && typeof window.Quarto.onRender === "function") {
   window.Quarto.onRender(initExercises);
 }
 
@@ -32,7 +32,14 @@ function shuffle(items) {
 }
 
 function labelFor(index) {
-  return ALPHABET[index % ALPHABET.length] + (index >= ALPHABET.length ? Math.floor(index / ALPHABET.length) : "");
+  let number = index + 1;
+  let label = "";
+  while (number > 0) {
+    const remainder = (number - 1) % ALPHABET.length;
+    label = ALPHABET[remainder] + label;
+    number = Math.floor((number - 1) / ALPHABET.length);
+  }
+  return label;
 }
 
 function setHidden(el, hidden) {
@@ -164,7 +171,14 @@ function resetBlank(container) {
 }
 
 function initStandaloneBlank(container) {
-  initBlank(container, () => verifyBlank(container, { showFeedback: true }));
+  const checkButton = $(container, ".quarto-exercise-blank-check-btn");
+  const check = () => verifyBlank(container, { showFeedback: true });
+
+  initBlank(container, check);
+  if (checkButton && !checkButton.dataset.initialized) {
+    checkButton.dataset.initialized = "true";
+    checkButton.addEventListener("click", check);
+  }
 }
 
 function populateChoose(container) {
@@ -367,8 +381,8 @@ function verifyAnswers(exercise, answers, reveal) {
 
 function verifyExercise(exercise, parts) {
   const answersOk = verifyAnswers(exercise, parts.answers, parts.reveal);
-  const blanksOk = parts.blanks.every(blank => verifyBlank(blank));
-  const choosesOk = parts.chooses.every(choose => verifyChoose(choose));
+  const blanksOk = parts.blanks.every(blank => verifyBlank(blank, { showFeedback: true }));
+  const choosesOk = parts.chooses.every(choose => verifyChoose(choose, { showFeedback: true }));
   const allCorrect = answersOk && blanksOk && choosesOk;
 
   updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
@@ -437,3 +451,34 @@ function resetExercise(exercise, parts) {
     shuffleAnswers(exercise, parts.answers);
   }
 }
+
+function exerciseParts(exercise) {
+  return {
+    answers: $$(exercise, ".quarto-exercise-answer"),
+    blanks: $$(exercise, ".quarto-exercise-blank-container"),
+    chooses: $$(exercise, ".quarto-exercise-choose-container"),
+    explanation: $(exercise, ".quarto-exercise-explanation"),
+    status: $(exercise, ".quarto-exercise-status"),
+    hintPanel: $(exercise, ".quarto-exercise-hint"),
+    reveal: bool(exercise.dataset.reveal),
+    lock: bool(exercise.dataset.lock),
+    checkButton: $(exercise, ".quarto-exercise-check-btn"),
+    resetButton: $(exercise, ".quarto-exercise-reset-btn")
+  };
+}
+
+function resolveExercise(exercise) {
+  return typeof exercise === "string" ? document.querySelector(exercise) : exercise;
+}
+
+window.QuartoExercises = {
+  init: initExercises,
+  checkExercise(exercise) {
+    const root = resolveExercise(exercise);
+    return root ? verifyExercise(root, exerciseParts(root)) : false;
+  },
+  resetExercise(exercise) {
+    const root = resolveExercise(exercise);
+    if (root) resetExercise(root, exerciseParts(root));
+  }
+};

@@ -1,10 +1,29 @@
 /* quarto-exercises.css */
 
 .quarto-exercise {
+  --ex-accent: #1a73e8;
+  --ex-accent-dark: #4285f4;
+  --ex-correct: #137333;
+  --ex-incorrect: #c5221f;
+  --ex-incorrect-border: #ea4335;
+  --ex-muted: #555;
+  --ex-muted-dark: #aaa;
+  --ex-border-color: #ccc;
+  --ex-border-strong: #ced4da;
+  --ex-bg: transparent;
+  --ex-control-bg: #f8f9fa;
+  --ex-control-hover-bg: #e9ecef;
+  --ex-control-primary-bg: #e9ecef;
+  --ex-control-primary-hover-bg: #dee2e6;
+  --ex-border-radius: 4px;
+  --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
+  --ex-panel-border: #6c757d;
+  --ex-panel-border-dark: #adb5bd;
   margin: 1.25rem 0;
   font-family: inherit;
   color: inherit;
   box-sizing: border-box;
+  background: var(--ex-bg);
 }
 
 .quarto-exercise [hidden],
@@ -44,30 +63,33 @@
 }
 
 .quarto-exercise-answer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.6rem;
   padding: 0.1rem 0;
   border: none !important;
   background: transparent !important;
-  border-radius: 0;
+  border-radius: var(--ex-border-radius);
+  cursor: pointer;
 }
 
-.quarto-exercise-label {
+.quarto-exercise-control {
   display: flex;
   align-items: flex-start; /* Align with first line of text */
-  cursor: pointer;
   margin: 0;
   color: inherit;
   font-weight: inherit;
 }
 
 .quarto-exercise-input {
-  margin: 0.2rem 0.6rem 0 0; /* Perfectly align checkbox/radio center with first text line */
+  margin: 0.2rem 0.25rem 0 0; /* Perfectly align checkbox/radio center with first text line */
   flex-shrink: 0;
   cursor: pointer;
 }
 
 .quarto-exercise-input:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3);
+  box-shadow: var(--ex-focus-ring);
 }
 
 .quarto-exercise-answer-label {
@@ -90,30 +112,31 @@
 }
 
 /* Choice States (No bulky background/border boxes) */
-.quarto-exercise-answer.is-correct .quarto-exercise-label {
-  color: #137333 !important; /* Green */
+.quarto-exercise-answer.is-correct {
+  color: var(--ex-correct) !important;
   font-weight: 500;
 }
 
-.quarto-exercise-answer.is-incorrect .quarto-exercise-label {
-  color: #c5221f !important; /* Red */
+.quarto-exercise-answer.is-incorrect {
+  color: var(--ex-incorrect) !important;
 }
 
 /* Feedback Styling (Indented below the choice content, no margins, no padding) */
 .quarto-exercise-feedback {
   font-size: 0.88em;
   margin-top: 0.2rem;
-  margin-left: 1.6rem; /* Aligned with answer content */
+  margin-left: calc(1rem + 0.85rem);
+  grid-column: 2;
   line-height: 1.4;
-  color: #555;
+  color: var(--ex-muted);
 }
 
 .quarto-exercise-answer.is-correct .quarto-exercise-feedback {
-  color: #137333;
+  color: var(--ex-correct);
 }
 
 .quarto-exercise-answer.is-incorrect .quarto-exercise-feedback {
-  color: #c5221f;
+  color: var(--ex-incorrect);
 }
 
 /* Action Buttons - Minimal controls */
@@ -125,59 +148,61 @@
 
 .quarto-exercise-check-btn,
 .quarto-exercise-reset-btn,
-.quarto-exercise-hint-btn {
+.quarto-exercise-hint-btn,
+.quarto-exercise-blank-check-btn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
-  border: 1px solid #ccc;
-  background-color: #f8f9fa;
-  color: #333;
-  border-radius: 4px;
+  border: 1px solid var(--ex-border-color);
+  background-color: var(--ex-control-bg);
+  color: inherit;
+  border-radius: var(--ex-border-radius);
   cursor: pointer;
   line-height: 1.2;
 }
 
 .quarto-exercise-check-btn {
-  background-color: #e9ecef;
-  border-color: #ced4da;
+  background-color: var(--ex-control-primary-bg);
+  border-color: var(--ex-border-strong);
 }
 
 .quarto-exercise-check-btn:hover {
-  background-color: #dee2e6;
+  background-color: var(--ex-control-primary-hover-bg);
 }
 
 .quarto-exercise-reset-btn:hover,
-.quarto-exercise-hint-btn:hover {
-  background-color: #e9ecef;
+.quarto-exercise-hint-btn:hover,
+.quarto-exercise-blank-check-btn:hover {
+  background-color: var(--ex-control-hover-bg);
 }
 
 /* Hint Panel - Blue left border highlight */
 .quarto-exercise-hint {
   margin-top: 1rem;
   padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 2px solid #1a73e8;
-  color: #555;
+  border-left: 2px solid var(--ex-accent);
+  color: var(--ex-muted);
   font-size: 0.9em;
   line-height: 1.4;
 }
 
 body.quarto-dark .quarto-exercise-hint {
-  color: #aaa;
-  border-left-color: #4285f4;
+  color: var(--ex-muted-dark);
+  border-left-color: var(--ex-accent-dark);
 }
 
 /* Explanation Panel - Clean left border highlight */
 .quarto-exercise-explanation {
   margin-top: 1rem;
   padding: 0.25rem 0 0.25rem 1rem;
-  border-left: 2px solid #6c757d;
-  color: #555;
+  border-left: 2px solid var(--ex-panel-border);
+  color: var(--ex-muted);
   font-size: 0.9em;
   line-height: 1.4;
 }
 
 body.quarto-dark .quarto-exercise-explanation {
-  color: #aaa;
-  border-left-color: #adb5bd;
+  color: var(--ex-muted-dark);
+  border-left-color: var(--ex-panel-border-dark);
 }
 
 /* Fill-in-the-blank & Dropdown Styling (Seamless Inline integration) */
@@ -199,7 +224,7 @@ body.quarto-dark .quarto-exercise-explanation {
   padding: 0;
   margin: 0;
   border: none;
-  border-bottom: 1px solid #777; /* Clean underline style */
+  border-bottom: 1px solid var(--ex-muted); /* Clean underline style */
   border-radius: 0;
   background: transparent;
   color: inherit;
@@ -210,13 +235,13 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-blank-input:focus {
-  border-bottom-color: #1a73e8;
+  border-bottom-color: var(--ex-accent);
 }
 
 .quarto-exercise-blank-input.is-incorrect,
 .quarto-exercise-choose-select.is-incorrect {
-  border-bottom-color: #ea4335 !important;
-  color: #c5221f !important;
+  border-bottom-color: var(--ex-incorrect-border) !important;
+  color: var(--ex-incorrect) !important;
 }
 
 /* Correct Inline States (Renders like normal text, no boxes/borders/backgrounds) */
@@ -230,14 +255,15 @@ body.quarto-dark .quarto-exercise-explanation {
 
 .quarto-exercise-blank-container.is-correct .quarto-exercise-blank-input,
 .quarto-exercise-choose-container.is-correct .quarto-exercise-choose-select,
-.quarto-exercise-choose-container.is-correct .quarto-exercise-choose-check-btn {
+.quarto-exercise-choose-container.is-correct .quarto-exercise-choose-check-btn,
+.quarto-exercise-blank-container.is-correct .quarto-exercise-blank-check-btn {
   display: none !important;
 }
 
 .quarto-exercise-blank-correct-text,
 .quarto-exercise-choose-correct-text {
   display: inline !important;
-  color: #137333 !important;
+  color: var(--ex-correct) !important;
   font-weight: bold;
 }
 
@@ -257,7 +283,7 @@ body.quarto-dark .quarto-exercise-explanation {
 
 .quarto-exercise-blank-feedback.is-incorrect:not(:empty),
 .quarto-exercise-choose-feedback.is-incorrect:not(:empty) {
-  color: #c5221f !important;
+  color: var(--ex-incorrect) !important;
 }
 
 .quarto-exercise-blank-feedback.is-incorrect:not(:empty)::before,
@@ -285,7 +311,7 @@ body.quarto-dark .quarto-exercise-explanation {
   font-size: inherit;
   line-height: inherit;
   border: none;
-  border-bottom: 1px solid #777; /* Underline dropdown */
+  border-bottom: 1px solid var(--ex-muted); /* Underline dropdown */
   border-radius: 0;
   background: transparent;
   color: inherit;
@@ -300,18 +326,19 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-choose-select:focus {
-  border-bottom-color: #1a73e8;
+  border-bottom-color: var(--ex-accent);
 }
 
-.quarto-exercise-choose-check-btn {
+.quarto-exercise-choose-check-btn,
+.quarto-exercise-blank-check-btn {
   display: inline-block;
   vertical-align: baseline;
   padding: 0.15rem 0.5rem;
   font-size: 0.8em;
-  border: 1px solid #ced4da;
-  background-color: #f8f9fa;
-  color: #333;
-  border-radius: 4px;
+  border: 1px solid var(--ex-border-strong);
+  background-color: var(--ex-control-bg);
+  color: inherit;
+  border-radius: var(--ex-border-radius);
   cursor: pointer;
   margin-left: 0.25rem;
   line-height: 1.2;
@@ -319,12 +346,14 @@ body.quarto-dark .quarto-exercise-explanation {
   box-sizing: border-box;
 }
 
-.quarto-exercise-choose-check-btn:hover {
-  background-color: #e9ecef;
+.quarto-exercise-choose-check-btn:hover,
+.quarto-exercise-blank-check-btn:hover {
+  background-color: var(--ex-control-hover-bg);
 }
 
 /* Hide standalone button if nested in an exercise block */
-.quarto-exercise .quarto-exercise-choose-check-btn {
+.quarto-exercise .quarto-exercise-choose-check-btn,
+.quarto-exercise .quarto-exercise-blank-check-btn {
   display: none !important;
 }
 
@@ -336,9 +365,9 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-status.is-correct {
-  color: #137333;
+  color: var(--ex-correct);
 }
 
 .quarto-exercise-status.is-incorrect {
-  color: #c5221f;
+  color: var(--ex-incorrect);
 }

@@ -87,11 +87,20 @@ local function id_for(el, prefix)
 end
 
 local function alpha_key(index)
-  local key = alphabet[((index - 1) % #alphabet) + 1]
-  if index > #alphabet then
-    key = key .. tostring(math.floor((index - 1) / #alphabet))
+  local key = ""
+  while index > 0 do
+    local remainder = (index - 1) % #alphabet
+    key = alphabet[remainder + 1] .. key
+    index = math.floor((index - 1) / #alphabet)
   end
   return key
+end
+
+local function normalize_bool(value)
+  if value == nil or value == "" then
+    return value
+  end
+  return string.lower(tostring(value))
 end
 
 local function warn(id, msg)
@@ -168,7 +177,7 @@ local function check_attrs(actual, valid, id)
 end
 
 local function check_bool(actual, name, id)
-  local value = actual[name]
+  local value = normalize_bool(actual[name])
   if value ~= nil and value ~= "" and value ~= "true" and value ~= "false" then
     warn(id, "invalid boolean value for '" .. name .. "': '" .. value .. "'")
   end
@@ -181,14 +190,23 @@ local function check_bools(actual, id)
 end
 
 local function bool_option(actual, name)
-  if actual[name] ~= nil then
-    return actual[name] == "true"
+  local value = normalize_bool(actual[name])
+  if value ~= nil then
+    return value == "true"
   end
-  return options[name] == true
+  return options[name] == true or normalize_bool(options[name]) == "true"
 end
 
 local function string_option(actual, name)
   return actual[name] or options[name]
+end
+
+local function validate_explanation(value, id)
+  if value ~= "correct" and value ~= "after-check" and value ~= "never" then
+    warn(id, "unsupported explanation policy '" .. tostring(value) .. "'")
+    return defaults.explanation
+  end
+  return value
 end
 
 local function split_values(value, delimiter)
@@ -250,7 +268,7 @@ local function parse_exercise(el, id)
   for _, block in ipairs(el.content) do
     if block.t == "Div" and block.classes:includes("answer") then
       check_bool(block.attributes, "correct", id)
-      local correct = block.attributes.correct == "true"
+      local correct = normalize_bool(block.attributes.correct) == "true"
       local key = block.attributes.key
 
       if correct then
@@ -327,15 +345,18 @@ local function render_html_exercise(data, id, exercise_options)
   if #data.answers > 0 then
     output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">'))
     for _, answer in ipairs(data.answers) do
+      local input_id = id .. "-" .. answer.key
       output:insert(pandoc.RawBlock("html",
         '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer.key) .. '" data-correct="' .. tostring(answer.correct) .. '">' ..
-        '<label class="quarto-exercise-label"><input type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer.key) .. '" class="quarto-exercise-input" />' ..
-        '<span class="quarto-exercise-answer-label"></span><span class="quarto-exercise-answer-content">'
+        '<div class="quarto-exercise-control">' ..
+        '<input id="' .. html_escape(input_id) .. '" type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer.key) .. '" class="quarto-exercise-input" />' ..
+        '<label for="' .. html_escape(input_id) .. '" class="quarto-exercise-answer-label"></label>' ..
+        '</div><div class="quarto-exercise-answer-content">'
       ))
       for _, block in ipairs(answer.content) do
         output:insert(block)
       end
-      output:insert(pandoc.RawBlock("html", '</span></label>'))
+      output:insert(pandoc.RawBlock("html", "</div>"))
       if answer.feedback then
         output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-feedback" aria-live="polite" hidden>'))
         for _, block in ipairs(answer.feedback.content) do
@@ -377,7 +398,7 @@ local function render_html_exercise(data, id, exercise_options)
   end
 
   output:insert(pandoc.RawBlock("html", "</div>"))
-  return pandoc.Div(output)
+  return output
 end
 
 local function render_static_exercise(data)
@@ -457,7 +478,7 @@ local function render_blank(el, id)
       class = "quarto-exercise-blank-container",
       ["data-answers"] = answer,
       ["data-match"] = match,
-      ["data-ignore-case"] = el.attributes["ignore-case"] or tostring(options["ignore-case"]),
+      ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"]),
       ["data-trim"] = el.attributes.trim or "true",
       ["data-collapse-space"] = el.attributes["collapse-space"] or "false",
       ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
@@ -465,6 +486,7 @@ local function render_blank(el, id)
     }) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..
+    '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>' ..
     '<span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>'
   )
 end
@@ -483,7 +505,7 @@ local function render_choose(el, id)
     warn(id, "choose block with no parseable options")
   end
 
-  local ignore_case = el.attributes["ignore-case"] == "true"
+  local ignore_case = normalize_bool(el.attributes["ignore-case"]) == "true"
   local found = answer == ""
   for _, value in ipairs(values) do
     if ignore_case and string.lower(value) == string.lower(answer) or value == answer then
@@ -504,8 +526,8 @@ local function render_choose(el, id)
       class = "quarto-exercise-choose-container",
       ["data-answer"] = answer,
       ["data-options"] = table.concat(values, ","),
-      ["data-shuffle"] = el.attributes.shuffle or tostring(options.shuffle),
-      ["data-ignore-case"] = el.attributes["ignore-case"] or "false",
+      ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
+      ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
       ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
       ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
     }) ..
@@ -557,7 +579,7 @@ function Div(el)
     reset = bool_option(el.attributes, "reset"),
     shuffle = bool_option(el.attributes, "shuffle"),
     ["reshuffle-on-reset"] = bool_option(el.attributes, "reshuffle-on-reset"),
-    explanation = string_option(el.attributes, "explanation"),
+    explanation = validate_explanation(string_option(el.attributes, "explanation"), id),
     ["feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   })

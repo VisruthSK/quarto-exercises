@@ -2,10 +2,10 @@
 
 `quarto-exercises` is a Quarto extension that converts Pandoc-native Divs and Spans into interactive HTML exercises. 
 
-Designed for formative assessments in static teaching materials, it works offline in the browser with no databases, servers, R/Python packages, Node/npm configuration, or CDNs.
+Designed for formative practice in static teaching materials, it works offline in the browser with no databases, servers, R/Python packages, Node/npm configuration, or CDNs.
 
 > [!WARNING]
-> **Security Note:** The rendered HTML page source embeds all correct answers and feedback. Use this extension for self-assessment and practice, not high-stakes grading.
+> **Security Note:** The rendered HTML page source embeds all correct answers and feedback. Use this extension for self-practice, not high-stakes grading.
 
 ---
 
@@ -14,7 +14,7 @@ Designed for formative assessments in static teaching materials, it works offlin
 - **Multiple-Choice & Multiple-Answer Questions** (using radio inputs or checkboxes)
 - **Inline Fill-in-the-Blanks** with inputs that expand as you type
 - **Inline Dropdown Cloze Questions**
-- **Action Controls:** Instant or action-based checking, answer revealing, locking upon completion, and option shuffling.
+- **Action Controls:** Instant or button-based checking, answer revealing, locking upon completion, and option shuffling.
 - **Accessible & Responsive:** Keyboard-navigable, screen-reader friendly (using fieldsets and aria-live announcements), and styled using CSS variables.
 - **Static Fallbacks:** Static fallbacks (with optional answer keys) for PDF, DOCX, and Typst.
 
@@ -186,7 +186,7 @@ quarto-exercises:
   shuffle: false               # Randomize choice orders globally (default: false)
   reshuffle-on-reset: false    # Reshuffle choices on reset (default: false)
   show-answers: false          # Show answers in static non-HTML fallbacks (default: false)
-  explanation: correct         # Show explanation: 'correct' | 'always' | 'never' (default: 'correct')
+  explanation: correct         # Show explanation: 'correct' | 'after-check' | 'never' (default: 'correct')
   feedback-correct: "Correct." # Default success text
   feedback-incorrect: "Not quite." # Default failure text
 ```
@@ -219,15 +219,16 @@ Customize the layout and design (which supports light and dark modes) by overrid
 
 ```css
 .quarto-exercise {
-  --ex-border-color: rgba(0, 0, 0, 0.12);
-  --ex-bg: #ffffff;
-  --ex-border-radius: 8px;
-  --ex-padding: 1.25rem;
-  --ex-choice-bg: #f8f9fa;
-  --ex-choice-selected-bg: #e8f0fe;
-  --ex-correct-bg: #e6f4ea;
-  --ex-incorrect-bg: #fce8e6;
-  --ex-focus-ring: 0 0 0 3px rgba(26, 115, 232, 0.3);
+  --ex-accent: #1a73e8;
+  --ex-correct: #137333;
+  --ex-incorrect: #c5221f;
+  --ex-muted: #555;
+  --ex-border-color: #ccc;
+  --ex-bg: transparent;
+  --ex-control-bg: #f8f9fa;
+  --ex-control-hover-bg: #e9ecef;
+  --ex-border-radius: 4px;
+  --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
 }
 ```
 
@@ -238,7 +239,7 @@ Customize the layout and design (which supports light and dark modes) by overrid
 To run the full suite of automated unit, rendering, validation, and fallback tests, run:
 
 ```bash
-npm test
+pnpm test
 ```
 
 Alternatively, you can run the test script directly:
@@ -247,7 +248,7 @@ Alternatively, you can run the test script directly:
 node tests/run.js
 ```
 
-The test runner requires no npm package dependencies, relying on Node.js's built-in testing modules.
+The test runner uses Node.js's built-in testing modules. Browser visual smoke tests for light and dark mode run through Playwright and write screenshots to `tests/.tmp/visual/`.
 
 ---
 
