@@ -50,6 +50,10 @@ Legolas Greenleaf
 ::: {.answer correct=true key="merry"}
 Meriadoc Brandybuck
 :::
+
+::: {.hint}
+There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.
+:::
 :::
 
 ### Per-Answer Feedback & Question Explanation

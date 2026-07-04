@@ -262,6 +262,8 @@ function initExercise(ex) {
   const checkBtn = ex.querySelector(".quarto-exercise-check-btn");
   const resetBtn = ex.querySelector(".quarto-exercise-reset-btn");
   const explanation = ex.querySelector(".quarto-exercise-explanation");
+  const hintBtn = ex.querySelector(".quarto-exercise-hint-btn");
+  const hintPanel = ex.querySelector(".quarto-exercise-hint");
 
   const instant = ex.dataset.instant === "true";
   const reveal = ex.dataset.reveal === "true";
@@ -555,8 +557,8 @@ function initExercise(ex) {
 
     if (statusEl) {
       statusEl.classList.remove("is-correct", "is-incorrect");
-      const fbCorrect = ex.dataset.feedbackCorrect || "";
-      const fbIncorrect = ex.dataset.feedbackIncorrect || "";
+      const fbCorrect = ex.dataset.feedbackCorrect !== undefined ? ex.dataset.feedbackCorrect : "Correct!";
+      const fbIncorrect = ex.dataset.feedbackIncorrect !== undefined ? ex.dataset.feedbackIncorrect : "Not quite.";
       if (allCorrect) {
         statusEl.textContent = fbCorrect;
         statusEl.classList.add("is-correct");
@@ -566,6 +568,13 @@ function initExercise(ex) {
       }
     }
   };
+
+  if (hintBtn && hintPanel) {
+    hintBtn.addEventListener("click", () => {
+      const isHidden = hintPanel.style.display === "none";
+      hintPanel.style.display = isHidden ? "block" : "none";
+    });
+  }
 
   if (checkBtn) {
     checkBtn.addEventListener("click", verifyExercise);
@@ -615,6 +624,10 @@ function initExercise(ex) {
 
       if (explanation) {
         explanation.style.display = "none";
+      }
+
+      if (hintPanel) {
+        hintPanel.style.display = "none";
       }
 
       const statusEl = ex.querySelector(".quarto-exercise-status");

@@ -118,7 +118,8 @@
 }
 
 .quarto-exercise-check-btn,
-.quarto-exercise-reset-btn {
+.quarto-exercise-reset-btn,
+.quarto-exercise-hint-btn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
   border: 1px solid #ccc;
@@ -138,8 +139,24 @@
   background-color: #dee2e6;
 }
 
-.quarto-exercise-reset-btn:hover {
+.quarto-exercise-reset-btn:hover,
+.quarto-exercise-hint-btn:hover {
   background-color: #e9ecef;
+}
+
+/* Hint Panel - Blue left border highlight */
+.quarto-exercise-hint {
+  margin-top: 1rem;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 2px solid #1a73e8;
+  color: #555;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+body.quarto-dark .quarto-exercise-hint {
+  color: #aaa;
+  border-left-color: #4285f4;
 }
 
 /* Explanation Panel - Clean left border highlight */

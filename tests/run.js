@@ -117,6 +117,10 @@ Frodo Baggins
 ::: {.answer key="legolas"}
 Legolas
 :::
+
+::: {.hint}
+He is short and has hairy feet.
+:::
 :::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'mc.qmd'), qmdContent);
@@ -139,6 +143,10 @@ Legolas
     // 3. Accessibility elements present
     assert.match(html, /fieldset class="quarto-exercise-fieldset"/);
     assert.match(html, /legend class="visually-hidden"/);
+
+    // 4. Hints are parsed and rendered correctly
+    assert.match(html, /class="quarto-exercise-hint-btn"/);
+    assert.match(html, /class="quarto-exercise-hint"/);
   });
 
   test('3. Fill in the blank and Cloze Rendering (HTML)', () => {

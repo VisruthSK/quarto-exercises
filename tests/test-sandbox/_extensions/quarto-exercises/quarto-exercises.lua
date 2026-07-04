@@ -10,8 +10,8 @@ local doc_options = {
   ["reshuffle-on-reset"] = false,
   ["show-answers"] = false,
   explanation = "correct",
-  ["feedback-correct"] = "",
-  ["feedback-incorrect"] = ""
+  ["feedback-correct"] = "Correct!",
+  ["feedback-incorrect"] = "Not quite."
 }
 
 -- Helper to convert Pandoc Meta objects to standard Lua values
@@ -148,6 +148,7 @@ function Div(el)
   -- Extract content components
   local answers = {}
   local explanation = nil
+  local hint = nil
   local question_stem = pandoc.List()
   local correct_count = 0
   local has_answers = false
@@ -204,6 +205,11 @@ function Div(el)
         warn("multiple explanation blocks inside one question", id)
       end
       explanation = block
+    elseif block.t == "Div" and block.classes:includes("hint") then
+      if hint then
+        warn("multiple hint blocks inside one question", id)
+      end
+      hint = block
     else
       table.insert(question_stem, block)
     end
@@ -320,7 +326,17 @@ function Div(el)
     if opt_reset then
       output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-reset-btn">Reset</button>'))
     end
+    if hint then
+      output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-hint-btn">Hint</button>'))
+    end
     output:insert(pandoc.RawBlock("html", '<span class="quarto-exercise-status" aria-live="polite"></span></div>'))
+
+    -- Render the question-level hint block
+    if hint then
+      output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-hint" style="display: none;" aria-live="polite">'))
+      output:insert(hint)
+      output:insert(pandoc.RawBlock("html", '</div>'))
+    end
 
     -- Render the question-level explanation block
     if explanation then

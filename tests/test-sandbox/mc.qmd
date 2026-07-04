@@ -14,4 +14,8 @@ Frodo Baggins
 ::: {.answer key="legolas"}
 Legolas
 :::
+
+::: {.hint}
+He is short and has hairy feet.
+:::
 :::
