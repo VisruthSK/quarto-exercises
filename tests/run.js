@@ -9,6 +9,7 @@ const assert = require('assert');
 const test = require('node:test');
 
 const TEMP_DIR = path.join(__dirname, 'test-sandbox');
+const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 
 // Helper to prepare temp directory
 function setup() {
@@ -40,13 +41,14 @@ function copyFolderSync(from, to) {
 // Helper to run quarto render and capture stdout/stderr
 function runQuarto(fileName, format = 'html') {
   const filePath = path.join(TEMP_DIR, fileName);
-  const res = spawnSync('quarto', ['render', filePath, '--to', format], {
+  const res = spawnSync(`quarto render ${quote(filePath)} --to ${quote(format)}`, {
     encoding: 'utf8',
     shell: true
   });
   return {
     stdout: res.stdout || '',
-    stderr: res.stderr || '',
+    stderr: res.stderr || (res.error ? res.error.message : ''),
+    error: res.error,
     success: res.status === 0
   };
 }
