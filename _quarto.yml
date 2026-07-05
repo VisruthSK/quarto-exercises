@@ -3,16 +3,21 @@ project:
   output-dir: _site
   render:
     - "*.qmd"
-    - "*.md"
+    - "index.qmd"
+    - "example.qmd"
+    - "reference.qmd"
+    - "!tests"
 
 website:
   title: quarto-exercises
   navbar:
     left:
-      - href: index.md
+      - href: index.qmd
         text: Home
       - href: example.qmd
         text: Example
+      - href: reference.qmd
+        text: Reference
 
 format:
   html:

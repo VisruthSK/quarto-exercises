@@ -234,7 +234,7 @@ async function runVisualMode(playwright, mode) {
 
   const incorrectState = await page.evaluate(() => {
     const answer = document.querySelector('[data-key="a"]');
-    const feedback = document.querySelector('.quarto-exercise-choose-feedback');
+    const feedback = document.querySelector('.quarto-exercise-feedback');
     const blankFeedback = document.querySelector('.quarto-exercise-blank-feedback');
     const hint = document.querySelector('.quarto-exercise-hint');
     const exercise = document.querySelector('.quarto-exercise');

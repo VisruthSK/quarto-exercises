@@ -390,19 +390,23 @@ body.quarto-dark .quarto-exercise-explanation {
   color: var(--ex-incorrect) !important;
 }
 
+.quarto-exercise-blank-feedback.is-correct:not(:empty),
+.quarto-exercise-choose-feedback.is-correct:not(:empty) {
+  color: var(--ex-correct) !important;
+}
+
 .quarto-exercise-blank-feedback.is-incorrect:not(:empty)::before,
-.quarto-exercise-choose-feedback.is-incorrect:not(:empty)::before {
+.quarto-exercise-choose-feedback.is-incorrect:not(:empty)::before,
+.quarto-exercise-blank-feedback.is-correct:not(:empty)::before,
+.quarto-exercise-choose-feedback.is-correct:not(:empty)::before {
   content: "(";
 }
 
 .quarto-exercise-blank-feedback.is-incorrect:not(:empty)::after,
-.quarto-exercise-choose-feedback.is-incorrect:not(:empty)::after {
+.quarto-exercise-choose-feedback.is-incorrect:not(:empty)::after,
+.quarto-exercise-blank-feedback.is-correct:not(:empty)::after,
+.quarto-exercise-choose-feedback.is-correct:not(:empty)::after {
   content: ")";
-}
-
-.quarto-exercise-blank-feedback.is-correct,
-.quarto-exercise-choose-feedback.is-correct {
-  display: none !important; /* Hide Correct! text for inline elements */
 }
 
 .quarto-exercise-choose-select {
