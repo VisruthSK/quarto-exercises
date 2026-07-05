@@ -1,0 +1,170 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "quarto-exercises is a Quarto extension for small interactive practice questions in Quarto documents built to HTML.\nSee the example and reference pages for more details on the problem types and options.\n\n\nAdd the extension to a Quarto project:\nquarto add VisruthSK/quarto-exercises\nThen enable the filter in a document or project config:\nfilters:\n  - quarto-exercises\n\n\n\nWrite a question as an .exercise Div. Each .answer Div becomes one choice. Mark the correct answer with correct=true.\n::: {.exercise}\nWho carried the One Ring out of the Shire?\n\n::: {.answer correct=true}\nFrodo Baggins\n:::\n\n::: {.answer}\nBoromir\n:::\n:::\nIf more than one answer is correct, the extension renders checkboxes instead of radio buttons.\n::: {.exercise shuffle=true}\nWhich members of the Fellowship are hobbits? Select all that apply.\n\n::: {.answer correct=true key=\"frodo\"}\nFrodo Baggins\n:::\n\n::: {.answer correct=true key=\"sam\"}\nSamwise Gamgee\n:::\n\n::: {.answer key=\"legolas\"}\nLegolas Greenleaf\n:::\n\n::: {.answer correct=true key=\"merry\"}\nMeriadoc Brandybuck\n:::\n\n::: {.hint}\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n:::\n:::\nUse key when you want stable answer identifiers in the generated HTML. Without it, the extension assigns a, b, c, and so on.\n\n\n\nAn answer can contain one .feedback Div. An exercise can contain one .hint Div and one .explanation Div.\n::: {.exercise}\nWhat is the name of the wizard who guides the Fellowship?\n\n::: {.answer correct=true}\nGandalf\n\n::: {.feedback}\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n:::\n:::\n\n::: {.answer}\nSaruman\n\n::: {.feedback}\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n:::\n:::\n\n::: {.explanation}\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n:::\n:::\nThe explanation option controls when explanations show:\n\ncorrect: after a correct check\nafter-check: after any check\nnever: never in HTML output\n\n\n\n\nUse a .blank Span for a text input.\nThe wizard who guides the Fellowship is [`Gandalf`]{.blank answer=\"Gandalf\"}.\nMultiple accepted answers use a pipe-separated answers attribute:\nThe Ringbearer is [`Frodo`]{.blank answers=\"Frodo|Frodo Baggins\" ignore-case=true}.\nUse \\\\| for a literal pipe inside one answer in Quarto Markdown source:\nAnswer yes or no: [`yes|no`]{.blank answers=\"yes\\\\|no|maybe\" match=\"one-of\"}.\nRegex matching uses match=\"regex\" with answer:\nThe full title of the first volume of Lord of the Rings is [`The Fellowship of the Ring`]{.blank answer=\"^The\\s+Fellowship\\s+of\\s+the\\s+Ring$\" match=\"regex\" ignore-case=true}.\nBlank attributes:\n\nanswer: one accepted answer\nanswers: pipe-separated accepted answers\nmatch: exact, one-of, or regex\nignore-case: compare without case sensitivity\ntrim: trim input before checking, default true\ncollapse-space: collapse repeated whitespace before checking, default false\nfeedback-correct and feedback-incorrect: override the feedback text\n\n\n\n\nUse a .choose Span for a dropdown.\nThe One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer=\"Mordor\"}.\nThe extension parses pipe-separated text as options. Spaces around | are part of the option value, so write compact lists unless the spaces are intentional. Use \\\\| for a literal pipe inside one option in Quarto Markdown source.\nIs this correct? [`yes/no`]{.choose options=\"yes/no|maybe|unknown\" answer=\"yes/no\"}.\nChoose the literal token: [yes\\\\|no|maybe|unknown]{.choose answer=\"yes|no\"}.\nAn .exercise can group blanks and choices under one Check and Reset control:\n::: {.exercise}\nThe hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer=\"Aragorn\"}, who is also known as [Strider]{.blank answer=\"Strider\"}.\n\n::: {.hint}\nWhat does Sam call him?\n:::\n:::\nChoice attributes:\n\nanswer: the correct option\noptions: pipe-separated options\nignore-case: compare without case sensitivity\nshuffle: shuffle the option order\nfeedback-correct and feedback-incorrect: override the feedback text\n\n\n\n\nUse a .code-cloze code block when blanks or dropdowns should appear inside highlighted code. Put cloze controls between {{ and }}.\n```{.code-cloze lang=\"r\"}\nx &lt;- {{choose answer=\"c\" options=\"c|list|data.frame\"}}(1, 2, 3, 4, 5)\ntotal &lt;- {{blank answer=\"sum\"}}(x)\ncat(\"Total:\", total, \"\\n\")\n```\nThe lang attribute becomes the syntax-highlighting language.\nPipe-delimited answers and options inside code cloze use the same escape rules, but code cloze markers are parsed from raw code text. Write \\| there for a literal pipe.\n```{.code-cloze lang=\"text\"}\nresponse = {{choose answer=\"yes|no\" options=\"yes\\|no|maybe\"}}\n```\nWrap the code block in an .exercise if it should share controls with the rest of the exercise:\n::: {.exercise}\n```{.code-cloze lang=\"python\"}\nnumbers = [1, 2, 3, 4, 5]\ntotal = {{choose answer=\"sum\" options=\"sum|max|min|len\"}}(numbers)\nprint({{blank answer=\"total\"}})\n```\n:::\nStandalone .code-cloze blocks get their own Check and Reset buttons.\n\n\n\nUse true or false for boolean attributes.\nThe filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.\nDo not put .blank, .choose, or .code-cloze controls inside .answer blocks. Put them in the exercise stem or in a standalone paragraph instead.\nPipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write \\\\| for a literal pipe and \\\\\\\\ for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside .code-cloze blocks, write \\| for a literal pipe and \\\\ for a literal backslash because code cloze markers are parsed from raw code text.\n\n\n\nGlobal options go under quarto-exercises in metadata. Most exercise options can also be set as attributes on a single .exercise Div.\nThese are the defaults used by the extension:\nquarto-exercises:\n  instant: false\n  reveal: false\n  lock: false\n  reset: true\n  shuffle: false\n  reshuffle-on-reset: false\n  show-answers: false\n  explanation: correct\n  feedback-correct: \"Correct!\"\n  feedback-incorrect: \"Not quite.\"\n  ignore-case: false\nPer-exercise overrides:\n::: {.exercise shuffle=true instant=true lock=true explanation=\"after-check\"}\nQuestion content here...\n:::\nExercise attributes:\n\nshuffle: randomize answer choices\nreshuffle-on-reset: shuffle again after Reset\ninstant: check after each change instead of showing a Check button\nreveal: reveal correct answers after checking\nlock: disable controls after a correct answer\nreset: show the Reset button\nexplanation: correct, after-check, or never\nfeedback-correct and feedback-incorrect: status text for the whole exercise\n\n\n\n\nFor formats such as PDF, DOCX, Typst, and Markdown, the filter removes the interactive controls:\n\nmultiple-choice exercises become lettered lists\nblanks, choices, and code cloze controls become underlines\nshow-answers: true prints answer keys and explanations\n\nExample answer key:\nAnswer: A, C\n\n\n\nThe extension ships its own CSS and follows Quarto light and dark modes. These are the default light-mode CSS variables:\n.quarto-exercise {\n  --ex-accent: #1a73e8;\n  --ex-accent-dark: #4285f4;\n  --ex-correct: #137333;\n  --ex-incorrect: #c5221f;\n  --ex-incorrect-border: #ea4335;\n  --ex-muted: #555;\n  --ex-muted-dark: #aaa;\n  --ex-border-color: #ccc;\n  --ex-border-strong: #ced4da;\n  --ex-bg: transparent;\n  --ex-control-bg: #f8f9fa;\n  --ex-control-hover-bg: #e9ecef;\n  --ex-control-primary-bg: #e9ecef;\n  --ex-control-primary-hover-bg: #dee2e6;\n  --ex-border-radius: 4px;\n  --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);\n  --ex-panel-border: #6c757d;\n  --ex-panel-border-dark: #adb5bd;\n}\nThese are the dark-mode overrides:\nbody.quarto-dark {\n  --ex-accent: #8ab4f8;\n  --ex-accent-dark: #aecbfa;\n  --ex-correct: #81c995;\n  --ex-incorrect: #f28b82;\n  --ex-incorrect-border: #f28b82;\n  --ex-muted: #aaa;\n  --ex-muted-dark: #aaa;\n  --ex-border-color: #555;\n  --ex-border-strong: #666;\n  --ex-bg: transparent;\n  --ex-control-bg: #2d2e30;\n  --ex-control-hover-bg: #3c4043;\n  --ex-control-primary-bg: #3c4043;\n  --ex-control-primary-hover-bg: #4f5357;\n  --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);\n  --ex-panel-border: #9aa0a6;\n}\n\n\n\n\nThe correct answers and feedback are stored in the HTML source.\nInline blanks or choices inside .answer blocks are not supported.\nRegex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if collapse-space=true, repeated whitespace is also collapsed to one space.\nLong text inputs are capped at 380px and scroll horizontally.\nPut this filter before filters that rewrite the same Divs, Spans, or code blocks."
+  },
+  {
+    "objectID": "index.html#installation",
+    "href": "index.html#installation",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Add the extension to a Quarto project:\nquarto add VisruthSK/quarto-exercises\nThen enable the filter in a document or project config:\nfilters:\n  - quarto-exercises"
+  },
+  {
+    "objectID": "index.html#multiple-choice",
+    "href": "index.html#multiple-choice",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Write a question as an .exercise Div. Each .answer Div becomes one choice. Mark the correct answer with correct=true.\n::: {.exercise}\nWho carried the One Ring out of the Shire?\n\n::: {.answer correct=true}\nFrodo Baggins\n:::\n\n::: {.answer}\nBoromir\n:::\n:::\nIf more than one answer is correct, the extension renders checkboxes instead of radio buttons.\n::: {.exercise shuffle=true}\nWhich members of the Fellowship are hobbits? Select all that apply.\n\n::: {.answer correct=true key=\"frodo\"}\nFrodo Baggins\n:::\n\n::: {.answer correct=true key=\"sam\"}\nSamwise Gamgee\n:::\n\n::: {.answer key=\"legolas\"}\nLegolas Greenleaf\n:::\n\n::: {.answer correct=true key=\"merry\"}\nMeriadoc Brandybuck\n:::\n\n::: {.hint}\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n:::\n:::\nUse key when you want stable answer identifiers in the generated HTML. Without it, the extension assigns a, b, c, and so on."
+  },
+  {
+    "objectID": "index.html#feedback-hints-and-explanations",
+    "href": "index.html#feedback-hints-and-explanations",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "An answer can contain one .feedback Div. An exercise can contain one .hint Div and one .explanation Div.\n::: {.exercise}\nWhat is the name of the wizard who guides the Fellowship?\n\n::: {.answer correct=true}\nGandalf\n\n::: {.feedback}\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n:::\n:::\n\n::: {.answer}\nSaruman\n\n::: {.feedback}\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n:::\n:::\n\n::: {.explanation}\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n:::\n:::\nThe explanation option controls when explanations show:\n\ncorrect: after a correct check\nafter-check: after any check\nnever: never in HTML output"
+  },
+  {
+    "objectID": "index.html#inline-blanks",
+    "href": "index.html#inline-blanks",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Use a .blank Span for a text input.\nThe wizard who guides the Fellowship is [`Gandalf`]{.blank answer=\"Gandalf\"}.\nMultiple accepted answers use a pipe-separated answers attribute:\nThe Ringbearer is [`Frodo`]{.blank answers=\"Frodo|Frodo Baggins\" ignore-case=true}.\nUse \\\\| for a literal pipe inside one answer in Quarto Markdown source:\nAnswer yes or no: [`yes|no`]{.blank answers=\"yes\\\\|no|maybe\" match=\"one-of\"}.\nRegex matching uses match=\"regex\" with answer:\nThe full title of the first volume of Lord of the Rings is [`The Fellowship of the Ring`]{.blank answer=\"^The\\s+Fellowship\\s+of\\s+the\\s+Ring$\" match=\"regex\" ignore-case=true}.\nBlank attributes:\n\nanswer: one accepted answer\nanswers: pipe-separated accepted answers\nmatch: exact, one-of, or regex\nignore-case: compare without case sensitivity\ntrim: trim input before checking, default true\ncollapse-space: collapse repeated whitespace before checking, default false\nfeedback-correct and feedback-incorrect: override the feedback text"
+  },
+  {
+    "objectID": "index.html#inline-choices",
+    "href": "index.html#inline-choices",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Use a .choose Span for a dropdown.\nThe One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer=\"Mordor\"}.\nThe extension parses pipe-separated text as options. Spaces around | are part of the option value, so write compact lists unless the spaces are intentional. Use \\\\| for a literal pipe inside one option in Quarto Markdown source.\nIs this correct? [`yes/no`]{.choose options=\"yes/no|maybe|unknown\" answer=\"yes/no\"}.\nChoose the literal token: [yes\\\\|no|maybe|unknown]{.choose answer=\"yes|no\"}.\nAn .exercise can group blanks and choices under one Check and Reset control:\n::: {.exercise}\nThe hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer=\"Aragorn\"}, who is also known as [Strider]{.blank answer=\"Strider\"}.\n\n::: {.hint}\nWhat does Sam call him?\n:::\n:::\nChoice attributes:\n\nanswer: the correct option\noptions: pipe-separated options\nignore-case: compare without case sensitivity\nshuffle: shuffle the option order\nfeedback-correct and feedback-incorrect: override the feedback text"
+  },
+  {
+    "objectID": "index.html#code-cloze",
+    "href": "index.html#code-cloze",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Use a .code-cloze code block when blanks or dropdowns should appear inside highlighted code. Put cloze controls between {{ and }}.\n```{.code-cloze lang=\"r\"}\nx &lt;- {{choose answer=\"c\" options=\"c|list|data.frame\"}}(1, 2, 3, 4, 5)\ntotal &lt;- {{blank answer=\"sum\"}}(x)\ncat(\"Total:\", total, \"\\n\")\n```\nThe lang attribute becomes the syntax-highlighting language.\nPipe-delimited answers and options inside code cloze use the same escape rules, but code cloze markers are parsed from raw code text. Write \\| there for a literal pipe.\n```{.code-cloze lang=\"text\"}\nresponse = {{choose answer=\"yes|no\" options=\"yes\\|no|maybe\"}}\n```\nWrap the code block in an .exercise if it should share controls with the rest of the exercise:\n::: {.exercise}\n```{.code-cloze lang=\"python\"}\nnumbers = [1, 2, 3, 4, 5]\ntotal = {{choose answer=\"sum\" options=\"sum|max|min|len\"}}(numbers)\nprint({{blank answer=\"total\"}})\n```\n:::\nStandalone .code-cloze blocks get their own Check and Reset buttons."
+  },
+  {
+    "objectID": "index.html#authoring-notes",
+    "href": "index.html#authoring-notes",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Use true or false for boolean attributes.\nThe filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.\nDo not put .blank, .choose, or .code-cloze controls inside .answer blocks. Put them in the exercise stem or in a standalone paragraph instead.\nPipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write \\\\| for a literal pipe and \\\\\\\\ for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside .code-cloze blocks, write \\| for a literal pipe and \\\\ for a literal backslash because code cloze markers are parsed from raw code text."
+  },
+  {
+    "objectID": "index.html#options",
+    "href": "index.html#options",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "Global options go under quarto-exercises in metadata. Most exercise options can also be set as attributes on a single .exercise Div.\nThese are the defaults used by the extension:\nquarto-exercises:\n  instant: false\n  reveal: false\n  lock: false\n  reset: true\n  shuffle: false\n  reshuffle-on-reset: false\n  show-answers: false\n  explanation: correct\n  feedback-correct: \"Correct!\"\n  feedback-incorrect: \"Not quite.\"\n  ignore-case: false\nPer-exercise overrides:\n::: {.exercise shuffle=true instant=true lock=true explanation=\"after-check\"}\nQuestion content here...\n:::\nExercise attributes:\n\nshuffle: randomize answer choices\nreshuffle-on-reset: shuffle again after Reset\ninstant: check after each change instead of showing a Check button\nreveal: reveal correct answers after checking\nlock: disable controls after a correct answer\nreset: show the Reset button\nexplanation: correct, after-check, or never\nfeedback-correct and feedback-incorrect: status text for the whole exercise"
+  },
+  {
+    "objectID": "index.html#non-html-output",
+    "href": "index.html#non-html-output",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "For formats such as PDF, DOCX, Typst, and Markdown, the filter removes the interactive controls:\n\nmultiple-choice exercises become lettered lists\nblanks, choices, and code cloze controls become underlines\nshow-answers: true prints answer keys and explanations\n\nExample answer key:\nAnswer: A, C"
+  },
+  {
+    "objectID": "index.html#styling",
+    "href": "index.html#styling",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "The extension ships its own CSS and follows Quarto light and dark modes. These are the default light-mode CSS variables:\n.quarto-exercise {\n  --ex-accent: #1a73e8;\n  --ex-accent-dark: #4285f4;\n  --ex-correct: #137333;\n  --ex-incorrect: #c5221f;\n  --ex-incorrect-border: #ea4335;\n  --ex-muted: #555;\n  --ex-muted-dark: #aaa;\n  --ex-border-color: #ccc;\n  --ex-border-strong: #ced4da;\n  --ex-bg: transparent;\n  --ex-control-bg: #f8f9fa;\n  --ex-control-hover-bg: #e9ecef;\n  --ex-control-primary-bg: #e9ecef;\n  --ex-control-primary-hover-bg: #dee2e6;\n  --ex-border-radius: 4px;\n  --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);\n  --ex-panel-border: #6c757d;\n  --ex-panel-border-dark: #adb5bd;\n}\nThese are the dark-mode overrides:\nbody.quarto-dark {\n  --ex-accent: #8ab4f8;\n  --ex-accent-dark: #aecbfa;\n  --ex-correct: #81c995;\n  --ex-incorrect: #f28b82;\n  --ex-incorrect-border: #f28b82;\n  --ex-muted: #aaa;\n  --ex-muted-dark: #aaa;\n  --ex-border-color: #555;\n  --ex-border-strong: #666;\n  --ex-bg: transparent;\n  --ex-control-bg: #2d2e30;\n  --ex-control-hover-bg: #3c4043;\n  --ex-control-primary-bg: #3c4043;\n  --ex-control-primary-hover-bg: #4f5357;\n  --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);\n  --ex-panel-border: #9aa0a6;\n}"
+  },
+  {
+    "objectID": "index.html#limitations",
+    "href": "index.html#limitations",
+    "title": "quarto-exercises",
+    "section": "",
+    "text": "The correct answers and feedback are stored in the HTML source.\nInline blanks or choices inside .answer blocks are not supported.\nRegex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if collapse-space=true, repeated whitespace is also collapsed to one space.\nLong text inputs are capped at 380px and scroll horizontally.\nPut this filter before filters that rewrite the same Divs, Spans, or code blocks."
+  },
+  {
+    "objectID": "example.html",
+    "href": "example.html",
+    "title": "Quarto Exercises Extension Example",
+    "section": "",
+    "text": "This document shows how to use the quarto-exercises extension to write interactive practice exercises in Quarto HTML pages."
+  },
+  {
+    "objectID": "example.html#multiple-choice-multiple-answer",
+    "href": "example.html#multiple-choice-multiple-answer",
+    "title": "Quarto Exercises Extension Example",
+    "section": "Multiple Choice / Multiple Answer",
+    "text": "Multiple Choice / Multiple Answer\n\nMinimal Single-Choice\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\nMultiple-Correct with Custom Keys & Shuffling\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\nPer-Answer Feedback & Question Explanation\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\nCode Blocks in Choices\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
+  },
+  {
+    "objectID": "example.html#fill-in-the-blank",
+    "href": "example.html#fill-in-the-blank",
+    "title": "Quarto Exercises Extension Example",
+    "section": "Fill-in-the-blank",
+    "text": "Fill-in-the-blank\n\nBasic Blank\nThe wizard who guides the Fellowship is Check.\n\n\nMultiple Accepted Answers (Case-insensitive)\nThe Ringbearer is Check.\n\n\nEscaped Pipe in Answers\nAnswer with the literal token Check.\n\n\nRegex Matching\nThe full title of the first volume of Lord of the Rings is Check."
+  },
+  {
+    "objectID": "example.html#inline-choice-dropdown-cloze",
+    "href": "example.html#inline-choice-dropdown-cloze",
+    "title": "Quarto Exercises Extension Example",
+    "section": "Inline Choice / Dropdown Cloze",
+    "text": "Inline Choice / Dropdown Cloze\n\nStandalone Dropdowns\nThe One Ring was forged in Choose...Check.\nThe literal token is Choose...Check.\n\n\nNested in a Parent Exercise\nGrouping inline choices and blanks under a parent .exercise block combines their Check and Reset controls:\n\nThe hobbits are saved at the Prancing Pony by Choose...Check, who is also known as Check.\n\nCheck\nReset\nHint\n\n\nWhat does Sam call him?"
+  },
+  {
+    "objectID": "example.html#code-cloze",
+    "href": "example.html#code-cloze",
+    "title": "Quarto Exercises Extension Example",
+    "section": "Code Cloze",
+    "text": "Code Cloze\nBlanks and dropdowns can live directly inside code blocks. Syntax highlighting is fully preserved.\nA standalone .code-cloze block gets its own Check and Reset buttons:\n\n\nx &lt;- QEXCLOZEP000001(1, 2, 3, 4, 5)\ntotal &lt;- QEXCLOZEP000002(x)\ncat(\"Total:\", total, \"\\n\")\n\nCheckReset\n\nWrapping a .code-cloze block in an .exercise div gives it the same Check and Reset controls as any other exercise:\n\n\nnumbers = [1, 2, 3, 4, 5]\ntotal = QEXCLOZEP000001(numbers)\nprint(QEXCLOZEP000002)\n\n\nCheck\nReset\n\n\n\n\nx &lt;- 1:10\nmean &lt;- QEXCLOZEP000001(x)\ncat(QEXCLOZEP000002, \"\\n\")\n\n\nCheck\nReset"
+  },
+  {
+    "objectID": "reference.html",
+    "href": "reference.html",
+    "title": "Quarto Exercises Reference",
+    "section": "",
+    "text": "This page showcases how to configure and structure interactive practice exercises with the quarto-exercises extension."
+  },
+  {
+    "objectID": "reference.html#configuration",
+    "href": "reference.html#configuration",
+    "title": "Quarto Exercises Reference",
+    "section": "Configuration",
+    "text": "Configuration\nPlace configuration overrides in the document frontmatter under quarto-exercises. Options not specified will fall back to their system defaults.\nquarto-exercises:\n  instant: false              # Validate answers on change instead of waiting for a Check button\n  reveal: false               # Reveal correct answers and statuses when checking\n  lock: false                 # Disable input fields after a correct answer is checked\n  reset: true                 # Show a Reset button to clear student inputs\n  shuffle: false              # Randomize the display order of choices\n  reshuffle-on-reset: false   # Randomize option order again when clicking Reset\n  show-answers: false         # Print answers inline or below questions (mostly for print/PDF)\n  explanation: correct        # When to reveal explanations: correct, after-check, or never\n  feedback-correct: \"Correct!\" # Message displayed next to controls on a correct answer\n  feedback-incorrect: \"Not quite.\" # Message displayed next to controls on an incorrect answer\n  ignore-case: false          # Ignore casing during text input validation"
+  },
+  {
+    "objectID": "reference.html#multiple-choice-exercises",
+    "href": "reference.html#multiple-choice-exercises",
+    "title": "Quarto Exercises Reference",
+    "section": "Multiple Choice Exercises",
+    "text": "Multiple Choice Exercises\n::: {.exercise}\nWho carried the One Ring out of the Shire?\n\n::: {.answer correct=true}\nFrodo Baggins\n:::\n\n::: {.answer}\nBoromir\n:::\n\n::: {.answer}\nLegolas Greenleaf\n:::\n:::\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\nLegolas Greenleaf\n\n\n\n\nCheck\nReset\n\n\n\n::: {.exercise shuffle=true}\nWhich members of the Fellowship are hobbits? Select all that apply.\n\n::: {.answer correct=true key=\"frodo\"}\nFrodo Baggins\n:::\n\n::: {.answer key=\"legolas\"}\nLegolas Greenleaf\n:::\n\n::: {.answer correct=true key=\"sam\"}\nSamwise Gamgee\n:::\n:::\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nLegolas Greenleaf\n\n\n\nSamwise Gamgee\n\n\n\n\nCheck\nReset\n\n\n\n::: {.exercise}\nWhat is the name of the wizard who guides the Fellowship?\n\n::: {.answer correct=true}\nGandalf\n:::\n\n::: {.answer}\nSaruman\n:::\n\n::: {.explanation}\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n:::\n\n::: {.hint}\nHe is also known as Mithrandir.\n:::\n:::\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\n\nSaruman\n\n\n\n\nCheck\nReset\nHint\n\n\nHe is also known as Mithrandir.\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron."
+  },
+  {
+    "objectID": "reference.html#inline-blanks",
+    "href": "reference.html#inline-blanks",
+    "title": "Quarto Exercises Reference",
+    "section": "Inline Blanks",
+    "text": "Inline Blanks\nPipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write \\\\| for a literal pipe and \\\\\\\\ for a literal backslash. Inside .code-cloze blocks, write \\| for a literal pipe and \\\\ for a literal backslash because code cloze markers are parsed from raw code text.\nThe Capital of Gondor is [`Minas Tirith`]{.blank answer=\"Minas Tirith\"}.\nThe Capital of Gondor is Check.\n\nThe Ringbearer is [`Frodo`]{.blank answers=\"Frodo|Frodo Baggins\" ignore-case=true}.\nThe Ringbearer is Check.\n\nAnswer with the literal token [`yes|no`]{.blank answers=\"yes\\\\|no|maybe\" match=\"one-of\"}.\nAnswer with the literal token Check.\n\nEnter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer=\"^(0b)?1001$\" match=\"regex\" ignore-case=true}.\nEnter the Fellowship member count as a binary literal for 9, with an optional 0b prefix: Check.\n\nName the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers=\"Samwise|Sam|Samwise Gamgee\" match=\"one-of\" ignore-case=true trim=true collapse-space=true feedback-correct=\"Yes, Samwise!\" feedback-incorrect=\"Try again. Think of Frodo's loyal gardener.\"}.\nName the hobbit who accompanied Frodo to Mount Doom: Check."
+  },
+  {
+    "objectID": "reference.html#inline-dropdowns",
+    "href": "reference.html#inline-dropdowns",
+    "title": "Quarto Exercises Reference",
+    "section": "Inline Dropdowns",
+    "text": "Inline Dropdowns\nThe One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer=\"Mordor\" feedback-correct=\"\" feedback-incorrect=\"\"}.\nThe One Ring was forged in Choose...Check.\n\nThe literal token is [yes\\\\|no|maybe|unknown]{.choose answer=\"yes|no\"}.\nThe literal token is Choose...Check.\n\nThe capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer=\"Edoras\" shuffle=true feedback-incorrect=\"Not the correct location.\"}.\nThe capital of Rohan is Choose...Check."
+  },
+  {
+    "objectID": "reference.html#shared-controls-exercise",
+    "href": "reference.html#shared-controls-exercise",
+    "title": "Quarto Exercises Reference",
+    "section": "Shared Controls Exercise",
+    "text": "Shared Controls Exercise\n::: {.exercise}\nThe hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer=\"Aragorn\"}, who is also known as [Strider]{.blank answer=\"Strider\"}.\n:::\n\nThe hobbits are saved at the Prancing Pony by Choose...Check, who is also known as Check.\n\nCheck\nReset"
+  },
+  {
+    "objectID": "reference.html#code-cloze",
+    "href": "reference.html#code-cloze",
+    "title": "Quarto Exercises Reference",
+    "section": "Code Cloze",
+    "text": "Code Cloze\nCode cloze markers are parsed from raw code text, so escaped delimiter examples use one fewer backslash than normal Markdown attributes.\n```{.code-cloze lang=\"r\"}\n# Standalone code cloze (gets its own Check/Reset buttons)\nx &lt;- {{choose answer=\"c\" options=\"c|list|data.frame\"}}(1, 2, 3)\ntotal &lt;- {{blank answer=\"sum\"}}(x)\n```\n\n\n# Standalone code cloze (gets its own Check/Reset buttons)\nx &lt;- QEXCLOZEP000001(1, 2, 3)\ntotal &lt;- QEXCLOZEP000002(x)\n\nCheckReset\n\n\nWrap the code block in an .exercise if it should share controls with the rest of the exercise:\n::: {.exercise explanation=\"after-check\"}\n&gt; [!NOTE]\n&gt; Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.\n\n```{.code-cloze lang=\"python\"}\n# Fellowship configuration dictionary\nfellowship = {\n    # 1. Option selection using outer single quotes to wrap double-quoted strings:\n    \"bearer\": {{choose answer='\"Frodo\"' options='\"Frodo\"|\"Sam\"|\"Merry\"' ignore-case=\"true\" shuffle=\"true\"}},\n\n    # 2. Text input matching using list:\n    \"companion\": {{blank answers='\"Samwise\"|\"Sam\"|\"Samwise Gamgee\"' match=\"one-of\" ignore-case=\"true\" trim=\"true\" collapse-space=\"true\"}},\n\n    # 3. Regex matches Fellowship title (e.g. \"Fellowship of the Ring\" or \"The Fellowship of the Ring\"):\n    \"first_book_title\": {{blank answer=\"^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$\" match=\"regex\" ignore-case=\"true\"}},\n}\n```\n\n::: {.explanation}\nThis program demonstrates Python dictionary property assignments: option selections (\"Frodo\"), string list choices (\"Samwise\"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.\n:::\n:::\n\n\n[!NOTE] Inputs embedded inside .code-cloze blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.\n\n\n# Fellowship configuration dictionary\nfellowship = {\n    # 1. Option selection using outer single quotes to wrap double-quoted strings:\n    \"bearer\": QEXCLOZEP000001,\n\n    # 2. Text input matching using list:\n    \"companion\": QEXCLOZEP000002,\n\n    # 3. Regex matches Fellowship title (e.g. \"Fellowship of the Ring\" or \"The Fellowship of the Ring\"):\n    \"first_book_title\": QEXCLOZEP000003,\n}\n\n\nCheck\nReset\n\n\nThis program demonstrates Python dictionary property assignments: option selections (“Frodo”), string list choices (“Samwise”), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks."
+  }
+]
