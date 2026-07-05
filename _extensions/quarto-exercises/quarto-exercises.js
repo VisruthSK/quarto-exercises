@@ -120,6 +120,58 @@ function adjustInputWidth(input) {
   measurer.remove();
 }
 
+// Pre-size a code-blank to its answer text so the blank gives a visual hint
+// of the expected length. Falls back to adjustInputWidth as the user types.
+function adjustCodeBlankWidth(input, hintText) {
+  if (!input) return;
+  if (input.value) { adjustInputWidth(input); return; }
+  const text = hintText || "";
+  if (!text) { input.style.width = ""; return; }
+  const measurer = document.createElement("span");
+  Object.assign(measurer.style, {
+    visibility: "hidden",
+    position: "absolute",
+    whiteSpace: "pre",
+    font: window.getComputedStyle(input).font
+  });
+  measurer.textContent = text;
+  document.body.appendChild(measurer);
+  // Add a tiny buffer for the text cursor only
+  input.style.width = `${Math.min(Math.max(measurer.getBoundingClientRect().width + 4, 8), 380)}px`;
+  measurer.remove();
+}
+
+// Resize code blank to fit the entered text (used on blur, not on hint)
+function adjustCodeBlankWidthToText(input) {
+  if (!input) return;
+  if (!input.value) { 
+    input.style.width = ""; 
+    // Restore underline when empty
+    input.style.borderBottom = "";
+    return; 
+  }
+  const measurer = document.createElement("span");
+  const style = window.getComputedStyle(input);
+  Object.assign(measurer.style, {
+    visibility: "hidden",
+    position: "absolute",
+    whiteSpace: "pre",
+    font: style.font,
+    letterSpacing: style.letterSpacing,
+    wordSpacing: style.wordSpacing,
+    textTransform: style.textTransform,
+    fontVariant: style.fontVariant,
+    fontFeatureSettings: style.fontFeatureSettings
+  });
+  measurer.textContent = input.value;
+  document.body.appendChild(measurer);
+  // Minimal 1px buffer for cursor, no minimum width constraint
+  input.style.width = `${Math.max(measurer.getBoundingClientRect().width + 1, 0)}px`;
+  // Remove underline once text is entered
+  input.style.borderBottom = "none";
+  measurer.remove();
+}
+
 function adjustSelectWidth(select) {
   if (!select) return;
   const selectedText = select.options[select.selectedIndex]?.text || "Choose...";
@@ -579,10 +631,14 @@ function initCodeCloze(container, onCheck) {
       input.dataset.ignoreCase = attrs["ignore-case"] || "false";
       input.dataset.trim = attrs.trim || "true";
       input.dataset.collapseSpace = attrs["collapse-space"] || "false";
-      input.addEventListener("input", () => adjustInputWidth(input));
+      const hintText = attrs.answer || (attrs.answers || "").split(",")[0] || "";
+      // Resize to fit entered text when user finishes typing (blur), not on every keystroke
+      input.addEventListener("blur", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
-      adjustInputWidth(input);
+      // Size is deferred until after the element is in the DOM so
+      // getComputedStyle returns real font metrics.
       replaceTokenWithElement(code, token, input);
+      // No initial sizing to hint text - uses CSS default width
       controls.push({ type: "blank", el: input, attrs });
     } else if (info.type === "choose") {
       const attrs = info.attrs || {};
@@ -629,6 +685,20 @@ function verifyCodeCloze(container, { showFeedback = false } = {}) {
       const ok = el.value !== "" && (ignoreCase ? el.value.toLowerCase() === answer.toLowerCase() : el.value === answer);
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok && el.value !== "");
+      if (ok) {
+        // Replace select with the selected text so it looks like real code
+        const selectedText = el.value;
+        const span = document.createElement("span");
+        span.className = "quarto-exercise-code-choose-correct";
+        span.textContent = selectedText;
+        span.style.color = "var(--ex-correct)";
+        span.style.fontWeight = "bold";
+        span.style.fontFamily = "var(--bs-font-monospace, monospace)";
+        span.style.fontSize = "inherit";
+        el.parentNode.replaceChild(span, el);
+        // Store reference to select for reset
+        el._codeClozeCorrectSpan = span;
+      }
       if (!ok) allCorrect = false;
     }
   });
@@ -638,12 +708,19 @@ function verifyCodeCloze(container, { showFeedback = false } = {}) {
 
 function resetCodeCloze(container) {
   const controls = container._clozeControls || [];
-  controls.forEach(({ type, el }) => {
+  controls.forEach(({ type, el, attrs }) => {
     el.classList.remove("is-correct", "is-incorrect");
     if (type === "blank") {
       el.value = "";
-      adjustInputWidth(el);
+      // Reset to default CSS width and restore underline
+      el.style.width = "";
+      el.style.borderBottom = "";
     } else if (type === "choose") {
+      // If the select was replaced with a correct span, restore it
+      if (el._codeClozeCorrectSpan && el._codeClozeCorrectSpan.parentNode) {
+        el._codeClozeCorrectSpan.parentNode.replaceChild(el, el._codeClozeCorrectSpan);
+        el._codeClozeCorrectSpan = null;
+      }
       el.value = "";
       adjustSelectWidth(el);
     }

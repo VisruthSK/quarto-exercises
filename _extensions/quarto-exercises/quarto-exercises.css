@@ -501,14 +501,17 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-code-blank {
+  /* Standard default size like regular blanks, with underline placeholder */
   width: 80px;
-  min-width: 3rem;
+  min-width: 0;
   max-width: 20rem;
-  border-top: none;
-  border-left: none;
-  border-right: none;
+  border: none;
+  border-bottom: 1px solid var(--ex-muted); /* Underline placeholder (____) */
   border-radius: 0;
+  padding: 0;
   outline: none;
+  background: transparent;
+  transition: border-color 0.15s, width 0.15s;
 }
 
 .quarto-exercise-code-blank:focus {
