@@ -1,8 +1,6 @@
 # quarto-exercises
 
-`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents. It turns Pandoc Divs, Spans, and marked code blocks into browser-side exercises.
-
-It is meant for self-practice in static course pages. The rendered HTML contains the answers, so do not use it for exams or graded work.
+`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents. 
 
 ## Installation
 
@@ -80,6 +78,14 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 ```
 
 Use `key` when you want stable answer identifiers in the generated HTML. Without it, the extension assigns `a`, `b`, `c`, and so on.
+
+## Authoring Notes
+
+Use `true` or `false` for boolean attributes.
+
+The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
+
+Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
 
 ## Feedback, Hints, and Explanations
 
