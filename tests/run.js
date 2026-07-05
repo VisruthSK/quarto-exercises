@@ -780,6 +780,8 @@ print({{blank answer="total"}})
       const select = page.locator('.quarto-exercise-code-choose').first();
       const reset = page.locator('.quarto-exercise-reset-btn');
       const check = page.locator('.quarto-exercise-check-btn');
+      const pageErrors = [];
+      page.on('pageerror', error => pageErrors.push(error.message));
 
       const getBlankState = async () => blank.evaluate(el => ({
         width: el.getBoundingClientRect().width,
@@ -861,6 +863,13 @@ print({{blank answer="total"}})
         false,
         'code choose incorrect state should clear on reset'
       );
+
+      await blank.fill('total');
+      await select.selectOption('sum');
+      await check.click();
+      await check.click();
+      assert.deepStrictEqual(pageErrors, [], 'checking an already-correct code cloze should not throw');
+      assert.strictEqual(await page.locator('.quarto-exercise-status').textContent(), 'Correct!');
     } finally {
       await browser.close();
     }

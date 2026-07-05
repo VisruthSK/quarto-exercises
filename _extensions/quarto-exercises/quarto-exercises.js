@@ -686,6 +686,7 @@ function verifyCodeCloze(container, { showFeedback = false } = {}) {
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok && el.value !== "");
       if (ok) {
+        if (el._codeClozeCorrectSpan) return;
         // Replace select with the selected text so it looks like real code
         const selectedText = el.value;
         const span = document.createElement("span");
@@ -695,7 +696,9 @@ function verifyCodeCloze(container, { showFeedback = false } = {}) {
         span.style.fontWeight = "bold";
         span.style.fontFamily = "var(--bs-font-monospace, monospace)";
         span.style.fontSize = "inherit";
-        el.parentNode.replaceChild(span, el);
+        if (el.parentNode) {
+          el.parentNode.replaceChild(span, el);
+        }
         // Store reference to select for reset
         el._codeClozeCorrectSpan = span;
       }
@@ -742,8 +745,13 @@ function initStandaloneCodeCloze(container) {
   };
 
   initCodeCloze(container, check);
-  if (checkButton) checkButton.addEventListener("click", check);
+  if (checkButton && !checkButton.dataset.initialized) {
+    checkButton.dataset.initialized = "true";
+    checkButton.addEventListener("click", check);
+  }
   if (resetButton) {
+    if (resetButton.dataset.initialized) return;
+    resetButton.dataset.initialized = "true";
     resetButton.addEventListener("click", () => {
       resetCodeCloze(container);
       if (status) { status.textContent = ""; status.className = "quarto-exercise-status"; }
