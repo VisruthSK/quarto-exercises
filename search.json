@@ -4,14 +4,14 @@
     "href": "reference.html",
     "title": "Quarto Exercises Reference",
     "section": "",
-    "text": "This page showcases how to configure and structure interactive practice exercises with the quarto-exercises extension."
+    "text": "This page shows how to configure and structure interactive practice exercises with the quarto-exercises extension."
   },
   {
     "objectID": "reference.html#configuration",
     "href": "reference.html#configuration",
     "title": "Quarto Exercises Reference",
     "section": "Configuration",
-    "text": "Configuration\nPlace configuration overrides in the document frontmatter under quarto-exercises. Options not specified will fall back to their system defaults.\nquarto-exercises:\n  instant: false              # Validate answers on change instead of waiting for a Check button\n  reveal: false               # Reveal correct answers and statuses when checking\n  lock: false                 # Disable input fields after a correct answer is checked\n  reset: true                 # Show a Reset button to clear student inputs\n  shuffle: false              # Randomize the display order of choices\n  reshuffle-on-reset: false   # Randomize option order again when clicking Reset\n  show-answers: false         # Print answers inline or below questions (mostly for print/PDF)\n  explanation: correct        # When to reveal explanations: correct, after-check, or never\n  feedback-correct: \"Correct!\" # Message displayed next to controls on a correct answer\n  feedback-incorrect: \"Not quite.\" # Message displayed next to controls on an incorrect answer\n  ignore-case: false          # Ignore casing during text input validation"
+    "text": "Configuration\nPlace configuration overrides in the document frontmatter under quarto-exercises. Options not specified will fall back to their system defaults:\nquarto-exercises:\n  instant: false              # Validate answers on change instead of waiting for a Check button\n  reveal: false               # Reveal correct answers and statuses when checking\n  lock: false                 # Disable input fields after a correct answer is checked\n  reset: true                 # Show a Reset button to clear student inputs\n  shuffle: false              # Randomize the display order of choices\n  reshuffle-on-reset: false   # Randomize option order again when clicking Reset\n  show-answers: false         # Print answers inline or below questions (mostly for print/PDF)\n  explanation: correct        # When to reveal explanations: correct, after-check, or never\n  feedback-correct: \"Correct!\" # Message displayed next to controls on a correct answer\n  feedback-incorrect: \"Not quite.\" # Message displayed next to controls on an incorrect answer\n  ignore-case: false          # Ignore casing during text input validation"
   },
   {
     "objectID": "reference.html#multiple-choice-exercises",
@@ -53,14 +53,14 @@
     "href": "example.html",
     "title": "Quarto Exercises Extension Example",
     "section": "",
-    "text": "This document shows how to use the quarto-exercises extension to write interactive practice exercises in Quarto HTML pages."
+    "text": "Who carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\n\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\n\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\n\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
   },
   {
     "objectID": "example.html#multiple-choice-multiple-answer",
     "href": "example.html#multiple-choice-multiple-answer",
     "title": "Quarto Exercises Extension Example",
-    "section": "Multiple Choice / Multiple Answer",
-    "text": "Multiple Choice / Multiple Answer\n\nMinimal Single-Choice\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\nMultiple-Correct with Custom Keys & Shuffling\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\nPer-Answer Feedback & Question Explanation\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\nCode Blocks in Choices\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
+    "section": "",
+    "text": "Who carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\n\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\n\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\n\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
   },
   {
     "objectID": "example.html#fill-in-the-blank",
@@ -88,7 +88,7 @@
     "href": "index.html",
     "title": "quarto-exercises",
     "section": "",
-    "text": "quarto-exercises is a Quarto extension for small interactive practice questions in HTML documents.\nUse it to add multiple-choice questions, inline blanks, inline choices, and code cloze exercises to Quarto pages."
+    "text": "quarto-exercises is a Quarto extension for small interactive practice questions in HTML documents.\nUse it to add multiple-choice questions, inline blanks and choices–including in code, with syntax highlighting–to Quarto pages."
   },
   {
     "objectID": "index.html#install",
@@ -102,6 +102,6 @@
     "href": "index.html#pages",
     "title": "quarto-exercises",
     "section": "Pages",
-    "text": "Pages\n\nExample: a complete document showing the extension in use.\nReference: problem types, configuration, options, and authoring patterns.\nGitHub README: package documentation and source-level usage notes."
+    "text": "Pages\n\nExample: a complete document showing the extension in use.\nReference: problem types, configuration, options, and authoring patterns.\nGitHub README: package documentation and more details."
   }
 ]
