@@ -165,8 +165,9 @@ function adjustCodeBlankWidthToText(input) {
   });
   measurer.textContent = input.value;
   document.body.appendChild(measurer);
-  // Minimal 1px buffer for cursor, no minimum width constraint
-  input.style.width = `${Math.max(measurer.getBoundingClientRect().width + 1, 0)}px`;
+  // Minimal 1px buffer for cursor, capped to prevent long entries from
+  // expanding the code block indefinitely.
+  input.style.width = `${Math.min(Math.max(measurer.getBoundingClientRect().width + 1, 0), 380)}px`;
   // Remove underline once text is entered
   input.style.borderBottom = "none";
   measurer.remove();
@@ -631,8 +632,7 @@ function initCodeCloze(container, onCheck) {
       input.dataset.ignoreCase = attrs["ignore-case"] || "false";
       input.dataset.trim = attrs.trim || "true";
       input.dataset.collapseSpace = attrs["collapse-space"] || "false";
-      const hintText = attrs.answer || (attrs.answers || "").split(",")[0] || "";
-      // Resize to fit entered text when user finishes typing (blur), not on every keystroke
+      input.addEventListener("input", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("blur", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
       // Size is deferred until after the element is in the DOM so

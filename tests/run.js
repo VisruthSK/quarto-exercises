@@ -318,7 +318,7 @@ test.describe('Quarto Exercises Extension Tests', () => {
     setup();
   });
 
-  test('1. JS Unit Tests (Production Matching Logic)', () => {
+  test('JS unit tests for production matching logic', () => {
     const { checkBlankMatch } = loadRuntime();
 
     // Exact match
@@ -339,7 +339,76 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(checkBlankMatch("the fellowship of the ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", true, true, false), true);
   });
 
-  test('2. Multiple Choice Rendering (HTML)', (t) => {
+  test('Code cloze blank sizing resizes to typed text and toggles underline', () => {
+    const context = loadRuntime();
+    const { adjustCodeBlankWidthToText } = context;
+
+    function withMockedMeasurement(run) {
+      const originalGetComputedStyle = context.getComputedStyle;
+      const originalCreateElement = context.document.createElement;
+      const originalAppendChild = context.document.body.appendChild;
+
+      let measurerWidth = 0;
+      context.getComputedStyle = () => ({
+        font: '16px monospace',
+        letterSpacing: 'normal',
+        wordSpacing: 'normal',
+        textTransform: 'none',
+        fontVariant: 'normal',
+        fontFeatureSettings: 'normal'
+      });
+      context.document.createElement = (tag) => {
+        if (tag === 'span') {
+          return {
+            style: {},
+            textContent: '',
+            getBoundingClientRect: () => ({ width: measurerWidth }),
+            remove: () => {}
+          };
+        }
+        return originalCreateElement.call(context.document, tag);
+      };
+      context.document.body.appendChild = (el) => {
+        const widths = { total: 48, x: 8, abcdef: 48, '': 0 };
+        measurerWidth = widths[el.textContent] ?? el.textContent.length * 8;
+      };
+
+      try {
+        run();
+      } finally {
+        context.getComputedStyle = originalGetComputedStyle;
+        context.document.createElement = originalCreateElement;
+        context.document.body.appendChild = originalAppendChild;
+      }
+    }
+
+    withMockedMeasurement(() => {
+      // Empty input restores CSS defaults.
+      const empty = { value: '', style: { width: '100px', borderBottom: 'none' }, dataset: {} };
+      adjustCodeBlankWidthToText(empty);
+      assert.strictEqual(empty.style.width, '', 'empty input should clear explicit width');
+      assert.strictEqual(empty.style.borderBottom, '', 'empty input should restore underline');
+
+      // Typed text resizes tightly and removes the placeholder underline.
+      const medium = { value: 'total', style: { width: '80px', borderBottom: '1px solid rgb(85, 85, 85)' }, dataset: {} };
+      adjustCodeBlankWidthToText(medium);
+      assert.strictEqual(medium.style.width, '49px', 'width should be text width plus 1px cursor buffer');
+      assert.strictEqual(medium.style.borderBottom, 'none', 'underline should disappear once text is present');
+
+      // Short inputs are not constrained by a minimum width.
+      const short = { value: 'x', style: { width: '80px', borderBottom: '1px solid rgb(85, 85, 85)' }, dataset: {} };
+      adjustCodeBlankWidthToText(short);
+      assert.strictEqual(short.style.width, '9px', 'single character should shrink to text width plus cursor buffer');
+
+      // Width is capped to avoid runaway expansion.
+      const long = { value: 'a'.repeat(500), style: { width: '80px', borderBottom: '1px solid rgb(85, 85, 85)' }, dataset: {} };
+      adjustCodeBlankWidthToText(long);
+      assert.strictEqual(long.style.width, '380px', 'long text should use the explicit width cap');
+      assert.strictEqual(long.style.borderBottom, 'none', 'underline should still be removed for long text');
+    });
+  });
+
+  test('Multiple choice rendering in HTML', (t) => {
     const qmdContent = `---
 title: "MC Test"
 filters:
@@ -394,7 +463,7 @@ He is short and has hairy feet.
     assert.match(html, /<div class="quarto-exercise-answer-content">/);
   });
 
-  test('3. Fill in the blank and Cloze Rendering (HTML)', (t) => {
+  test('Fill-in-the-blank and cloze rendering in HTML', (t) => {
     const qmdContent = `---
 title: "Blank Test"
 filters:
@@ -446,7 +515,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
       'syntax highlighting must produce <span> elements inside the code block');
   });
 
-  test('4. Validation Warnings (Stderr Output)', (t) => {
+  test('Validation warnings appear in stderr output', (t) => {
     const qmdContent = `---
 title: "Warnings Test"
 filters:
@@ -484,7 +553,7 @@ No answer blocks.
     assert.match(stderrLog, /choose block with no answer/);
   });
 
-  test('5. Non-HTML Fallback Rendering', (t) => {
+  test('Non-HTML fallback rendering', (t) => {
     const qmdContent = `---
 title: "Fallback Test"
 filters:
@@ -521,7 +590,7 @@ The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
     assert.doesNotMatch(md, /<div>/);
   });
 
-  test('6. Boolean attributes accept uppercase TRUE', (t) => {
+  test('Boolean attributes accept uppercase TRUE', (t) => {
     const qmdContent = `---
 title: "Boolean Test"
 filters:
@@ -551,7 +620,7 @@ Legolas
     assert.match(html, /data-correct="true"/);
   });
 
-  test('7. Numeric boolean attributes are invalid and not truthy', (t) => {
+  test('Numeric boolean attributes are invalid and not truthy', (t) => {
     const qmdContent = `---
 title: "Numeric Boolean Test"
 filters:
@@ -582,7 +651,7 @@ Legolas
     assert.doesNotMatch(html, /data-correct="true"/);
   });
 
-  test('8. JS Click Interaction Simulation (Unit Test)', () => {
+  test('JS click interaction simulation', () => {
     let dispatchCount = 0;
     
     const mockInput = {
@@ -674,7 +743,130 @@ Legolas
     assert.strictEqual(dispatchCount, 1);
   });
 
-  test('9. Tests leave tracked files clean', (t) => {
+  test('Code cloze blank browser behavior: default width, blur resize, reset', async (t) => {
+    const playwright = optionalPlaywright();
+    if (!playwright) {
+      if (process.env.CI) {
+        assert.fail('Playwright is required in CI');
+      }
+      t.skip('Playwright is not installed');
+      return;
+    }
+
+    const qmdContent = `---
+title: "Code Cloze Blank Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="python"}
+numbers = [1, 2, 3, 4, 5]
+total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+print({{blank answer="total"}})
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'code-cloze.qmd'), qmdContent);
+    if (!renderOrSkip(t, 'code-cloze.qmd')) return;
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 900, height: 600 } });
+      await page.goto(`file://${path.join(TEMP_DIR, 'code-cloze.html')}`, { waitUntil: 'load' });
+
+      const blank = page.locator('.quarto-exercise-code-blank').first();
+      const select = page.locator('.quarto-exercise-code-choose').first();
+      const reset = page.locator('.quarto-exercise-reset-btn');
+      const check = page.locator('.quarto-exercise-check-btn');
+
+      const getBlankState = async () => blank.evaluate(el => ({
+        width: el.getBoundingClientRect().width,
+        styleWidth: el.style.width,
+        styleWidthNumber: parseFloat(el.style.width) || 0,
+        borderBottomWidth: parseFloat(getComputedStyle(el).borderBottomWidth),
+        borderBottomStyle: getComputedStyle(el).borderBottomStyle,
+        value: el.value,
+        correct: el.classList.contains('is-correct'),
+        incorrect: el.classList.contains('is-incorrect')
+      }));
+      const expectWidthNear = (actual, expected, label) => {
+        assert.ok(Math.abs(actual - expected) < 0.5, `${label} (got ${actual}px, expected ${expected}px)`);
+      };
+      const waitForResetWidth = () => page.waitForFunction(() => {
+        const el = document.querySelector('.quarto-exercise-code-blank');
+        return el.value === '' && el.style.width === '' && Math.abs(el.getBoundingClientRect().width - 80) < 0.5;
+      });
+
+      const initial = await getBlankState();
+      expectWidthNear(initial.width, 80, 'code blank should start at default width');
+      assert.ok(initial.borderBottomWidth > 0, 'code blank should start with a visible underline');
+      assert.strictEqual(initial.borderBottomStyle, 'solid', 'code blank underline should be solid');
+      assert.strictEqual(initial.value, '', 'code blank should start empty');
+
+      await blank.fill('print');
+      const whileTyping = await getBlankState();
+      assert.ok(whileTyping.styleWidthNumber < 80, `code blank should shrink to typed text while typing (got ${whileTyping.styleWidth})`);
+      assert.strictEqual(whileTyping.borderBottomWidth, 0, 'code blank should remove underline while typing');
+      assert.strictEqual(whileTyping.value, 'print', 'code blank value should be the typed text');
+
+      await blank.press('Tab');
+      await page.waitForFunction(
+        () => parseFloat(document.querySelector('.quarto-exercise-code-blank').style.width) < 80
+      );
+      const afterBlur = await getBlankState();
+      assert.strictEqual(afterBlur.styleWidth, whileTyping.styleWidth, 'blur should preserve the current typed-text width');
+      assert.strictEqual(afterBlur.borderBottomWidth, 0, 'code blank should keep underline removed after blur');
+
+      await blank.fill('system.out.println');
+      const afterLongEdit = await getBlankState();
+      assert.ok(
+        afterLongEdit.styleWidthNumber > afterBlur.styleWidthNumber,
+        `code blank should expand while editing after blur (got ${afterLongEdit.styleWidth}, started at ${afterBlur.styleWidth})`
+      );
+      assert.strictEqual(afterLongEdit.value, 'system.out.println', 'longer edit should remain visible in the input value');
+
+      await reset.click();
+      await waitForResetWidth();
+      const afterEditReset = await getBlankState();
+      expectWidthNear(afterEditReset.width, 80, 'code blank should reset to default width after dynamic editing');
+      assert.strictEqual(afterEditReset.styleWidth, '', 'code blank should clear explicit width on reset');
+      assert.strictEqual(afterEditReset.value, '', 'code blank should clear value on reset after dynamic editing');
+
+      await blank.fill('total');
+      await blank.press('Tab');
+      await select.selectOption('max');
+      await check.click();
+      const incorrect = await getBlankState();
+      assert.strictEqual(incorrect.correct, true, 'correct blank text should be marked correct');
+      assert.strictEqual(
+        await select.evaluate(el => el.classList.contains('is-incorrect')),
+        true,
+        'wrong code choose value should be marked incorrect'
+      );
+
+      await reset.click();
+      await waitForResetWidth();
+      const afterReset = await getBlankState();
+      expectWidthNear(afterReset.width, 80, 'code blank should reset to default width');
+      assert.strictEqual(afterReset.styleWidth, '', 'code blank should clear explicit width on reset');
+      assert.ok(afterReset.borderBottomWidth > 0, 'code blank should restore underline on reset');
+      assert.strictEqual(afterReset.value, '', 'code blank should clear value on reset');
+      assert.strictEqual(afterReset.correct, false, 'code blank correct state should clear on reset');
+      assert.strictEqual(afterReset.incorrect, false, 'code blank incorrect state should clear on reset');
+      assert.strictEqual(await select.inputValue(), '', 'code choose should reset to placeholder value');
+      assert.strictEqual(
+        await select.evaluate(el => el.classList.contains('is-incorrect')),
+        false,
+        'code choose incorrect state should clear on reset'
+      );
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Tests leave tracked files clean', (t) => {
     const res = spawnSync('git status --short -- tests/.tmp', {
       encoding: 'utf8',
       shell: true,
@@ -690,7 +882,7 @@ Legolas
     assert.strictEqual(res.stdout.trim(), '');
   });
 
-  test('10. Documented CSS variables exist in the stylesheet', () => {
+  test('Documented CSS variables exist in the stylesheet', () => {
     const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
     const documented = Array.from(readme.matchAll(/--ex-[\w-]+/g), match => match[0]);
@@ -701,7 +893,7 @@ Legolas
     });
   });
 
-  test('11. Light and dark visual smoke snapshots', async (t) => {
+  test('Light and dark visual smoke snapshots', async (t) => {
     const playwright = optionalPlaywright();
     if (!playwright) {
       if (process.env.CI) {
