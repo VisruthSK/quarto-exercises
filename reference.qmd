@@ -153,6 +153,8 @@ He is also known as Mithrandir.
 
 ## Inline Blanks
 
+Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
+
 ```markdown
 The Capital of Gondor is [`Minas Tirith`]{.blank answer="Minas Tirith"}.
 ```
@@ -166,6 +168,14 @@ The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=tru
 ```
 
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
+
+---
+
+```markdown
+Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
+```
+
+Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
 
 ---
 
@@ -196,6 +206,14 @@ The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedbac
 ---
 
 ```markdown
+The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
+```
+
+The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
+
+---
+
+```markdown
 The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
 ```
 
@@ -216,6 +234,8 @@ The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.c
 :::
 
 ## Code Cloze
+
+Code cloze markers are parsed from raw code text, so escaped delimiter examples use one fewer backslash than normal Markdown attributes.
 
 ````markdown
 ```{.code-cloze lang="r"}
@@ -282,4 +302,3 @@ fellowship = {
 This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
 :::
 :::
-

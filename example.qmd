@@ -120,6 +120,10 @@ The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
 
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
 
+### Escaped Pipe in Answers
+
+Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
+
 ### Regex Matching
 
 The full title of the first volume of Lord of the Rings is [`The Fellowship of the Ring`]{.blank answer="^The\s+Fellowship\s+of\s+the\s+Ring$" match="regex" ignore-case=true}.
@@ -130,6 +134,8 @@ The full title of the first volume of Lord of the Rings is [`The Fellowship of t
 ### Standalone Dropdowns
 
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
+
+The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
 
 ### Nested in a Parent Exercise
 
@@ -172,5 +178,3 @@ mean <- {{choose answer="mean" options="mean|median|sum|length"}}(x)
 cat({{blank answer="mean"}}, "\n")
 ```
 :::
-
-

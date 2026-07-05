@@ -317,7 +317,13 @@ test.describe('Quarto Exercises Extension Tests', () => {
   });
 
   test('JS unit tests for production matching logic', () => {
-    const { checkBlankMatch } = loadRuntime();
+    const { checkBlankMatch, splitList } = loadRuntime();
+    const list = value => Array.from(splitList(value));
+
+    assert.deepStrictEqual(list("red|green|blue"), ["red", "green", "blue"]);
+    assert.deepStrictEqual(list("yes\\|no|maybe"), ["yes|no", "maybe"]);
+    assert.deepStrictEqual(list("C:\\\\Temp|D:\\\\Data"), ["C:\\Temp", "D:\\Data"]);
+    assert.deepStrictEqual(list("literal\\\\\\|pipe|plain"), ["literal\\|pipe", "plain"]);
 
     // Exact match
     assert.strictEqual(checkBlankMatch("Gandalf", "Gandalf", "exact", false, true, false), true);
@@ -341,6 +347,10 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
     assert.strictEqual(checkBlankMatch("Frodo, Sam", "^Frodo,\\s+Sam$", "regex", false, true, false), true);
     assert.strictEqual(checkBlankMatch("Frodo", "^Frodo,\\s+Sam$", "regex", false, true, false), false);
+
+    // Escaped delimiter values
+    assert.strictEqual(checkBlankMatch("yes|no", "yes\\|no|maybe", "one-of", false, true, false), true);
+    assert.strictEqual(checkBlankMatch("yes", "yes\\|no|maybe", "one-of", false, true, false), false);
   });
 
   test('Code cloze blank sizing resizes to typed text and toggles underline', () => {
@@ -534,6 +544,26 @@ The path is [Mordor| Gondor |Rohan]{.choose answer="Mordor"}.
     const html = fs.readFileSync(path.join(TEMP_DIR, 'pipe-choice.html'), 'utf8');
     assert.match(html, /data-options="Mordor\| Gondor \|Rohan"/);
     assert.match(html, /data-answer="Mordor"/);
+  });
+
+  test('Escaped pipe delimiters render as literal value characters', (t) => {
+    const qmdContent = `---
+title: "Escaped Pipe Test"
+filters:
+  - quarto-exercises
+---
+
+Literal answer: [\`yes|no\`]{.blank answers="yes\\\\|no|maybe" match="one-of"}.
+
+Literal choice: [yes\\\\|no|maybe|unknown]{.choose answer="yes|no"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'escaped-pipe.qmd'), qmdContent);
+    renderQuarto('escaped-pipe.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'escaped-pipe.html'), 'utf8');
+    assert.match(html, /data-answers="yes\\\|no\|maybe"/);
+    assert.match(html, /data-options="yes\\\|no\|maybe\|unknown"/);
+    assert.match(html, /data-answer="yes\|no"/);
   });
 
   test('Inline blanks validate exact, one-of, regex, trimming, and whitespace behavior in browser', async () => {

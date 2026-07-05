@@ -87,6 +87,8 @@ The filter warns during render for unsupported attributes, missing answers, dupl
 
 Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
 
+Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
+
 ## Feedback, Hints, and Explanations
 
 An answer can contain one `.feedback` Div. An exercise can contain one `.hint` Div and one `.explanation` Div.
@@ -137,6 +139,12 @@ Multiple accepted answers use a pipe-separated `answers` attribute:
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
 ```
 
+Use `\\|` for a literal pipe inside one answer in Quarto Markdown source:
+
+```markdown
+Answer yes or no: [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
+```
+
 Regex matching uses `match="regex"` with `answer`:
 
 ```markdown
@@ -161,10 +169,14 @@ Use a `.choose` Span for a dropdown.
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
 ```
 
-The extension parses pipe-separated text as options. Spaces around `|` are part of the option value, so write compact lists unless the spaces are intentional.
+The extension parses pipe-separated text as options. Spaces around `|` are part of the option value, so write compact lists unless the spaces are intentional. Use `\\|` for a literal pipe inside one option in Quarto Markdown source.
 
 ```markdown
 Is this correct? [`yes/no`]{.choose options="yes/no|maybe|unknown" answer="yes/no"}.
+```
+
+```markdown
+Choose the literal token: [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
 ```
 
 An `.exercise` can group blanks and choices under one Check and Reset control:
@@ -200,6 +212,14 @@ cat("Total:", total, "\n")
 ````
 
 The `lang` attribute becomes the syntax-highlighting language.
+
+Pipe-delimited `answers` and `options` inside code cloze use the same escape rules, but code cloze markers are parsed from raw code text. Write `\|` there for a literal pipe.
+
+````markdown
+```{.code-cloze lang="text"}
+response = {{choose answer="yes|no" options="yes\|no|maybe"}}
+```
+````
 
 Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
 

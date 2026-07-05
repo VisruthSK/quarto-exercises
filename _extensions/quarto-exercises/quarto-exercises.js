@@ -71,7 +71,27 @@ function resetFeedback(feedback) {
 }
 
 function splitList(value) {
-  return (value || "").split("|").filter(option => option !== "");
+  const out = [];
+  let item = "";
+  const text = value || "";
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === "\\" && (next === "|" || next === "\\")) {
+      item += next;
+      i++;
+    } else if (char === "|") {
+      if (item !== "") out.push(item);
+      item = "";
+    } else {
+      item += char;
+    }
+  }
+
+  if (item !== "") out.push(item);
+  return out;
 }
 
 function answerOptions(container) {
