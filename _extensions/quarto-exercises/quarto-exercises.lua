@@ -228,13 +228,26 @@ end
 local function has_inline_interaction(blocks)
   local found = false
   for _, block in ipairs(blocks) do
-    pandoc.walk_block(block, {
-      Span = function(span)
-        if span.classes:includes("blank") or span.classes:includes("choose") then
-          found = true
+    if block.t == "CodeBlock" and block.classes:includes("code-cloze") then
+      found = true
+    else
+      pandoc.walk_block(block, {
+        Span = function(span)
+          if span.classes:includes("blank") or span.classes:includes("choose") then
+            found = true
+          end
+        end,
+        Div = function(div)
+          if div.classes:includes("quarto-exercise-code-cloze-container") then
+            found = true
+          end
+          local cls = div.attributes and div.attributes["class"] or ""
+          if type(cls) == "string" and cls:find("quarto-exercise-code-cloze-container", 1, true) then
+            found = true
+          end
         end
-      end
-    })
+      })
+    end
   end
   return found
 end
@@ -318,7 +331,7 @@ local function parse_exercise(el, id)
     end
   end
 
-  if #parsed.answers == 0 and not has_inline_interaction(parsed.stem) then
+  if #parsed.answers == 0 and not has_inline_interaction(parsed.stem) and el.attributes["data-has-code-cloze"] ~= "true" then
     warn(id, "has no .answer blocks or inline blanks/choices")
   elseif #parsed.answers > 0 and parsed.correct_count == 0 then
     warn(id, "has no correct answers")
@@ -462,6 +475,198 @@ local function render_static_exercise(data)
   return output
 end
 
+local function parse_attributes(attr_str)
+  local attrs = {}
+  for k, v in string.gmatch(attr_str, '([%w%-]+)%s*=%s*"([^"]*)"') do
+    attrs[k] = v
+  end
+  for k, v in string.gmatch(attr_str, "([%w%-]+)%s*=%s*'([^']*)'") do
+    attrs[k] = v
+  end
+  for k, v in string.gmatch(attr_str, "([%w%-]+)%s*=%s*(%S+)") do
+    if not attrs[k] then
+      attrs[k] = v
+    end
+  end
+  return attrs
+end
+
+local function json_encode(val)
+  if type(val) == "string" then
+    return '"' .. val:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r') .. '"'
+  elseif type(val) == "boolean" then
+    return tostring(val)
+  elseif type(val) == "table" then
+    local parts = {}
+    if val[1] ~= nil then
+      for _, item in ipairs(val) do
+        parts[#parts + 1] = json_encode(item)
+      end
+      return "[" .. table.concat(parts, ",") .. "]"
+    else
+      for k, v in pairs(val) do
+        parts[#parts + 1] = json_encode(k) .. ":" .. json_encode(v)
+      end
+      return "{" .. table.concat(parts, ",") .. "}"
+    end
+  else
+    return tostring(val)
+  end
+end
+
+local function make_token(text, idx)
+  while true do
+    local token = string.format("QEXCLOZEP%06d", idx)
+    if not string.find(text, token, 1, true) then
+      return token
+    end
+    idx = idx + 1
+  end
+end
+
+local function process_code_cloze(el, parent_id)
+  local text = el.text
+  local metadata = {}
+  local static_answers = {}
+  local count = 0
+  local id = id_for(el, "cloze")
+
+  local pos = 1
+  while true do
+    local start_pos = string.find(text, "{{", pos, true)
+    if not start_pos then break end
+
+    local end_pos = string.find(text, "}}", start_pos, true)
+    if not end_pos then
+      warn(id, "malformed cloze syntax: missing closing '}}'")
+      break
+    end
+
+    local content = string.sub(text, start_pos + 2, end_pos - 1)
+    local control_type = string.match(content, "^%s*(%a+)")
+    if control_type ~= "blank" and control_type ~= "choose" then
+      warn(id, "malformed cloze syntax: invalid control type '" .. tostring(control_type) .. "'")
+    else
+      local attrs_str = string.match(content, "^%s*%a+%s*(.-)%s*$")
+      local attrs = parse_attributes(attrs_str)
+      if control_type == "blank" then
+        if not attrs.answer and not attrs.answers then
+          warn(id, "blank with no answer")
+        end
+      elseif control_type == "choose" then
+        if not attrs.answer then
+          warn(id, "choose with no answer")
+        end
+        if not attrs.options then
+          warn(id, "choose with no options")
+        end
+      end
+    end
+    pos = end_pos + 2
+  end
+
+  local html_text = text
+  local static_text = text
+
+  while true do
+    local start_pos = string.find(html_text, "{{", 1, true)
+    if not start_pos then break end
+    local end_pos = string.find(html_text, "}}", start_pos, true)
+    if not end_pos then break end
+
+    local content = string.sub(html_text, start_pos + 2, end_pos - 1)
+    local control_type, attrs_str = string.match(content, "^%s*(%a+)%s*(.-)%s*$")
+
+    if control_type == "blank" or control_type == "choose" then
+      count = count + 1
+      local token = make_token(html_text, count)
+      local attrs = parse_attributes(attrs_str)
+
+      metadata[token] = {
+        type = control_type,
+        attrs = attrs
+      }
+
+      local ans = attrs.answer or attrs.answers or ""
+      static_answers[#static_answers + 1] = ans
+
+      html_text = string.sub(html_text, 1, start_pos - 1) .. token .. string.sub(html_text, end_pos + 2)
+    else
+      html_text = string.sub(html_text, 1, start_pos - 1) .. "INVALID_CLOZE" .. string.sub(html_text, end_pos + 2)
+    end
+  end
+
+  while true do
+    local start_pos = string.find(static_text, "{{", 1, true)
+    if not start_pos then break end
+    local end_pos = string.find(static_text, "}}", start_pos, true)
+    if not end_pos then break end
+
+    static_text = string.sub(static_text, 1, start_pos - 1) .. "________" .. string.sub(static_text, end_pos + 2)
+  end
+
+  if not html() then
+    local new_code = pandoc.CodeBlock(static_text, el.attr)
+    if options["show-answers"] and #static_answers > 0 then
+      local ans_list = {}
+      for idx, ans in ipairs(static_answers) do
+        ans_list[#ans_list + 1] = tostring(idx) .. ". " .. ans
+      end
+      local ans_para = pandoc.Para({ pandoc.Strong({ pandoc.Str("Answer: " .. table.concat(ans_list, ", ")) }) })
+      return pandoc.List({ new_code, ans_para })
+    else
+      return new_code
+    end
+  end
+
+  el.text = html_text
+
+  -- Replace the .code-cloze class with the actual language so Pandoc
+  -- syntax-highlights the block. The lang= attribute is NOT how Pandoc
+  -- selects a highlighter — the first matching class is.
+  local lang = el.attributes["lang"] or ""
+  el.classes = pandoc.List()
+  if lang ~= "" then
+    el.classes:insert(lang)
+  end
+  el.classes:insert("quarto-exercise-code-cloze-code")
+  el.attributes["lang"] = nil
+  el.attributes["data-cloze-processed"] = nil
+
+  local meta_json = json_encode(metadata)
+  local classes = { "quarto-exercise-code-cloze-container" }
+  if parent_id == nil then
+    classes[#classes + 1] = "quarto-exercise-code-cloze-standalone"
+  end
+
+  local container_attrs = {
+    class = table.concat(classes, " "),
+    ["data-cloze-metadata"] = meta_json
+  }
+
+  if parent_id then
+    container_attrs["data-parent-id"] = parent_id
+  else
+    container_attrs["id"] = id
+    container_attrs["data-id"] = id
+  end
+
+  local container = pandoc.Div({ el }, container_attrs)
+
+  if parent_id == nil then
+    local actions = pandoc.RawBlock("html",
+      '<div class="quarto-exercise-actions">' ..
+      '<button type="button" class="quarto-exercise-check-btn">Check</button>' ..
+      '<button type="button" class="quarto-exercise-reset-btn">Reset</button>' ..
+      '<span class="quarto-exercise-status" aria-live="polite"></span>' ..
+      '</div>'
+    )
+    return pandoc.Div({ container, actions }, { class = "quarto-exercise-code-cloze-wrapper" })
+  else
+    return container
+  end
+end
+
 local function render_blank(el, id)
   check_attrs(el.attributes, blank_attrs, id)
   check_bools(el.attributes, id)
@@ -579,6 +784,20 @@ function Div(el)
   check_attrs(el.attributes, exercise_attrs, id)
   check_bools(el.attributes, id)
 
+  local has_code_cloze = false
+  el = el:walk({
+    CodeBlock = function(code)
+      if code.classes:includes("code-cloze") then
+        has_code_cloze = true
+        code.attributes["data-cloze-processed"] = "true"
+        return process_code_cloze(code, id)
+      end
+    end
+  })
+  if has_code_cloze then
+    el.attributes["data-has-code-cloze"] = "true"
+  end
+
   local data = parse_exercise(el, id)
   if not html() then
     return render_static_exercise(data)
@@ -597,6 +816,17 @@ function Div(el)
   })
 end
 
+function CodeBlock(el)
+  if not el.classes:includes("code-cloze") then
+    return nil
+  end
+  if el.attributes["data-cloze-processed"] == "true" then
+    el.attributes["data-cloze-processed"] = nil
+    return el
+  end
+  return process_code_cloze(el, nil)
+end
+
 function Span(el)
   if el.classes:includes("blank") then
     return render_blank(el, id_for(el, "blank"))
@@ -610,5 +840,5 @@ end
 return {
   { Meta = Meta },
   { Div = Div },
-  { Span = Span }
+  { Span = Span, CodeBlock = CodeBlock }
 }

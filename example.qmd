@@ -142,3 +142,39 @@ The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gim
 What does Sam call him?
 :::
 :::
+
+## Code Cloze
+
+Fill in the blanks directly inside code blocks. Syntax highlighting is fully preserved.
+
+### Standalone
+
+```{.code-cloze lang="r"}
+x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+total <- {{blank answer="sum"}}(x)
+cat("Total:", total, "\n")
+```
+
+### In a Parent Exercise
+
+::: {.exercise}
+Complete the Python snippet.
+
+```{.code-cloze lang="python"}
+numbers = [1, 2, 3, 4, 5]
+total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+print({{blank answer="total"}})
+```
+:::
+
+::: {.exercise}
+Complete the R snippet.
+
+```{.code-cloze lang="r"}
+x <- 1:10
+result <- {{choose answer="mean" options="mean,median,sum,length"}}(x)
+cat({{blank answer="result"}}, "\n")
+```
+:::
+
+

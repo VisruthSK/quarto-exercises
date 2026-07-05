@@ -404,6 +404,13 @@ filters:
 The wizard is [\`Gandalf\`]{.blank answer="Gandalf" ignore-case=true}.
 
 The Fellowship leaves [Rivendell / Minas Tirith / Edoras]{.choose answer="Rivendell"}.
+
+\`\`\`{.code-cloze lang="r"}
+rings <- list("Narya", "Nenya", "Vilya")
+for(i in {{blank answer="seq_along(rings)"}}) {
+  bearer <- {{choose answer="Frodo" options="Frodo,Sam"}}
+}
+\`\`\`
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'blank.qmd'), qmdContent);
     if (!renderOrSkip(t, 'blank.qmd')) return;
@@ -423,6 +430,20 @@ The Fellowship leaves [Rivendell / Minas Tirith / Edoras]{.choose answer="Rivend
     assert.match(html, /class="quarto-exercise-choose-select"/);
     assert.match(html, /data-options="Rivendell,Minas Tirith,Edoras"/);
     assert.match(html, /data-answer="Rivendell"/);
+
+    // Code cloze renders correctly
+    assert.match(html, /class="[^"]*quarto-exercise-code-cloze-container/);
+    assert.match(html, /data-cloze-metadata=/);
+    assert.match(html, /QEXCLOZEP/);
+
+    // Syntax highlighting must be preserved — Pandoc emits sourceCode class
+    // and wraps tokens in <span> elements when it knows the language.
+    assert.match(html, /class="sourceCode r"/,
+      'code-cloze block must carry the r language class so Pandoc syntax-highlights it');
+    // There must be at least one <span class="..."> inside the highlighted code
+    // (e.g. keywords, strings, operators highlighted as spans)
+    assert.match(html, /<span class="[^"]+">(?!<\/span>)/,
+      'syntax highlighting must produce <span> elements inside the code block');
   });
 
   test('4. Validation Warnings (Stderr Output)', (t) => {

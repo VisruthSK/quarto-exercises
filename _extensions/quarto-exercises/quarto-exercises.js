@@ -17,6 +17,8 @@ function initExercises() {
   $$(document, ".quarto-exercise-choose-container")
     .filter(choose => !choose.closest(".quarto-exercise"))
     .forEach(initStandaloneChoose);
+  $$(document, ".quarto-exercise-code-cloze-standalone")
+    .forEach(initStandaloneCodeCloze);
 }
 
 function bool(value, fallback = false) {
@@ -295,6 +297,7 @@ function initExercise(exercise) {
   const answers = $$(exercise, ".quarto-exercise-answer");
   const blanks = $$(exercise, ".quarto-exercise-blank-container");
   const chooses = $$(exercise, ".quarto-exercise-choose-container");
+  const codeClozes = $$(exercise, ".quarto-exercise-code-cloze-container");
   const checkButton = $(exercise, ".quarto-exercise-check-btn");
   const resetButton = $(exercise, ".quarto-exercise-reset-btn");
   const hintButton = $(exercise, ".quarto-exercise-hint-btn");
@@ -305,11 +308,12 @@ function initExercise(exercise) {
   const reveal = bool(exercise.dataset.reveal);
   const lock = bool(exercise.dataset.lock);
 
-  const verify = () => verifyExercise(exercise, { answers, blanks, chooses, explanation, status, reveal, lock, checkButton, resetButton });
+  const verify = () => verifyExercise(exercise, { answers, blanks, chooses, codeClozes, explanation, status, reveal, lock, checkButton, resetButton });
 
   initAnswers(exercise, answers, verify, instant);
   blanks.forEach(blank => initBlank(blank, verify));
   chooses.forEach(choose => initChoose(choose, verify, { instant }));
+  codeClozes.forEach(cc => initCodeCloze(cc, verify));
 
   if (bool(exercise.dataset.shuffle)) {
     shuffleAnswers(exercise, answers);
@@ -324,7 +328,7 @@ function initExercise(exercise) {
   }
   if (checkButton) checkButton.addEventListener("click", verify);
   if (resetButton) {
-    resetButton.addEventListener("click", () => resetExercise(exercise, { answers, blanks, chooses, explanation, status, hintPanel, checkButton, resetButton }));
+    resetButton.addEventListener("click", () => resetExercise(exercise, { answers, blanks, chooses, codeClozes, explanation, status, hintPanel, checkButton, resetButton }));
   }
 }
 
@@ -415,7 +419,9 @@ function verifyExercise(exercise, parts) {
   const answersOk = verifyAnswers(exercise, parts.answers, parts.reveal);
   const blanksOk = parts.blanks.every(blank => verifyBlank(blank, { showFeedback: true }));
   const choosesOk = parts.chooses.every(choose => verifyChoose(choose, { showFeedback: true }));
-  const allCorrect = answersOk && blanksOk && choosesOk;
+  const codeClozes = parts.codeClozes || [];
+  const codeClozeOk = codeClozes.every(cc => verifyCodeCloze(cc, { showFeedback: true }));
+  const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
 
   updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
   updateStatus(parts.status, exercise, allCorrect);
@@ -471,6 +477,7 @@ function resetExercise(exercise, parts) {
 
   parts.blanks.forEach(resetBlank);
   parts.chooses.forEach(resetChoose);
+  (parts.codeClozes || []).forEach(resetCodeCloze);
   setHidden(parts.explanation, true);
   setHidden(parts.hintPanel, true);
 
@@ -489,6 +496,7 @@ function exerciseParts(exercise) {
     answers: $$(exercise, ".quarto-exercise-answer"),
     blanks: $$(exercise, ".quarto-exercise-blank-container"),
     chooses: $$(exercise, ".quarto-exercise-choose-container"),
+    codeClozes: $$(exercise, ".quarto-exercise-code-cloze-container"),
     explanation: $(exercise, ".quarto-exercise-explanation"),
     status: $(exercise, ".quarto-exercise-status"),
     hintPanel: $(exercise, ".quarto-exercise-hint"),
@@ -514,3 +522,154 @@ window.QuartoExercises = {
     if (root) resetExercise(root, exerciseParts(root));
   }
 };
+
+// ---- Code Cloze implementation ----
+
+function parseClozeMetadata(container) {
+  try {
+    return JSON.parse(container.dataset.clozeMetadata || "{}");
+  } catch (e) {
+    console.warn("Invalid cloze metadata", e);
+    return {};
+  }
+}
+
+function findTokenTextNode(code, token) {
+  const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.textContent.includes(token)) return node;
+  }
+  return null;
+}
+
+function replaceTokenWithElement(code, token, el) {
+  const textNode = findTokenTextNode(code, token);
+  if (!textNode) return;
+  const idx = textNode.textContent.indexOf(token);
+  const before = textNode.textContent.slice(0, idx);
+  const after = textNode.textContent.slice(idx + token.length);
+  const parent = textNode.parentNode;
+  const beforeNode = document.createTextNode(before);
+  const afterNode = document.createTextNode(after);
+  parent.replaceChild(afterNode, textNode);
+  parent.insertBefore(el, afterNode);
+  parent.insertBefore(beforeNode, el);
+}
+
+function initCodeCloze(container, onCheck) {
+  if (container.dataset.initialized) return;
+  container.dataset.initialized = "true";
+
+  const code = container.querySelector("code");
+  if (!code) return;
+
+  const metadata = parseClozeMetadata(container);
+  const controls = [];
+
+  for (const [token, info] of Object.entries(metadata)) {
+    if (info.type === "blank") {
+      const attrs = info.attrs || {};
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "quarto-exercise-blank-input quarto-exercise-code-blank";
+      input.setAttribute("aria-label", "Fill in the blank");
+      input.dataset.answers = attrs.answer || attrs.answers || "";
+      input.dataset.match = attrs.match || "exact";
+      input.dataset.ignoreCase = attrs["ignore-case"] || "false";
+      input.dataset.trim = attrs.trim || "true";
+      input.dataset.collapseSpace = attrs["collapse-space"] || "false";
+      input.addEventListener("input", () => adjustInputWidth(input));
+      input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
+      adjustInputWidth(input);
+      replaceTokenWithElement(code, token, input);
+      controls.push({ type: "blank", el: input, attrs });
+    } else if (info.type === "choose") {
+      const attrs = info.attrs || {};
+      const select = document.createElement("select");
+      select.className = "quarto-exercise-choose-select quarto-exercise-code-choose";
+      select.appendChild(new Option("Choose...", ""));
+      (attrs.options || "").split(",").map(o => o.trim()).filter(Boolean).forEach(opt => {
+        select.appendChild(new Option(opt, opt));
+      });
+      select.dataset.answer = attrs.answer || "";
+      select.dataset.ignoreCase = attrs["ignore-case"] || "false";
+      select.addEventListener("change", () => adjustSelectWidth(select));
+      select.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
+      adjustSelectWidth(select);
+      replaceTokenWithElement(code, token, select);
+      controls.push({ type: "choose", el: select, attrs });
+    }
+  }
+
+  container._clozeControls = controls;
+}
+
+function verifyCodeCloze(container, { showFeedback = false } = {}) {
+  const controls = container._clozeControls || [];
+  let allCorrect = true;
+
+  controls.forEach(({ type, el, attrs }) => {
+    el.classList.remove("is-correct", "is-incorrect");
+    if (type === "blank") {
+      const ok = checkBlankMatch(
+        el.value,
+        el.dataset.answers,
+        el.dataset.match || "exact",
+        el.dataset.ignoreCase === "true",
+        el.dataset.trim !== "false",
+        el.dataset.collapseSpace === "true"
+      );
+      el.classList.toggle("is-correct", ok);
+      el.classList.toggle("is-incorrect", !ok);
+      if (!ok) allCorrect = false;
+    } else if (type === "choose") {
+      const answer = el.dataset.answer || "";
+      const ignoreCase = el.dataset.ignoreCase === "true";
+      const ok = el.value !== "" && (ignoreCase ? el.value.toLowerCase() === answer.toLowerCase() : el.value === answer);
+      el.classList.toggle("is-correct", ok);
+      el.classList.toggle("is-incorrect", !ok && el.value !== "");
+      if (!ok) allCorrect = false;
+    }
+  });
+
+  return allCorrect;
+}
+
+function resetCodeCloze(container) {
+  const controls = container._clozeControls || [];
+  controls.forEach(({ type, el }) => {
+    el.classList.remove("is-correct", "is-incorrect");
+    if (type === "blank") {
+      el.value = "";
+      adjustInputWidth(el);
+    } else if (type === "choose") {
+      el.value = "";
+      adjustSelectWidth(el);
+    }
+  });
+}
+
+function initStandaloneCodeCloze(container) {
+  const wrapper = container.closest(".quarto-exercise-code-cloze-wrapper") || container;
+  const checkButton = wrapper.querySelector(".quarto-exercise-check-btn");
+  const resetButton = wrapper.querySelector(".quarto-exercise-reset-btn");
+  const status = wrapper.querySelector(".quarto-exercise-status");
+
+  const check = () => {
+    const ok = verifyCodeCloze(container, { showFeedback: true });
+    if (status) {
+      status.textContent = ok ? "Correct!" : "Not quite.";
+      status.className = "quarto-exercise-status " + (ok ? "is-correct" : "is-incorrect");
+    }
+  };
+
+  initCodeCloze(container, check);
+  if (checkButton) checkButton.addEventListener("click", check);
+  if (resetButton) {
+    resetButton.addEventListener("click", () => {
+      resetCodeCloze(container);
+      if (status) { status.textContent = ""; status.className = "quarto-exercise-status"; }
+    });
+  }
+}
