@@ -165,7 +165,7 @@ ${css}
 <div class="quarto-exercise-answer" data-key="a" data-correct="false"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
 <div class="quarto-exercise-answer" data-key="b" data-correct="true"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
 </div></fieldset>
-<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell,Edoras" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell,Edoras,Minas Tirith" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><button type="button" class="quarto-exercise-hint-btn">Hint</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 <div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
@@ -223,6 +223,9 @@ async function runVisualMode(playwright, mode) {
   hintState.visibleAfterClick = await page.evaluate(() => !document.querySelector('#visual-ex .quarto-exercise-hint').hidden);
 
   await page.click('[data-key="a"]');
+  const selectWidthChoose = await page.evaluate(() => document.querySelector('.quarto-exercise-choose-select').getBoundingClientRect().width);
+  await page.selectOption('.quarto-exercise-choose-select', 'Minas Tirith');
+  const selectWidthLong = await page.evaluate(() => document.querySelector('.quarto-exercise-choose-select').getBoundingClientRect().width);
   await page.selectOption('.quarto-exercise-choose-select', 'Edoras');
   await page.fill('.quarto-exercise-blank-input', 'Saruman');
   await page.click('#visual-ex .quarto-exercise-check-btn');
@@ -306,7 +309,7 @@ async function runVisualMode(playwright, mode) {
   }));
 
   await browser.close();
-  return { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState };
+  return { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong };
 }
 
 test.describe('Quarto Exercises Extension Tests', () => {
@@ -700,8 +703,9 @@ Legolas
         }
         throw error;
       }
-      const { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState } = result;
+      const { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong } = result;
 
+      assert.ok(selectWidthChoose < selectWidthLong, `${mode} choose select should expand for longer selected option`);
       assert.strictEqual(standaloneBlankState.placeholder, '', `${mode} standalone blank placeholder should be empty`);
       assert.strictEqual(standaloneBlankState.shortWidth, standaloneBlankState.longWidth, `${mode} placeholder should not affect default width of entry box`);
       if (mode === 'dark') {

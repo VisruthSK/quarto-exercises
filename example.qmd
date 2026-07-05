@@ -133,8 +133,12 @@ The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
 
 ### Nested in a Parent Exercise
 
-Grouping inline choices under a parent `.exercise` block combines their Check and Reset controls:
+Grouping inline choices and blanks under a parent `.exercise` block combines their Check and Reset controls:
 
 ::: {.exercise}
-The Fellowship leaves [Rivendell / Minas Tirith / Edoras / Bree]{.choose answer="Rivendell"} and travels toward [Mordor / Valinor / Númenor / Dale]{.choose answer="Mordor"}.
+The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+
+::: {.hint}
+What does Sam call him?
+:::
 :::

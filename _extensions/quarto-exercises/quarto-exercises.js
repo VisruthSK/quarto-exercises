@@ -118,6 +118,30 @@ function adjustInputWidth(input) {
   measurer.remove();
 }
 
+function adjustSelectWidth(select) {
+  if (!select) return;
+  const selectedText = select.options[select.selectedIndex]?.text || "Choose...";
+  const measurer = document.createElement("span");
+  const style = window.getComputedStyle(select);
+  Object.assign(measurer.style, {
+    visibility: "hidden",
+    position: "absolute",
+    whiteSpace: "pre",
+    font: style.font
+  });
+  measurer.textContent = selectedText;
+  document.body.appendChild(measurer);
+  
+  const textWidth = measurer.getBoundingClientRect().width;
+  const paddingLeft = parseFloat(style.paddingLeft) || 0;
+  const paddingRight = parseFloat(style.paddingRight) || 0;
+  const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+  const borderRight = parseFloat(style.borderRightWidth) || 0;
+  
+  select.style.width = `${textWidth + paddingLeft + paddingRight + borderLeft + borderRight + 6}px`;
+  measurer.remove();
+}
+
 function initBlank(container, onCheck) {
   const input = $(container, ".quarto-exercise-blank-input");
   if (!input || input.dataset.initialized) return;
@@ -199,8 +223,10 @@ function initChoose(container, onCheck, { instant = false } = {}) {
 
   select.dataset.initialized = "true";
   populateChoose(container);
+  adjustSelectWidth(select);
 
   select.addEventListener("change", () => {
+    adjustSelectWidth(select);
     if (instant) onCheck();
   });
   select.addEventListener("keydown", event => {
@@ -248,6 +274,7 @@ function resetChoose(container) {
   select.classList.remove("is-correct", "is-incorrect");
   setCorrectText(container, ".quarto-exercise-choose-correct-text", "");
   resetFeedback($(container, ".quarto-exercise-choose-feedback"));
+  adjustSelectWidth(select);
 }
 
 function initStandaloneChoose(container) {
