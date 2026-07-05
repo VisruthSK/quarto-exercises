@@ -10,11 +10,11 @@ filters:
   - quarto-exercises
 ---
 
-This page showcases how to configure and structure interactive practice exercises with the `quarto-exercises` extension.
+This page shows how to configure and structure interactive practice exercises with the `quarto-exercises` extension.
 
 ## Configuration
 
-Place configuration overrides in the document frontmatter under `quarto-exercises`. Options not specified will fall back to their system defaults.
+Place configuration overrides in the document frontmatter under `quarto-exercises`. Options not specified will fall back to their system defaults:
 
 ```yaml
 quarto-exercises:

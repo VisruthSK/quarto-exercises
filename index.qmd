@@ -4,7 +4,7 @@ title: "quarto-exercises"
 
 `quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents.
 
-Use it to add multiple-choice questions, inline blanks, inline choices, and code cloze exercises to Quarto pages.
+Use it to add multiple-choice questions, inline blanks and choices--including in code, with syntax highlighting--to Quarto pages.
 
 ## Install
 
@@ -23,5 +23,5 @@ filters:
 
 - [Example](example.qmd): a complete document showing the extension in use.
 - [Reference](reference.qmd): problem types, configuration, options, and authoring patterns.
-- [GitHub README](https://github.com/VisruthSK/quarto-exercises#readme): package documentation and source-level usage notes.
+- [GitHub README](https://github.com/VisruthSK/quarto-exercises#readme): package documentation and more details.
 

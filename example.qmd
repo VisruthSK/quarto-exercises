@@ -17,8 +17,6 @@ quarto-exercises:
   show-answers: false
 ---
 
-This document shows how to use the `quarto-exercises` extension to write interactive practice exercises in Quarto HTML pages.
-
 ## Multiple Choice / Multiple Answer
 
 ### Minimal Single-Choice
