@@ -265,7 +265,7 @@ Answer: A, C
 
 ## Styling
 
-The extension ships its own CSS and supports Quarto light and dark modes. These are the default light-mode CSS variables defined by the extension:
+The extension ships its own CSS and follows Quarto light and dark modes. These are the default light-mode CSS variables:
 
 ```css
 .quarto-exercise {
@@ -287,6 +287,29 @@ The extension ships its own CSS and supports Quarto light and dark modes. These 
   --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
   --ex-panel-border: #6c757d;
   --ex-panel-border-dark: #adb5bd;
+}
+```
+
+These are the dark-mode overrides:
+
+```css
+body.quarto-dark {
+  --ex-accent: #8ab4f8;
+  --ex-accent-dark: #aecbfa;
+  --ex-correct: #81c995;
+  --ex-incorrect: #f28b82;
+  --ex-incorrect-border: #f28b82;
+  --ex-muted: #aaa;
+  --ex-muted-dark: #aaa;
+  --ex-border-color: #555;
+  --ex-border-strong: #666;
+  --ex-bg: transparent;
+  --ex-control-bg: #2d2e30;
+  --ex-control-hover-bg: #3c4043;
+  --ex-control-primary-bg: #3c4043;
+  --ex-control-primary-hover-bg: #4f5357;
+  --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);
+  --ex-panel-border: #9aa0a6;
 }
 ```
 

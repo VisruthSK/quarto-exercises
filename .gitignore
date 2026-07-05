@@ -1,6 +1,8 @@
 /.quarto/
+/_site/
 /example.html
 /example_files/
+/index.html
 /tests/.tmp/
 /tests/test-sandbox/
 node_modules/
