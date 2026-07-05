@@ -21,26 +21,16 @@ jobs:
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Prepare site source
-        run: |
-          mkdir site-src
-          cp README.md site-src/index.md
-          cp example.qmd site-src/example.qmd
-          cp reference.qmd site-src/reference.qmd
-          cp _quarto.yml site-src/_quarto.yml
-          cp -R _extensions site-src/_extensions
-
       - name: Render site
-        working-directory: site-src
         run: quarto render
 
       - name: Prepare Pages metadata
         run: |
-          touch site-src/_site/.nojekyll
+          touch _site/.nojekyll
 
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
-          folder: site-src/_site
+          folder: _site
           clean: true
