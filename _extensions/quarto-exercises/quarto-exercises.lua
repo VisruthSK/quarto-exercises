@@ -251,10 +251,50 @@ end
 
 local function split_values(value, delimiter)
   local out = {}
-  for item in string.gmatch(value or "", "([^" .. delimiter .. "]+)") do
-    out[#out + 1] = item:gsub("^%s*(.-)%s*$", "%1")
+  local text = value or ""
+  local item = {}
+  local i = 1
+
+  while i <= #text do
+    local char = string.sub(text, i, i)
+    local next_char = string.sub(text, i + 1, i + 1)
+
+    if char == "\\" and (next_char == delimiter or next_char == "\\") then
+      item[#item + 1] = next_char
+      i = i + 2
+    elseif char == delimiter then
+      local value_part = table.concat(item)
+      if value_part ~= "" then
+        out[#out + 1] = value_part
+      end
+      item = {}
+      i = i + 1
+    else
+      item[#item + 1] = char
+      i = i + 1
+    end
   end
+
+  local value_part = table.concat(item)
+  if value_part ~= "" then
+    out[#out + 1] = value_part
+  end
+
   return out
+end
+
+local function escape_delimited_value(value)
+  return tostring(value or "")
+    :gsub("\\", "\\\\")
+    :gsub("|", "\\|")
+end
+
+local function join_values(values, delimiter)
+  local escaped = {}
+  for _, value in ipairs(values) do
+    escaped[#escaped + 1] = escape_delimited_value(value)
+  end
+  return table.concat(escaped, delimiter)
 end
 
 local function has_inline_interaction(blocks)
@@ -749,7 +789,7 @@ local function render_choose(el, id)
     warn(id, "choose block with no answer")
   end
 
-  local values = el.attributes.options and split_values(el.attributes.options, ",") or split_values(pandoc.utils.stringify(el), "/")
+  local values = el.attributes.options and split_values(el.attributes.options, "|") or split_values(pandoc.utils.stringify(el), "|")
   if #values == 0 then
     warn(id, "choose block with no parseable options")
   end
@@ -774,7 +814,7 @@ local function render_choose(el, id)
     raw_inline("span", {
       class = "quarto-exercise-choose-container",
       ["data-answer"] = answer,
-      ["data-options"] = table.concat(values, ","),
+      ["data-options"] = join_values(values, "|"),
       ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
       ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
       ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),

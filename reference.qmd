@@ -1,0 +1,304 @@
+---
+title: "Quarto Exercises Reference"
+format:
+  html:
+    embed-resources: true
+    theme:
+      light: cosmo
+      dark: darkly
+filters:
+  - quarto-exercises
+---
+
+This page showcases how to configure and structure interactive practice exercises with the `quarto-exercises` extension.
+
+## Configuration
+
+Place configuration overrides in the document frontmatter under `quarto-exercises`. Options not specified will fall back to their system defaults.
+
+```yaml
+quarto-exercises:
+  instant: false              # Validate answers on change instead of waiting for a Check button
+  reveal: false               # Reveal correct answers and statuses when checking
+  lock: false                 # Disable input fields after a correct answer is checked
+  reset: true                 # Show a Reset button to clear student inputs
+  shuffle: false              # Randomize the display order of choices
+  reshuffle-on-reset: false   # Randomize option order again when clicking Reset
+  show-answers: false         # Print answers inline or below questions (mostly for print/PDF)
+  explanation: correct        # When to reveal explanations: correct, after-check, or never
+  feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
+  feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer
+  ignore-case: false          # Ignore casing during text input validation
+```
+
+---
+
+## Multiple Choice Exercises
+
+```markdown
+::: {.exercise}
+Who carried the One Ring out of the Shire?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Boromir
+:::
+
+::: {.answer}
+Legolas Greenleaf
+:::
+:::
+```
+
+::: {.exercise}
+Who carried the One Ring out of the Shire?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Boromir
+:::
+
+::: {.answer}
+Legolas Greenleaf
+:::
+:::
+
+---
+
+```markdown
+::: {.exercise shuffle=true}
+Which members of the Fellowship are hobbits? Select all that apply.
+
+::: {.answer correct=true key="frodo"}
+Frodo Baggins
+:::
+
+::: {.answer key="legolas"}
+Legolas Greenleaf
+:::
+
+::: {.answer correct=true key="sam"}
+Samwise Gamgee
+:::
+:::
+```
+
+::: {.exercise shuffle=true}
+Which members of the Fellowship are hobbits? Select all that apply.
+
+::: {.answer correct=true key="frodo"}
+Frodo Baggins
+:::
+
+::: {.answer key="legolas"}
+Legolas Greenleaf
+:::
+
+::: {.answer correct=true key="sam"}
+Samwise Gamgee
+:::
+:::
+
+---
+
+```markdown
+::: {.exercise}
+What is the name of the wizard who guides the Fellowship?
+
+::: {.answer correct=true}
+Gandalf
+:::
+
+::: {.answer}
+Saruman
+:::
+
+::: {.explanation}
+Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.
+:::
+
+::: {.hint}
+He is also known as Mithrandir.
+:::
+:::
+```
+
+::: {.exercise}
+What is the name of the wizard who guides the Fellowship?
+
+::: {.answer correct=true}
+Gandalf
+:::
+
+::: {.answer}
+Saruman
+:::
+
+::: {.explanation}
+Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.
+:::
+
+::: {.hint}
+He is also known as Mithrandir.
+:::
+:::
+
+---
+
+## Inline Blanks
+
+Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
+
+```markdown
+The Capital of Gondor is [`Minas Tirith`]{.blank answer="Minas Tirith"}.
+```
+
+The Capital of Gondor is [`Minas Tirith`]{.blank answer="Minas Tirith"}.
+
+---
+
+```markdown
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
+```
+
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
+
+---
+
+```markdown
+Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
+```
+
+Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
+
+---
+
+```markdown
+Enter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.
+```
+
+Enter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.
+
+---
+
+```markdown
+Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
+```
+
+Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
+
+---
+
+## Inline Dropdowns
+
+```markdown
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
+```
+
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
+
+---
+
+```markdown
+The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
+```
+
+The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
+
+---
+
+```markdown
+The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
+```
+
+The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
+
+---
+
+## Shared Controls Exercise
+
+```markdown
+::: {.exercise}
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+:::
+```
+
+::: {.exercise}
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+:::
+
+## Code Cloze
+
+Code cloze markers are parsed from raw code text, so escaped delimiter examples use one fewer backslash than normal Markdown attributes.
+
+````markdown
+```{.code-cloze lang="r"}
+# Standalone code cloze (gets its own Check/Reset buttons)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
+total <- {{blank answer="sum"}}(x)
+```
+````
+
+```{.code-cloze lang="r"}
+# Standalone code cloze (gets its own Check/Reset buttons)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
+total <- {{blank answer="sum"}}(x)
+```
+
+---
+
+Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
+
+````markdown
+::: {.exercise explanation="after-check"}
+> [!NOTE]
+> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
+
+```{.code-cloze lang="python"}
+# Fellowship configuration dictionary
+fellowship = {
+    # 1. Option selection using outer single quotes to wrap double-quoted strings:
+    "bearer": {{choose answer='"Frodo"' options='"Frodo"|"Sam"|"Merry"' ignore-case="true" shuffle="true"}},
+
+    # 2. Text input matching using list:
+    "companion": {{blank answers='"Samwise"|"Sam"|"Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+
+    # 3. Regex matches Fellowship title (e.g. "Fellowship of the Ring" or "The Fellowship of the Ring"):
+    "first_book_title": {{blank answer="^(the\s+)?fellowship\s+of\s+the\s+ring$" match="regex" ignore-case="true"}},
+}
+```
+
+::: {.explanation}
+This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
+:::
+:::
+````
+
+::: {.exercise explanation="after-check"}
+> [!NOTE]
+> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
+
+```{.code-cloze lang="python"}
+# Fellowship configuration dictionary
+fellowship = {
+    # 1. Option selection using outer single quotes to wrap double-quoted strings:
+    "bearer": {{choose answer='"Frodo"' options='"Frodo"|"Sam"|"Merry"' ignore-case="true" shuffle="true"}},
+
+    # 2. Text input matching using list:
+    "companion": {{blank answers='"Samwise"|"Sam"|"Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+
+    # 3. Regex matches Fellowship title (e.g. "Fellowship of the Ring" or "The Fellowship of the Ring"):
+    "first_book_title": {{blank answer="^(the\s+)?fellowship\s+of\s+the\s+ring$" match="regex" ignore-case="true"}},
+}
+```
+
+::: {.explanation}
+This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
+:::
+:::

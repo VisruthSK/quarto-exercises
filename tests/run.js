@@ -163,7 +163,7 @@ ${css}
 <div class="quarto-exercise-answer" data-key="a" data-correct="false"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
 <div class="quarto-exercise-answer" data-key="b" data-correct="true"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
 </div></fieldset>
-<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell,Edoras,Minas Tirith" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><button type="button" class="quarto-exercise-hint-btn">Hint</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 <div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
@@ -234,7 +234,7 @@ async function runVisualMode(playwright, mode) {
 
   const incorrectState = await page.evaluate(() => {
     const answer = document.querySelector('[data-key="a"]');
-    const feedback = document.querySelector('.quarto-exercise-choose-feedback');
+    const feedback = document.querySelector('.quarto-exercise-feedback');
     const blankFeedback = document.querySelector('.quarto-exercise-blank-feedback');
     const hint = document.querySelector('.quarto-exercise-hint');
     const exercise = document.querySelector('.quarto-exercise');
@@ -317,7 +317,13 @@ test.describe('Quarto Exercises Extension Tests', () => {
   });
 
   test('JS unit tests for production matching logic', () => {
-    const { checkBlankMatch } = loadRuntime();
+    const { checkBlankMatch, splitList } = loadRuntime();
+    const list = value => Array.from(splitList(value));
+
+    assert.deepStrictEqual(list("red|green|blue"), ["red", "green", "blue"]);
+    assert.deepStrictEqual(list("yes\\|no|maybe"), ["yes|no", "maybe"]);
+    assert.deepStrictEqual(list("C:\\\\Temp|D:\\\\Data"), ["C:\\Temp", "D:\\Data"]);
+    assert.deepStrictEqual(list("literal\\\\\\|pipe|plain"), ["literal\\|pipe", "plain"]);
 
     // Exact match
     assert.strictEqual(checkBlankMatch("Gandalf", "Gandalf", "exact", false, true, false), true);
@@ -329,12 +335,22 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(checkBlankMatch("Gandalf The Grey", "Gandalf  The   Grey", "exact", false, true, true), true);
 
     // One of multiple
-    assert.strictEqual(checkBlankMatch("Frodo Baggins", "Frodo,Frodo Baggins", "one-of", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Samwise", "Frodo,Frodo Baggins", "one-of", false, true, false), false);
+    assert.strictEqual(checkBlankMatch("Frodo Baggins", "Frodo|Frodo Baggins", "one-of", false, true, false), true);
+    assert.strictEqual(checkBlankMatch("Samwise", "Frodo|Frodo Baggins", "one-of", false, true, false), false);
+    assert.strictEqual(checkBlankMatch(" Frodo ", " Frodo |Sam", "one-of", false, false, false), true);
+    assert.strictEqual(checkBlankMatch("Frodo", " Frodo |Sam", "one-of", false, false, false), false);
 
     // Regex
     assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", false, true, false), true);
     assert.strictEqual(checkBlankMatch("the fellowship of the ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", true, true, false), true);
+    assert.strictEqual(checkBlankMatch("Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
+    assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
+    assert.strictEqual(checkBlankMatch("Frodo, Sam", "^Frodo,\\s+Sam$", "regex", false, true, false), true);
+    assert.strictEqual(checkBlankMatch("Frodo", "^Frodo,\\s+Sam$", "regex", false, true, false), false);
+
+    // Escaped delimiter values
+    assert.strictEqual(checkBlankMatch("yes|no", "yes\\|no|maybe", "one-of", false, true, false), true);
+    assert.strictEqual(checkBlankMatch("yes", "yes\\|no|maybe", "one-of", false, true, false), false);
   });
 
   test('Code cloze blank sizing resizes to typed text and toggles underline', () => {
@@ -470,12 +486,12 @@ filters:
 
 The wizard is [\`Gandalf\`]{.blank answer="Gandalf" ignore-case=true}.
 
-The Fellowship leaves [Rivendell / Minas Tirith / Edoras]{.choose answer="Rivendell"}.
+The Fellowship leaves [Rivendell|Minas Tirith|Edoras]{.choose answer="Rivendell"}.
 
 \`\`\`{.code-cloze lang="r"}
 rings <- list("Narya", "Nenya", "Vilya")
 for(i in {{blank answer="seq_along(rings)"}}) {
-  bearer <- {{choose answer="Frodo" options="Frodo,Sam"}}
+  bearer <- {{choose answer="Frodo" options="Frodo|Sam"}}
 }
 \`\`\`
 `;
@@ -495,7 +511,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
 
     // Standalone choose renders as dropdown
     assert.match(html, /class="quarto-exercise-choose-select"/);
-    assert.match(html, /data-options="Rivendell,Minas Tirith,Edoras"/);
+    assert.match(html, /data-options="Rivendell\|Minas Tirith\|Edoras"/);
     assert.match(html, /data-answer="Rivendell"/);
 
     // Code cloze renders correctly
@@ -511,6 +527,241 @@ for(i in {{blank answer="seq_along(rings)"}}) {
     // (e.g. keywords, strings, operators highlighted as spans)
     assert.match(html, /<span class="[^"]+">(?!<\/span>)/,
       'syntax highlighting must produce <span> elements inside the code block');
+  });
+
+  test('Pipe-delimited choices preserve spaces as option values', (t) => {
+    const qmdContent = `---
+title: "Pipe Choice Test"
+filters:
+  - quarto-exercises
+---
+
+The path is [Mordor| Gondor |Rohan]{.choose answer="Mordor"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'pipe-choice.qmd'), qmdContent);
+    renderQuarto('pipe-choice.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'pipe-choice.html'), 'utf8');
+    assert.match(html, /data-options="Mordor\| Gondor \|Rohan"/);
+    assert.match(html, /data-answer="Mordor"/);
+  });
+
+  test('Escaped pipe delimiters render as literal value characters', (t) => {
+    const qmdContent = `---
+title: "Escaped Pipe Test"
+filters:
+  - quarto-exercises
+---
+
+Literal answer: [\`yes|no\`]{.blank answers="yes\\\\|no|maybe" match="one-of"}.
+
+Literal choice: [yes\\\\|no|maybe|unknown]{.choose answer="yes|no"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'escaped-pipe.qmd'), qmdContent);
+    renderQuarto('escaped-pipe.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'escaped-pipe.html'), 'utf8');
+    assert.match(html, /data-answers="yes\\\|no\|maybe"/);
+    assert.match(html, /data-options="yes\\\|no\|maybe\|unknown"/);
+    assert.match(html, /data-answer="yes\|no"/);
+  });
+
+  test('Inline blanks validate exact, one-of, regex, trimming, and whitespace behavior in browser', async () => {
+    const playwright = require('playwright');
+
+    const qmdContent = `---
+title: "Inline Blank Behavior Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+Trimmed exact: [\`Gandalf\`]{.blank answer="Gandalf" feedback-correct="Exact ok" feedback-incorrect="Exact wrong"}.
+
+Collapsed one-of: [\`Sam\`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true collapse-space=true feedback-correct="List ok" feedback-incorrect="List wrong"}.
+
+Literal spaces: [\`Frodo  Baggins\`]{.blank answers="Frodo  Baggins|Sam" match="one-of" trim=false feedback-correct="Spaces ok" feedback-incorrect="Spaces wrong"}.
+
+Binary literal: [\`1001\`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true feedback-correct="Regex ok" feedback-incorrect="Regex wrong"}.
+
+Comma regex: [\`Frodo, Sam\`]{.blank answer="^Frodo,\\s+Sam$" match="regex" feedback-correct="Comma ok" feedback-incorrect="Comma wrong"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'inline-blank-behavior.qmd'), qmdContent);
+    renderQuarto('inline-blank-behavior.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'inline-blank-behavior.html')}`, { waitUntil: 'load' });
+      const blanks = page.locator('.quarto-exercise-blank-container');
+
+      async function checkBlank(index, value, expectedFeedback) {
+        const blank = blanks.nth(index);
+        await blank.locator('input').fill(value);
+        await blank.locator('button').click();
+        await expectFeedback(blank, expectedFeedback);
+      }
+
+      async function expectFeedback(blank, text) {
+        await page.waitForFunction(
+          ([el, expected]) => el.querySelector('.quarto-exercise-blank-feedback').textContent === expected,
+          [await blank.elementHandle(), text]
+        );
+        assert.strictEqual(await blank.locator('.quarto-exercise-blank-feedback').textContent(), text);
+      }
+
+      await checkBlank(0, '  Gandalf  ', 'Exact ok');
+      await checkBlank(1, 'samwise   gamgee', 'List ok');
+      await checkBlank(2, 'Frodo Baggins', 'Spaces wrong');
+      await checkBlank(2, 'Frodo  Baggins', 'Spaces ok');
+      await checkBlank(3, '10010', 'Regex wrong');
+      await checkBlank(3, '0B1001', 'Regex ok');
+      await checkBlank(4, 'Frodo', 'Comma wrong');
+      await checkBlank(4, 'Frodo, Sam', 'Comma ok');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Inline choices expose pipe options and require the selected answer in browser', async () => {
+    const playwright = require('playwright');
+
+    const qmdContent = `---
+title: "Inline Choice Behavior Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+Destination: [Mordor|Minas Tirith|Rohan]{.choose answer="Minas Tirith" feedback-correct="Choice ok" feedback-incorrect="Choice wrong"}.
+
+Syntax token: [yes/no|maybe|unknown]{.choose answer="yes/no" feedback-correct="Slash ok" feedback-incorrect="Slash wrong"}.
+
+Spaced option: [Mordor| Gondor |Rohan]{.choose answer="Mordor" feedback-correct="Space list ok" feedback-incorrect="Space list wrong"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'inline-choice-behavior.qmd'), qmdContent);
+    renderQuarto('inline-choice-behavior.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'inline-choice-behavior.html')}`, { waitUntil: 'load' });
+      const choices = page.locator('.quarto-exercise-choose-container');
+
+      assert.deepStrictEqual(await choices.nth(0).locator('option').evaluateAll(options => options.map(option => option.textContent)), [
+        'Choose...', 'Mordor', 'Minas Tirith', 'Rohan'
+      ]);
+      assert.deepStrictEqual(await choices.nth(1).locator('option').evaluateAll(options => options.map(option => option.textContent)), [
+        'Choose...', 'yes/no', 'maybe', 'unknown'
+      ]);
+      assert.deepStrictEqual(await choices.nth(2).locator('option').evaluateAll(options => options.map(option => option.textContent)), [
+        'Choose...', 'Mordor', ' Gondor ', 'Rohan'
+      ]);
+
+      async function checkChoice(index, value, expectedFeedback) {
+        const choice = choices.nth(index);
+        await choice.locator('select').selectOption(value);
+        await choice.locator('button').click();
+        await page.waitForFunction(
+          ([el, expected]) => el.querySelector('.quarto-exercise-choose-feedback').textContent === expected,
+          [await choice.elementHandle(), expectedFeedback]
+        );
+        assert.strictEqual(await choice.locator('.quarto-exercise-choose-feedback').textContent(), expectedFeedback);
+      }
+
+      await checkChoice(0, 'Mordor', 'Choice wrong');
+      await checkChoice(0, 'Minas Tirith', 'Choice ok');
+      await checkChoice(1, 'yes/no', 'Slash ok');
+      await checkChoice(2, ' Gondor ', 'Space list wrong');
+      await checkChoice(2, 'Mordor', 'Space list ok');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Code cloze regex blanks preserve backslashes and validate optional words', async () => {
+    const playwright = require('playwright');
+
+    const qmdContent = `---
+title: "Code Cloze Regex Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="python"}
+book = {{blank answer="^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$" match="regex" ignore-case="true"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'code-cloze-regex.qmd'), qmdContent);
+    renderQuarto('code-cloze-regex.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'code-cloze-regex.html')}`, { waitUntil: 'load' });
+      const blank = page.locator('.quarto-exercise-code-blank');
+      const check = page.locator('.quarto-exercise-check-btn');
+
+      await blank.fill('Fellowship of the Ring');
+      await check.click();
+      assert.strictEqual(await blank.evaluate(el => el.classList.contains('is-correct')), true);
+
+      await page.locator('.quarto-exercise-reset-btn').click();
+      await blank.fill('The Fellowship of the Ring');
+      await check.click();
+      assert.strictEqual(await blank.evaluate(el => el.classList.contains('is-correct')), true);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Grouped code cloze validates all controls and accepts optional-word regex blanks', async () => {
+    const playwright = require('playwright');
+
+    const qmdContent = `---
+title: "Grouped Code Cloze Regex Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise explanation="after-check"}
+\`\`\`{.code-cloze lang="python"}
+fellowship = {
+    "bearer": {{choose answer='"Frodo"' options='"Frodo"|"Sam"|"Merry"' ignore-case="true" shuffle="false"}},
+    "companion": {{blank answers='"Samwise"|"Sam"|"Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+    "first_book_title": {{blank answer="^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$" match="regex" ignore-case="true"}},
+}
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-code-cloze-regex.qmd'), qmdContent);
+    renderQuarto('grouped-code-cloze-regex.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'grouped-code-cloze-regex.html')}`, { waitUntil: 'load' });
+
+      await page.locator('.quarto-exercise-code-choose').selectOption('"Frodo"');
+      await page.locator('.quarto-exercise-code-blank').nth(0).fill('"Sam"');
+      await page.locator('.quarto-exercise-code-blank').nth(1).fill('Fellowship of the Ring');
+      await page.locator('.quarto-exercise-check-btn').click();
+
+      assert.strictEqual(await page.locator('.quarto-exercise-code-blank').nth(1).evaluate(el => el.classList.contains('is-correct')), true);
+      assert.strictEqual(await page.locator('.quarto-exercise-status').textContent(), 'Correct!');
+    } finally {
+      await browser.close();
+    }
   });
 
   test('Validation warnings appear in stderr output', (t) => {
@@ -597,7 +848,7 @@ quarto-exercises:
 ---
 
 \`\`\`{.code-cloze lang="r"}
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
 total <- {{blank answer="sum"}}(x)
 \`\`\`
 `;
@@ -777,7 +1028,7 @@ filters:
 
 \`\`\`{.code-cloze lang="python"}
 numbers = [1, 2, 3, 4, 5]
-total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+total = {{choose answer="sum" options="sum|max|min|len"}}(numbers)
 print({{blank answer="total"}})
 \`\`\`
 `;
@@ -1018,7 +1269,7 @@ Only shows after a correct check by default.
 
 Default blank: [\`Gandalf\`]{.blank answer="Gandalf"}.
 
-Default choice: [Rivendell / Edoras]{.choose answer="Rivendell"}.
+Default choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'defaults.qmd'), qmdContent);
     renderQuarto('defaults.qmd');
@@ -1080,7 +1331,7 @@ Shows after any check.
 
 Case-insensitive blank: [\`Gandalf\`]{.blank answer="Gandalf"}.
 
-Shuffled choice: [Rivendell / Edoras]{.choose answer="Rivendell"}.
+Shuffled choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'overrides.qmd'), qmdContent);
     renderQuarto('overrides.qmd');

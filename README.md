@@ -1,8 +1,6 @@
 # quarto-exercises
 
-`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents. It turns Pandoc Divs, Spans, and marked code blocks into browser-side exercises.
-
-It is meant for self-practice in static course pages. The rendered HTML contains the answers, so do not use it for exams or graded work.
+`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents. 
 
 ## Installation
 
@@ -81,6 +79,16 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 
 Use `key` when you want stable answer identifiers in the generated HTML. Without it, the extension assigns `a`, `b`, `c`, and so on.
 
+## Authoring Notes
+
+Use `true` or `false` for boolean attributes.
+
+The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
+
+Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
+
+Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
+
 ## Feedback, Hints, and Explanations
 
 An answer can contain one `.feedback` Div. An exercise can contain one `.hint` Div and one `.explanation` Div.
@@ -125,10 +133,16 @@ Use a `.blank` Span for a text input.
 The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
 ```
 
-Multiple accepted answers use a comma-separated `answers` attribute:
+Multiple accepted answers use a pipe-separated `answers` attribute:
 
 ```markdown
-The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
+```
+
+Use `\\|` for a literal pipe inside one answer in Quarto Markdown source:
+
+```markdown
+Answer yes or no: [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
 ```
 
 Regex matching uses `match="regex"` with `answer`:
@@ -140,7 +154,7 @@ The full title of the first volume of Lord of the Rings is [`The Fellowship of t
 Blank attributes:
 
 - `answer`: one accepted answer
-- `answers`: comma-separated accepted answers
+- `answers`: pipe-separated accepted answers
 - `match`: `exact`, `one-of`, or `regex`
 - `ignore-case`: compare without case sensitivity
 - `trim`: trim input before checking, default `true`
@@ -152,20 +166,24 @@ Blank attributes:
 Use a `.choose` Span for a dropdown.
 
 ```markdown
-The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
 ```
 
-The extension parses slash-separated text as options. If an option contains a slash, pass the list explicitly:
+The extension parses pipe-separated text as options. Spaces around `|` are part of the option value, so write compact lists unless the spaces are intentional. Use `\\|` for a literal pipe inside one option in Quarto Markdown source.
 
 ```markdown
-Is this correct? [`yes/no`]{.choose options="yes/no,maybe,unknown" answer="yes/no"}.
+Is this correct? [`yes/no`]{.choose options="yes/no|maybe|unknown" answer="yes/no"}.
+```
+
+```markdown
+Choose the literal token: [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
 ```
 
 An `.exercise` can group blanks and choices under one Check and Reset control:
 
 ```markdown
 ::: {.exercise}
-The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 
 ::: {.hint}
 What does Sam call him?
@@ -176,7 +194,7 @@ What does Sam call him?
 Choice attributes:
 
 - `answer`: the correct option
-- `options`: comma-separated options
+- `options`: pipe-separated options
 - `ignore-case`: compare without case sensitivity
 - `shuffle`: shuffle the option order
 - `feedback-correct` and `feedback-incorrect`: override the feedback text
@@ -187,7 +205,7 @@ Use a `.code-cloze` code block when blanks or dropdowns should appear inside hig
 
 ````markdown
 ```{.code-cloze lang="r"}
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3, 4, 5)
 total <- {{blank answer="sum"}}(x)
 cat("Total:", total, "\n")
 ```
@@ -195,13 +213,21 @@ cat("Total:", total, "\n")
 
 The `lang` attribute becomes the syntax-highlighting language.
 
+Pipe-delimited `answers` and `options` inside code cloze use the same escape rules, but code cloze markers are parsed from raw code text. Write `\|` there for a literal pipe.
+
+````markdown
+```{.code-cloze lang="text"}
+response = {{choose answer="yes|no" options="yes\|no|maybe"}}
+```
+````
+
 Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
 
 ````markdown
 ::: {.exercise}
 ```{.code-cloze lang="python"}
 numbers = [1, 2, 3, 4, 5]
-total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+total = {{choose answer="sum" options="sum|max|min|len"}}(numbers)
 print({{blank answer="total"}})
 ```
 :::
