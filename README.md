@@ -1,45 +1,41 @@
-# `quarto-exercises`
+# quarto-exercises
 
-`quarto-exercises` is a Quarto extension that converts Pandoc-native Divs and Spans into interactive HTML exercises. 
+`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents. It turns Pandoc Divs, Spans, and marked code blocks into browser-side exercises.
 
-Designed for formative practice in static teaching materials, it works offline in the browser with no databases, servers, R/Python packages, Node/npm configuration, or CDNs.
-
-> [!WARNING]
-> **Security Note:** The rendered HTML page source embeds all correct answers and feedback. Use this extension for self-practice, not high-stakes grading.
-
----
-
-## Features
-
-- **Multiple-Choice & Multiple-Answer Questions** (using radio inputs or checkboxes)
-- **Inline Fill-in-the-Blanks** with inputs that expand as you type
-- **Inline Dropdown Cloze Questions**
-- **Action Controls:** Instant or button-based checking, answer revealing, locking upon completion, and option shuffling.
-- **Accessible & Responsive:** Keyboard-navigable, screen-reader friendly (using fieldsets and aria-live announcements), and styled using CSS variables.
-- **Static Fallbacks:** Static fallbacks (with optional answer keys) for PDF, DOCX, and Typst.
-
----
+It is meant for self-practice in static course pages. The rendered HTML contains the answers, so do not use it for exams or graded work.
 
 ## Installation
 
-Add the extension to your Quarto project:
+Add the extension to a Quarto project:
 
 ```bash
 quarto add VisruthSK/quarto-exercises
 ```
 
-Add it to your document or project `_quarto.yml` configuration:
+Then enable the filter in a document or project config:
 
 ```yaml
 filters:
   - quarto-exercises
 ```
 
----
+You can override defaults in document metadata:
 
-## Authoring Examples
+```yaml
+quarto-exercises:
+  instant: false
+  reveal: true
+  lock: false
+  reset: true
+  shuffle: false
+  show-answers: false
+```
 
-### 1. Minimal Single-Choice
+See [example.qmd](example.qmd) for a complete document.
+
+## Multiple Choice
+
+Write a question as an `.exercise` Div. Each `.answer` Div becomes one choice. Mark the correct answer with `correct=true`.
 
 ```markdown
 ::: {.exercise}
@@ -55,9 +51,7 @@ Boromir
 :::
 ```
 
-### 2. Multiple-Correct with Custom Keys & Shuffling
-
-Marking multiple answers correct turns the radio options into checkboxes.
+If more than one answer is correct, the extension renders checkboxes instead of radio buttons.
 
 ```markdown
 ::: {.exercise shuffle=true}
@@ -78,10 +72,18 @@ Legolas Greenleaf
 ::: {.answer correct=true key="merry"}
 Meriadoc Brandybuck
 :::
+
+::: {.hint}
+There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.
+:::
 :::
 ```
 
-### 3. Per-Answer Feedback & Question Explanation
+Use `key` when you want stable answer identifiers in the generated HTML. Without it, the extension assigns `a`, `b`, `c`, and so on.
+
+## Feedback, Hints, and Explanations
+
+An answer can contain one `.feedback` Div. An exercise can contain one `.hint` Div and one `.explanation` Div.
 
 ```markdown
 ::: {.exercise}
@@ -109,164 +111,199 @@ Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.
 :::
 ```
 
-### 4. Code Blocks in Choices
+The `explanation` option controls when explanations show:
 
-```markdown
-::: {.exercise}
-What does the following Python statement print?
+- `correct`: after a correct check
+- `after-check`: after any check
+- `never`: never in HTML output
 
-```python
-print([x * 2 for x in range(3)])
-```
+## Inline Blanks
 
-::: {.answer}
-`[1, 2, 3]`
-:::
-
-::: {.answer correct=true}
-`[0, 2, 4]`
-
-::: {.feedback}
-Correct! `range(3)` produces `0, 1, 2`, and multiplying each by 2 yields `0, 2, 4`.
-:::
-:::
-:::
-```
-
-### 5. Fill-in-the-Blank
-
-Inputs automatically expand horizontally as the user types.
+Use a `.blank` Span for a text input.
 
 ```markdown
 The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
 ```
 
-- **Multiple Accepted Answers:**
-  ```markdown
-  The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
-  ```
+Multiple accepted answers use a comma-separated `answers` attribute:
 
-- **Regex Matching:**
-  ```markdown
-  The title is [`The Fellowship of the Ring`]{.blank answer="^The\s+Fellowship\s+of\s+the\s+Ring$" match="regex" ignore-case=true}.
-  ```
+```markdown
+The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
+```
 
-### 6. Inline Choice / Dropdown Cloze
+Regex matching uses `match="regex"` with `answer`:
+
+```markdown
+The full title of the first volume of Lord of the Rings is [`The Fellowship of the Ring`]{.blank answer="^The\s+Fellowship\s+of\s+the\s+Ring$" match="regex" ignore-case=true}.
+```
+
+Blank attributes:
+
+- `answer`: one accepted answer
+- `answers`: comma-separated accepted answers
+- `match`: `exact`, `one-of`, or `regex`
+- `ignore-case`: compare without case sensitivity
+- `trim`: trim input before checking, default `true`
+- `collapse-space`: collapse repeated whitespace before checking, default `false`
+- `feedback-correct` and `feedback-incorrect`: override the feedback text
+
+## Inline Choices
+
+Use a `.choose` Span for a dropdown.
 
 ```markdown
 The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
 ```
 
-Use custom options lists to bypass text parsing (especially if your choices contain slashes):
+The extension parses slash-separated text as options. If an option contains a slash, pass the list explicitly:
 
 ```markdown
 Is this correct? [`yes/no`]{.choose options="yes/no,maybe,unknown" answer="yes/no"}.
 ```
 
-To bundle multiple dropdowns/blanks under a single parent submit layout:
+An `.exercise` can group blanks and choices under one Check and Reset control:
 
 ```markdown
 ::: {.exercise}
-The Fellowship leaves [Rivendell / Minas Tirith / Edoras]{.choose answer="Rivendell"} and travels toward [Mordor / Valinor / Dale]{.choose answer="Mordor"}.
+The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+
+::: {.hint}
+What does Sam call him?
+:::
 :::
 ```
 
----
+Choice attributes:
 
-## Global and Per-Question Options
+- `answer`: the correct option
+- `options`: comma-separated options
+- `ignore-case`: compare without case sensitivity
+- `shuffle`: shuffle the option order
+- `feedback-correct` and `feedback-incorrect`: override the feedback text
 
-Configure options globally in the document frontmatter or override them per-question using attributes:
+## Code Cloze
+
+Use a `.code-cloze` code block when blanks or dropdowns should appear inside highlighted code. Put cloze controls between `{{` and `}}`.
+
+````markdown
+```{.code-cloze lang="r"}
+x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+total <- {{blank answer="sum"}}(x)
+cat("Total:", total, "\n")
+```
+````
+
+The `lang` attribute becomes the syntax-highlighting language.
+
+Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
+
+````markdown
+::: {.exercise}
+```{.code-cloze lang="python"}
+numbers = [1, 2, 3, 4, 5]
+total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+print({{blank answer="total"}})
+```
+:::
+````
+
+Standalone `.code-cloze` blocks get their own Check and Reset buttons.
+
+## Options
+
+Global options go under `quarto-exercises` in metadata. Most exercise options can also be set as attributes on a single `.exercise` Div.
+
+These are the defaults used by the extension:
 
 ```yaml
 quarto-exercises:
-  instant: false               # Check immediately on changes (default: false)
-  reveal: false                # Reveal correct answers after checking (default: false)
-  lock: false                  # Prevent changes after checking correct (default: false)
-  reset: true                  # Show the reset button (default: true)
-  shuffle: false               # Randomize choice orders globally (default: false)
-  reshuffle-on-reset: false    # Reshuffle choices on reset (default: false)
-  show-answers: false          # Show answers in static non-HTML fallbacks (default: false)
-  explanation: correct         # Show explanation: 'correct' | 'after-check' | 'never' (default: 'correct')
-  feedback-correct: "Correct!" # Default success text
-  feedback-incorrect: "Not quite." # Default failure text
+  instant: false
+  reveal: false
+  lock: false
+  reset: true
+  shuffle: false
+  reshuffle-on-reset: false
+  show-answers: false
+  explanation: correct
+  feedback-correct: "Correct!"
+  feedback-incorrect: "Not quite."
+  ignore-case: false
 ```
 
-Override attributes per-question:
+Per-exercise overrides:
 
 ```markdown
-::: {.exercise shuffle=true instant=true lock=true}
+::: {.exercise shuffle=true instant=true lock=true explanation="after-check"}
 Question content here...
 :::
 ```
 
----
+Exercise attributes:
 
-## Non-HTML Fallback Behavior
+- `shuffle`: randomize answer choices
+- `reshuffle-on-reset`: shuffle again after Reset
+- `instant`: check after each change instead of showing a Check button
+- `reveal`: reveal correct answers after checking
+- `lock`: disable controls after a correct answer
+- `reset`: show the Reset button
+- `explanation`: `correct`, `after-check`, or `never`
+- `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
 
-For static formats like PDF, DOCX, and Typst, multiple-choice exercises render as lists, and inline blanks or cloze dropdowns render as underlines (`________`).
+## Non-HTML Output
 
-Setting `show-answers: true` in the metadata appends answer keys and explanations to static outputs:
+For formats such as PDF, DOCX, Typst, and Markdown, the filter removes the interactive controls:
+
+- multiple-choice exercises become lettered lists
+- blanks, choices, and code cloze controls become underlines
+- `show-answers: true` prints answer keys and explanations
+
+Example answer key:
 
 ```markdown
 Answer: A, C
 ```
 
----
+## Styling
 
-## Styling Customization
-
-Customize the layout and design (which supports light and dark modes) by overriding these CSS variables:
+The extension ships its own CSS and supports Quarto light and dark modes. These are the default light-mode CSS variables defined by the extension:
 
 ```css
 .quarto-exercise {
   --ex-accent: #1a73e8;
+  --ex-accent-dark: #4285f4;
   --ex-correct: #137333;
   --ex-incorrect: #c5221f;
+  --ex-incorrect-border: #ea4335;
   --ex-muted: #555;
+  --ex-muted-dark: #aaa;
   --ex-border-color: #ccc;
+  --ex-border-strong: #ced4da;
   --ex-bg: transparent;
   --ex-control-bg: #f8f9fa;
   --ex-control-hover-bg: #e9ecef;
+  --ex-control-primary-bg: #e9ecef;
+  --ex-control-primary-hover-bg: #dee2e6;
   --ex-border-radius: 4px;
   --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
+  --ex-panel-border: #6c757d;
+  --ex-panel-border-dark: #adb5bd;
 }
 ```
 
----
+## Tests
 
-## Running the Automated Tests
-
-To run the full suite of automated unit, rendering, validation, and fallback tests, run:
+Run the test suite with:
 
 ```bash
 pnpm test
 ```
 
-Alternatively, you can run the test script directly:
+The test runner uses Node's built-in test module, Quarto render checks, and Playwright browser checks. Install Quarto, project dependencies, and the Playwright Chromium browser before running it.
 
-```bash
-node tests/run.js
-```
+## Limitations
 
-The test runner uses Node.js's built-in testing modules. Browser visual smoke tests for light and dark mode run through Playwright and write screenshots to `tests/.tmp/visual/`.
-
----
-
-## Known Limitations
-
-### 1. Security & Client-Side Verification
-To run offline without databases or servers, the extension stores all correct answers and feedback in the HTML source.
-- **Limitation:** Users can find correct answers by inspecting the page source or DOM attributes (e.g. `data-correct="true"`, `data-answer="..."`).
-- **Context:** Use this extension only for self-practice and active learning, not for graded exams.
-
-### 2. Nested Interactive Content within Answer Choices
-- **Limitation:** Do not embed inline blanks or dropdowns inside multiple-choice answer blocks. Doing so causes undefined validation bindings.
-
-### 3. Case Insensitivity and Whitespace Normalization for Regex Blanks
-- **Limitation:** The extension applies trim and collapse-space rules to user input before evaluating regex. To match exact spaces, disable these by setting `trim=false` and `collapse-space=false` on the blank span.
-
-### 4. Layout Constraints of Expandable Inputs
-- **Limitation:** Inputs have a maximum width of `25rem` (`380px`) to prevent layout breakages. Long answers scroll horizontally.
-
-### 5. Multi-Pass Filter Ordering
-- **Limitation:** The Lua filter requires metadata to load first. Place this extension in the filters queue before other filters that alter document spans.
+- The correct answers and feedback are stored in the HTML source.
+- Inline blanks or choices inside `.answer` blocks are not supported.
+- Regex blanks still use the configured `trim` and `collapse-space` normalization before matching.
+- Long text inputs are capped at `380px` and scroll horizontally.
+- Put this filter before filters that rewrite the same Divs, Spans, or code blocks.

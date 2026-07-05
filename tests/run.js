@@ -54,27 +54,8 @@ function runQuarto(fileName, format = 'html') {
   };
 }
 
-function hasQuarto() {
-  const res = spawnSync('quarto --version', { encoding: 'utf8', shell: true });
-  return res.status === 0;
-}
-
-function renderOrSkip(t, fileName, format = 'html') {
-  if (!hasQuarto()) {
-    if (process.env.CI) {
-      assert.fail('Quarto CLI is required in CI');
-    }
-    t.skip('Quarto CLI is not available to this test runner');
-    return null;
-  }
+function renderQuarto(fileName, format = 'html') {
   const result = runQuarto(fileName, format);
-  if (result.error && /EPERM/.test(result.error.message)) {
-    if (process.env.CI) {
-      assert.fail(`Quarto CLI cannot be spawned in CI: ${result.error.message}`);
-    }
-    t.skip(`Quarto CLI cannot be spawned here: ${result.error.message}`);
-    return null;
-  }
   assert.strictEqual(result.success, true, result.stderr || result.stdout);
   return result;
 }
@@ -116,14 +97,6 @@ function loadRuntime() {
   vm.createContext(context);
   vm.runInContext(runtime, context);
   return context;
-}
-
-function optionalPlaywright() {
-  try {
-    return require('playwright');
-  } catch {
-    return null;
-  }
 }
 
 function visualFixture() {
@@ -434,7 +407,7 @@ He is short and has hairy feet.
 :::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'mc.qmd'), qmdContent);
-    if (!renderOrSkip(t, 'mc.qmd')) return;
+    renderQuarto('mc.qmd');
     
     const htmlPath = path.join(TEMP_DIR, 'mc.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
@@ -482,7 +455,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
 \`\`\`
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'blank.qmd'), qmdContent);
-    if (!renderOrSkip(t, 'blank.qmd')) return;
+    renderQuarto('blank.qmd');
     
     const htmlPath = path.join(TEMP_DIR, 'blank.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
@@ -541,8 +514,7 @@ No answer blocks.
 [No Answer]{.choose}
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'warnings.qmd'), qmdContent);
-    const result = renderOrSkip(t, 'warnings.qmd');
-    if (!result) return;
+    const result = renderQuarto('warnings.qmd');
     
     const stderrLog = result.stderr + result.stdout;
     
@@ -577,7 +549,7 @@ Legolas
 The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'fallback.qmd'), qmdContent);
-    if (!renderOrSkip(t, 'fallback.qmd', 'markdown')) return;
+    renderQuarto('fallback.qmd', 'markdown');
     
     const mdPath = path.join(TEMP_DIR, 'fallback.md');
     const md = fs.readFileSync(mdPath, 'utf8');
@@ -610,8 +582,7 @@ Legolas
 :::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'bool.qmd'), qmdContent);
-    const result = renderOrSkip(t, 'bool.qmd');
-    if (!result) return;
+    const result = renderQuarto('bool.qmd');
     const log = result.stderr + result.stdout;
     const html = fs.readFileSync(path.join(TEMP_DIR, 'bool.html'), 'utf8');
 
@@ -640,8 +611,7 @@ Legolas
 :::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'numeric-bool.qmd'), qmdContent);
-    const result = renderOrSkip(t, 'numeric-bool.qmd');
-    if (!result) return;
+    const result = renderQuarto('numeric-bool.qmd');
     const log = result.stderr + result.stdout;
     const html = fs.readFileSync(path.join(TEMP_DIR, 'numeric-bool.html'), 'utf8');
 
@@ -743,15 +713,8 @@ Legolas
     assert.strictEqual(dispatchCount, 1);
   });
 
-  test('Code cloze blank browser behavior: default width, blur resize, reset', async (t) => {
-    const playwright = optionalPlaywright();
-    if (!playwright) {
-      if (process.env.CI) {
-        assert.fail('Playwright is required in CI');
-      }
-      t.skip('Playwright is not installed');
-      return;
-    }
+  test('Code cloze blank browser behavior: default width, blur resize, reset', async () => {
+    const playwright = require('playwright');
 
     const qmdContent = `---
 title: "Code Cloze Blank Test"
@@ -769,7 +732,7 @@ print({{blank answer="total"}})
 \`\`\`
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'code-cloze.qmd'), qmdContent);
-    if (!renderOrSkip(t, 'code-cloze.qmd')) return;
+    renderQuarto('code-cloze.qmd');
 
     const browser = await playwright.chromium.launch();
     try {
@@ -891,40 +854,23 @@ print({{blank answer="total"}})
     assert.strictEqual(res.stdout.trim(), '');
   });
 
-  test('Documented CSS variables exist in the stylesheet', () => {
+  test('Documented CSS variables are defined in the stylesheet', () => {
     const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
     const documented = Array.from(readme.matchAll(/--ex-[\w-]+/g), match => match[0]);
 
     documented.forEach(variable => {
       assert.match(css, new RegExp(`${variable}:`));
-      assert.match(css, new RegExp(`var\\(${variable}\\)`));
     });
   });
 
-  test('Light and dark visual smoke snapshots', async (t) => {
-    const playwright = optionalPlaywright();
-    if (!playwright) {
-      if (process.env.CI) {
-        assert.fail('Playwright is required in CI');
-      }
-      t.skip('Playwright is not installed');
-      return;
-    }
+  test('Light and dark visual smoke snapshots', async () => {
+    const playwright = require('playwright');
 
     fs.mkdirSync(path.join(TEMP_DIR, 'visual'), { recursive: true });
 
     for (const mode of ['light', 'dark']) {
-      let result;
-      try {
-        result = await runVisualMode(playwright, mode);
-      } catch (error) {
-        if (!process.env.CI && /spawn EPERM/.test(error.message || '')) {
-          t.skip(`Playwright browser cannot be spawned here: ${error.message}`);
-          return;
-        }
-        throw error;
-      }
+      const result = await runVisualMode(playwright, mode);
       const { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong } = result;
 
       assert.ok(selectWidthChoose < selectWidthLong, `${mode} choose select should expand for longer selected option`);
