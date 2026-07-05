@@ -60,6 +60,31 @@ function renderQuarto(fileName, format = 'html') {
   return result;
 }
 
+function parseLuaDefaults(lua) {
+  const block = lua.match(/local defaults = \{([\s\S]*?)\n\}/);
+  assert.ok(block, 'Lua defaults block should exist');
+  const out = {};
+  for (const line of block[1].split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:\["([^"]+)"\]|([\w-]+))\s*=\s*(.+?)(?:,)?\s*$/);
+    if (!match) continue;
+    const key = match[1] || match[2];
+    const raw = match[3];
+    if (raw === 'true') out[key] = true;
+    else if (raw === 'false') out[key] = false;
+    else out[key] = raw.replace(/^"(.*)"$/, '$1');
+  }
+  return out;
+}
+
+function parseCssVariables(css, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const root = css.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`));
+  assert.ok(root, `CSS ${selector} block should exist`);
+  return Object.fromEntries(
+    Array.from(root[1].matchAll(/^\s*(--ex-[\w-]+):\s*(.+?);\s*$/gm), match => [match[1], match[2]])
+  );
+}
+
 function loadRuntime() {
   const listeners = {};
   const runtime = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
@@ -854,13 +879,172 @@ print({{blank answer="total"}})
     assert.strictEqual(res.stdout.trim(), '');
   });
 
-  test('Documented CSS variables are defined in the stylesheet', () => {
-    const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
-    const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
-    const documented = Array.from(readme.matchAll(/--ex-[\w-]+/g), match => match[0]);
+  test('Lua defaults stay explicit and stable', () => {
+    const lua = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.lua'), 'utf8');
+    assert.deepStrictEqual(parseLuaDefaults(lua), {
+      instant: false,
+      reveal: false,
+      lock: false,
+      reset: true,
+      shuffle: false,
+      'reshuffle-on-reset': false,
+      'show-answers': false,
+      explanation: 'correct',
+      'feedback-correct': 'Correct!',
+      'feedback-incorrect': 'Not quite.',
+      'ignore-case': false
+    });
+  });
 
-    documented.forEach(variable => {
-      assert.match(css, new RegExp(`${variable}:`));
+  test('Default options render into exercise, blank, and choice controls', () => {
+    const qmdContent = `---
+title: "Default Options"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #defaults}
+Choose one and fill the inline controls.
+
+::: {.answer correct=true}
+Correct choice
+:::
+
+::: {.answer}
+Wrong choice
+:::
+
+::: {.explanation}
+Only shows after a correct check by default.
+:::
+:::
+
+Default blank: [\`Gandalf\`]{.blank answer="Gandalf"}.
+
+Default choice: [Rivendell / Edoras]{.choose answer="Rivendell"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'defaults.qmd'), qmdContent);
+    renderQuarto('defaults.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'defaults.html'), 'utf8');
+    assert.match(html, /id="defaults"/);
+    assert.match(html, /data-instant="false"/);
+    assert.match(html, /data-reveal="false"/);
+    assert.match(html, /data-lock="false"/);
+    assert.match(html, /data-reset="true"/);
+    assert.match(html, /data-shuffle="false"/);
+    assert.match(html, /data-reshuffle-on-reset="false"/);
+    assert.match(html, /data-explanation-policy="correct"/);
+    assert.match(html, /data-feedback-correct="Correct!"/);
+    assert.match(html, /data-feedback-incorrect="Not quite\."/);
+    assert.match(html, /class="quarto-exercise-check-btn"/);
+    assert.match(html, /class="quarto-exercise-reset-btn"/);
+
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="false"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-trim="true"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-collapse-space="false"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="false"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-ignore-case="false"/);
+  });
+
+  test('Global metadata overrides render into exercise, blank, and choice controls', () => {
+    const qmdContent = `---
+title: "Override Options"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  instant: true
+  reveal: true
+  lock: true
+  reset: false
+  shuffle: true
+  reshuffle-on-reset: true
+  explanation: after-check
+  feedback-correct: "Yep"
+  feedback-incorrect: "Nope"
+  ignore-case: true
+---
+
+::: {.exercise #overrides}
+Choose one.
+
+::: {.answer correct=true}
+Correct choice
+:::
+
+::: {.answer}
+Wrong choice
+:::
+
+::: {.explanation}
+Shows after any check.
+:::
+:::
+
+Case-insensitive blank: [\`Gandalf\`]{.blank answer="Gandalf"}.
+
+Shuffled choice: [Rivendell / Edoras]{.choose answer="Rivendell"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'overrides.qmd'), qmdContent);
+    renderQuarto('overrides.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'overrides.html'), 'utf8');
+    assert.match(html, /id="overrides"/);
+    assert.match(html, /data-instant="true"/);
+    assert.match(html, /data-reveal="true"/);
+    assert.match(html, /data-lock="true"/);
+    assert.match(html, /data-reset="false"/);
+    assert.match(html, /data-shuffle="true"/);
+    assert.match(html, /data-reshuffle-on-reset="true"/);
+    assert.match(html, /data-explanation-policy="after-check"/);
+    assert.match(html, /data-feedback-correct="Yep"/);
+    assert.match(html, /data-feedback-incorrect="Nope"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-check-btn"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
+
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="true"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="true"/);
+  });
+
+  test('Stylesheet exposes the expected light and dark CSS defaults', () => {
+    const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
+    assert.deepStrictEqual(parseCssVariables(css, ':root'), {
+      '--ex-accent': '#1a73e8',
+      '--ex-accent-dark': '#4285f4',
+      '--ex-correct': '#137333',
+      '--ex-incorrect': '#c5221f',
+      '--ex-incorrect-border': '#ea4335',
+      '--ex-muted': '#555',
+      '--ex-muted-dark': '#aaa',
+      '--ex-border-color': '#ccc',
+      '--ex-border-strong': '#ced4da',
+      '--ex-bg': 'transparent',
+      '--ex-control-bg': '#f8f9fa',
+      '--ex-control-hover-bg': '#e9ecef',
+      '--ex-control-primary-bg': '#e9ecef',
+      '--ex-control-primary-hover-bg': '#dee2e6',
+      '--ex-border-radius': '4px',
+      '--ex-focus-ring': '0 0 0 2px rgba(26, 115, 232, 0.3)',
+      '--ex-panel-border': '#6c757d',
+      '--ex-panel-border-dark': '#adb5bd'
+    });
+    assert.deepStrictEqual(parseCssVariables(css, 'body.quarto-dark'), {
+      '--ex-accent': '#8ab4f8',
+      '--ex-accent-dark': '#aecbfa',
+      '--ex-correct': '#81c995',
+      '--ex-incorrect': '#f28b82',
+      '--ex-incorrect-border': '#f28b82',
+      '--ex-muted': '#aaa',
+      '--ex-muted-dark': '#aaa',
+      '--ex-border-color': '#555',
+      '--ex-border-strong': '#666',
+      '--ex-bg': 'transparent',
+      '--ex-control-bg': '#2d2e30',
+      '--ex-control-hover-bg': '#3c4043',
+      '--ex-control-primary-bg': '#3c4043',
+      '--ex-control-primary-hover-bg': '#4f5357',
+      '--ex-focus-ring': '0 0 0 2px rgba(138, 180, 248, 0.4)',
+      '--ex-panel-border': '#9aa0a6'
     });
   });
 

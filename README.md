@@ -304,6 +304,6 @@ The test runner uses Node's built-in test module, Quarto render checks, and Play
 
 - The correct answers and feedback are stored in the HTML source.
 - Inline blanks or choices inside `.answer` blocks are not supported.
-- Regex blanks still use the configured `trim` and `collapse-space` normalization before matching.
+- Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if `collapse-space=true`, repeated whitespace is also collapsed to one space.
 - Long text inputs are capped at `380px` and scroll horizontally.
 - Put this filter before filters that rewrite the same Divs, Spans, or code blocks.

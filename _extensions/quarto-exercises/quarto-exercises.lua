@@ -149,6 +149,24 @@ local function as_value(value)
   if type(value) ~= "table" then
     return value
   end
+  local value_type = pandoc.utils.type and pandoc.utils.type(value) or nil
+  if value_type == "Inlines" or value_type == "Blocks" then
+    return pandoc.utils.stringify(value)
+  end
+  if value_type == "List" then
+    local list = {}
+    for _, item in ipairs(value) do
+      list[#list + 1] = as_value(item)
+    end
+    return list
+  end
+  if value_type == "Map" then
+    local map = {}
+    for key, item in pairs(value) do
+      map[key] = as_value(item)
+    end
+    return map
+  end
   if value.t == "MetaBool" or value.t == "MetaString" then
     return value.v
   end
@@ -167,6 +185,20 @@ local function as_value(value)
     for key, item in pairs(value) do
       map[key] = as_value(item)
     end
+    return map
+  end
+  if value[1] ~= nil then
+    return pandoc.utils.stringify(value)
+  end
+  local map = {}
+  local has_key = false
+  for key, item in pairs(value) do
+    if type(key) ~= "number" then
+      has_key = true
+      map[key] = as_value(item)
+    end
+  end
+  if has_key then
     return map
   end
   return value
