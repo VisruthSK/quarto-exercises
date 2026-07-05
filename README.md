@@ -1,6 +1,8 @@
 # quarto-exercises
 
-`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents. 
+`quarto-exercises` is a Quarto extension for small interactive practice questions in Quarto documents built to HTML. 
+
+See [this page](https://visruthsk.github.io/quarto-exercises/example.html) for a live example, and the [reference page](https://visruthsk.github.io/quarto-exercises/reference.qmd) for more details on the problem types and options. Read on for an overview.
 
 ## Installation
 
@@ -16,20 +18,6 @@ Then enable the filter in a document or project config:
 filters:
   - quarto-exercises
 ```
-
-You can override defaults in document metadata:
-
-```yaml
-quarto-exercises:
-  instant: false
-  reveal: true
-  lock: false
-  reset: true
-  shuffle: false
-  show-answers: false
-```
-
-See [example.qmd](example.qmd) for a complete document.
 
 ## Multiple Choice
 
@@ -78,16 +66,6 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 ```
 
 Use `key` when you want stable answer identifiers in the generated HTML. Without it, the extension assigns `a`, `b`, `c`, and so on.
-
-## Authoring Notes
-
-Use `true` or `false` for boolean attributes.
-
-The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
-
-Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
-
-Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
 
 ## Feedback, Hints, and Explanations
 
@@ -235,6 +213,16 @@ print({{blank answer="total"}})
 
 Standalone `.code-cloze` blocks get their own Check and Reset buttons.
 
+## Authoring Notes
+
+Use `true` or `false` for boolean attributes.
+
+The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
+
+Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
+
+Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
+
 ## Options
 
 Global options go under `quarto-exercises` in metadata. Most exercise options can also be set as attributes on a single `.exercise` Div.
@@ -339,16 +327,6 @@ body.quarto-dark {
 }
 ```
 
-## Tests
-
-Run the test suite with:
-
-```bash
-pnpm test
-```
-
-The test runner uses Node's built-in test module, Quarto render checks, and Playwright browser checks. Install Quarto, project dependencies, and the Playwright Chromium browser before running it.
-
 ## Limitations
 
 - The correct answers and feedback are stored in the HTML source.
@@ -356,3 +334,4 @@ The test runner uses Node's built-in test module, Quarto render checks, and Play
 - Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if `collapse-space=true`, repeated whitespace is also collapsed to one space.
 - Long text inputs are capped at `380px` and scroll horizontally.
 - Put this filter before filters that rewrite the same Divs, Spans, or code blocks.
+
