@@ -31,6 +31,7 @@ jobs:
           mkdir site-src
           cp README.md site-src/index.md
           cp example.qmd site-src/example.qmd
+          cp reference.qmd site-src/reference.qmd
           cp _quarto.yml site-src/_quarto.yml
           cp -R _extensions site-src/_extensions
 
