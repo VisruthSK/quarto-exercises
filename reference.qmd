@@ -188,10 +188,10 @@ Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Sam
 ## Inline Dropdowns
 
 ```markdown
-The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
+The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
 ```
 
-The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
+The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
 
 ---
 
@@ -217,69 +217,72 @@ The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gim
 
 ## Code Cloze
 
-Use `.code-cloze` blocks to place interactive blanks and dropdowns directly inside syntax-highlighted code. Wrap the targets in double curly braces `{{` and `}}`. Standalone `.code-cloze` blocks render with their own Check and Reset controls.
-
-### Standalone Code Cloze
-
-```markdown
+````markdown
 ```{.code-cloze lang="r"}
-# Select the correct R collection type and complete calculations
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+# Standalone code cloze (gets its own Check/Reset buttons)
+x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3)
 total <- {{blank answer="sum"}}(x)
-cat("Total:", total, "\n")
 ```
-```
+````
 
 ```{.code-cloze lang="r"}
-# Select the correct R collection type and complete calculations
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+# Standalone code cloze (gets its own Check/Reset buttons)
+x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3)
 total <- {{blank answer="sum"}}(x)
-cat("Total:", total, "\n")
 ```
 
 ---
 
-### Nested in a Parent Exercise
+Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
 
-Wrapping a `.code-cloze` block in an `.exercise` Div links it to parent Check and Reset controls, allowing custom feedback overrides, hints, and explanations.
-
-```markdown
+````markdown
 ::: {.exercise explanation="after-check"}
-Complete the Python list comprehension program:
+> [!NOTE]
+> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values.
 
 ```{.code-cloze lang="python"}
-# Filter elements using list comprehension
-numbers = [1, 2, 3, 4, 5]
-total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
-print({{blank answer="total"}})
+# Fellowship configuration dictionary
+fellowship = {
+    # 1. Option selection using outer single quotes to wrap double-quoted strings:
+    "bearer": {{choose answer='"Frodo"' options='"Frodo","Sam","Merry"' ignore-case="true" shuffle="true"}},
+
+    # 2. Text input matching using list:
+    "companion": {{blank answers='"Samwise","Sam","Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+
+    # 3. Regex matches Fellowship title (e.g. "Fellowship of the Ring" or "The Fellowship of the Ring"):
+    "first_book_title": {{blank answer="^(the\s+)?fellowship\s+of\s+the\s+ring$" match="regex" ignore-case="true"}},
+}
 ```
 
 ::: {.explanation}
-The `sum()` function returns the total sum of all items in an iterable.
-:::
-
-::: {.hint}
-Think of list aggregation functions.
+This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
 :::
 :::
-```
+````
 
 ::: {.exercise explanation="after-check"}
-Complete the Python list comprehension program:
+> [!NOTE]
+> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values.
 
 ```{.code-cloze lang="python"}
-# Filter elements using list comprehension
-numbers = [1, 2, 3, 4, 5]
-total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
-print({{blank answer="total"}})
+# Fellowship configuration dictionary
+fellowship = {
+    # 1. Option selection using outer single quotes to wrap double-quoted strings:
+    "bearer": {{choose answer='"Frodo"' options='"Frodo","Sam","Merry"' ignore-case="true" shuffle="true"}},
+
+    # 2. Text input matching using list:
+    "companion": {{blank answers='"Samwise","Sam","Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+
+    # 3. Regex matches Fellowship title (e.g. "Fellowship of the Ring" or "The Fellowship of the Ring"):
+    "first_book_title": {{blank answer="^(the\s+)?fellowship\s+of\s+the\s+ring$" match="regex" ignore-case="true"}},
+}
 ```
 
 ::: {.explanation}
-The `sum()` function returns the total sum of all items in an iterable.
+This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
+:::
 :::
 
-::: {.hint}
-Think of list aggregation functions.
-:::
-:::
+
+
 
