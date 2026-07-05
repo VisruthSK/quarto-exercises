@@ -1,6 +1,6 @@
 /* quarto-exercises.css */
 
-.quarto-exercise {
+:root {
   --ex-accent: #1a73e8;
   --ex-accent-dark: #4285f4;
   --ex-correct: #137333;
@@ -19,6 +19,28 @@
   --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
   --ex-panel-border: #6c757d;
   --ex-panel-border-dark: #adb5bd;
+}
+
+body.quarto-dark {
+  --ex-accent: #8ab4f8;
+  --ex-accent-dark: #aecbfa;
+  --ex-correct: #81c995;
+  --ex-incorrect: #f28b82;
+  --ex-incorrect-border: #f28b82;
+  --ex-muted: #aaa;
+  --ex-muted-dark: #aaa;
+  --ex-border-color: #555;
+  --ex-border-strong: #666;
+  --ex-bg: transparent;
+  --ex-control-bg: #2d2e30;
+  --ex-control-hover-bg: #3c4043;
+  --ex-control-primary-bg: #3c4043;
+  --ex-control-primary-hover-bg: #4f5357;
+  --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);
+  --ex-panel-border: #9aa0a6;
+}
+
+.quarto-exercise {
   margin: 1.25rem 0;
   font-family: inherit;
   color: inherit;
@@ -82,14 +104,80 @@
 }
 
 .quarto-exercise-input {
-  margin: 0.2rem 0.25rem 0 0; /* Perfectly align checkbox/radio center with first text line */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--ex-border-strong);
+  background-color: transparent;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  display: inline-grid;
+  place-content: center;
+  margin: 0.25rem 0.25rem 0 0; /* Keep baseline-aligned */
   flex-shrink: 0;
   cursor: pointer;
+  box-sizing: border-box;
+}
+
+.quarto-exercise-input[type="checkbox"] {
+  border-radius: 3px;
+}
+
+.quarto-exercise-input[type="radio"] {
+  border-radius: 50%;
+}
+
+.quarto-exercise-input:hover {
+  border-color: var(--ex-accent);
+  background-color: var(--ex-control-hover-bg);
 }
 
 .quarto-exercise-input:focus-visible {
-  outline: none;
   box-shadow: var(--ex-focus-ring);
+}
+
+.quarto-exercise-input:checked {
+  background-color: var(--ex-accent);
+  border-color: var(--ex-accent);
+}
+
+.quarto-exercise-input[type="checkbox"]:checked::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.3rem;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translate(0.05rem, -0.05rem);
+  box-sizing: border-box;
+}
+
+.quarto-exercise-input[type="radio"]:checked::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* Correct/Incorrect states for input controls */
+.quarto-exercise-answer.is-correct .quarto-exercise-input {
+  border-color: var(--ex-correct) !important;
+}
+
+.quarto-exercise-answer.is-correct .quarto-exercise-input:checked {
+  background-color: var(--ex-correct) !important;
+  border-color: var(--ex-correct) !important;
+}
+
+.quarto-exercise-answer.is-incorrect .quarto-exercise-input {
+  border-color: var(--ex-incorrect) !important;
+}
+
+.quarto-exercise-answer.is-incorrect .quarto-exercise-input:checked {
+  background-color: var(--ex-incorrect) !important;
+  border-color: var(--ex-incorrect) !important;
 }
 
 .quarto-exercise-answer-label {
@@ -160,15 +248,7 @@
   line-height: 1.2;
 }
 
-.quarto-exercise-check-btn {
-  background-color: var(--ex-control-primary-bg);
-  border-color: var(--ex-border-strong);
-}
-
-.quarto-exercise-check-btn:hover {
-  background-color: var(--ex-control-primary-hover-bg);
-}
-
+.quarto-exercise-check-btn:hover,
 .quarto-exercise-reset-btn:hover,
 .quarto-exercise-hint-btn:hover,
 .quarto-exercise-blank-check-btn:hover {
@@ -228,25 +308,39 @@ body.quarto-dark .quarto-exercise-explanation {
   border-radius: 0;
   background: transparent;
   color: inherit;
+  width: 80px;
   min-width: 3.5rem;
   max-width: 25rem;
   box-sizing: border-box;
   outline: none;
 }
 
+.quarto-exercise-blank-input::placeholder {
+  color: var(--ex-muted);
+  opacity: 1;
+}
+
 .quarto-exercise-blank-input:focus {
   border-bottom-color: var(--ex-accent);
 }
 
-.quarto-exercise-blank-input.is-correct,
-.quarto-exercise-choose-select.is-correct {
+.quarto-exercise-blank-input.is-correct {
   border-bottom-color: var(--ex-correct) !important;
   color: var(--ex-correct) !important;
 }
 
-.quarto-exercise-blank-input.is-incorrect,
-.quarto-exercise-choose-select.is-incorrect {
+.quarto-exercise-choose-select.is-correct {
+  border-color: var(--ex-correct) !important;
+  color: var(--ex-correct) !important;
+}
+
+.quarto-exercise-blank-input.is-incorrect {
   border-bottom-color: var(--ex-incorrect-border) !important;
+  color: var(--ex-incorrect) !important;
+}
+
+.quarto-exercise-choose-select.is-incorrect {
+  border-color: var(--ex-incorrect-border) !important;
   color: var(--ex-incorrect) !important;
 }
 
@@ -274,7 +368,6 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-blank-correct-text {
-  border-bottom: 1px solid var(--ex-correct);
   min-width: 3.5rem;
 }
 
@@ -312,19 +405,17 @@ body.quarto-dark .quarto-exercise-explanation {
   display: none !important; /* Hide Correct! text for inline elements */
 }
 
-/* Dropdown/Cloze styling */
 .quarto-exercise-choose-select {
   display: inline-block;
   vertical-align: baseline;
-  padding: 0 0.8rem 0 0;
+  padding: 0.15rem 1.25rem 0.15rem 0.5rem;
   margin: 0;
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-  border: none;
-  border-bottom: 1px solid var(--ex-muted); /* Underline dropdown */
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid var(--ex-border-strong);
+  border-radius: var(--ex-border-radius);
+  background-color: transparent;
   color: inherit;
   cursor: pointer;
   box-sizing: border-box;
@@ -332,12 +423,12 @@ body.quarto-dark .quarto-exercise-explanation {
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23666' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right center;
+  background-position: right 0.4rem center;
   outline: none;
 }
 
 .quarto-exercise-choose-select:focus {
-  border-bottom-color: var(--ex-accent);
+  border-color: var(--ex-accent);
 }
 
 .quarto-exercise-choose-check-btn,
@@ -346,7 +437,7 @@ body.quarto-dark .quarto-exercise-explanation {
   vertical-align: baseline;
   padding: 0.15rem 0.5rem;
   font-size: 0.8em;
-  border: 1px solid var(--ex-border-strong);
+  border: 1px solid var(--ex-border-color);
   background-color: var(--ex-control-bg);
   color: inherit;
   border-radius: var(--ex-border-radius);

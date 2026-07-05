@@ -101,6 +101,10 @@ function checkBlankMatch(value, answersStr, matchMode, ignoreCase, trimMode, col
 
 function adjustInputWidth(input) {
   if (!input) return;
+  if (!input.value) {
+    input.style.width = "";
+    return;
+  }
   const measurer = document.createElement("span");
   Object.assign(measurer.style, {
     visibility: "hidden",
@@ -108,9 +112,9 @@ function adjustInputWidth(input) {
     whiteSpace: "pre",
     font: window.getComputedStyle(input).font
   });
-  measurer.textContent = input.value || input.placeholder || "";
+  measurer.textContent = input.value;
   document.body.appendChild(measurer);
-  input.style.width = `${Math.min(Math.max(measurer.getBoundingClientRect().width + 16, 50), 380)}px`;
+  input.style.width = `${Math.min(Math.max(measurer.getBoundingClientRect().width + 16, 80), 380)}px`;
   measurer.remove();
 }
 

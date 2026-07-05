@@ -205,6 +205,10 @@ local function string_option(actual, name)
   return actual[name] or options[name]
 end
 
+local function attr_or_empty(actual, name)
+  return actual[name] or ""
+end
+
 local function validate_explanation(value, id)
   if value ~= "correct" and value ~= "after-check" and value ~= "never" then
     warn(id, "unsupported explanation policy '" .. tostring(value) .. "'")
@@ -490,7 +494,7 @@ local function render_blank(el, id)
       ["data-trim"] = el.attributes.trim or "true",
       ["data-collapse-space"] = el.attributes["collapse-space"] or "false",
       ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-      ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+      ["data-feedback-incorrect"] = attr_or_empty(el.attributes, "feedback-incorrect")
     }) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..

@@ -151,6 +151,10 @@ main {
   margin: 0 auto;
 }
 ${css}
+*, *::before, *::after {
+  transition: none !important;
+  animation: none !important;
+}
 </style>
 </head>
 <body>
@@ -166,6 +170,8 @@ ${css}
 <div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
 </div>
+<p>Standalone blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Select all hobbits.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
@@ -191,6 +197,23 @@ async function runVisualMode(playwright, mode) {
   if (mode === 'dark') {
     await page.evaluate(() => document.body.classList.add('quarto-dark'));
   }
+
+  const standaloneBlankState = await page.evaluate(() => {
+    const blank = document.querySelector('main > p .quarto-exercise-blank-container');
+    const input = blank.querySelector('.quarto-exercise-blank-input');
+    const button = blank.querySelector('.quarto-exercise-blank-check-btn');
+    const longBlank = document.querySelectorAll('.quarto-exercise-blank-input')[1];
+    return {
+      placeholder: input.placeholder,
+      buttonBg: getComputedStyle(button).backgroundColor,
+      buttonBorder: getComputedStyle(button).borderTopColor,
+      shortWidth: input.getBoundingClientRect().width,
+      longWidth: longBlank.getBoundingClientRect().width
+    };
+  });
+  await page.fill('main > p .quarto-exercise-blank-input', 'Gandalf');
+  await page.click('main > p .quarto-exercise-blank-check-btn');
+  standaloneBlankState.feedbackHiddenAfterWrong = await page.evaluate(() => document.querySelector('main > p .quarto-exercise-blank-feedback').hidden);
 
   const hintState = await page.evaluate(() => {
     const hint = document.querySelector('#visual-ex .quarto-exercise-hint');
@@ -257,12 +280,20 @@ async function runVisualMode(playwright, mode) {
   await page.click('#checkbox-ex [data-key="frodo"]');
   await page.click('#checkbox-ex [data-key="legolas"]');
   await page.click('#checkbox-ex .quarto-exercise-check-btn');
-  const checkboxWrongState = await page.evaluate(() => ({
-    correctFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="frodo"] .quarto-exercise-feedback').hidden,
-    wrongFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="legolas"] .quarto-exercise-feedback').hidden,
-    unselectedCorrectRevealed: document.querySelector('#checkbox-ex [data-key="sam"]').classList.contains('is-correct'),
-    statusText: document.querySelector('#checkbox-ex .quarto-exercise-status').textContent
-  }));
+  const checkboxWrongState = await page.evaluate(() => {
+    const frodoInput = document.querySelector('#checkbox-ex [data-key="frodo"] .quarto-exercise-input');
+    const legolasInput = document.querySelector('#checkbox-ex [data-key="legolas"] .quarto-exercise-input');
+    return {
+      correctFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="frodo"] .quarto-exercise-feedback').hidden,
+      wrongFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="legolas"] .quarto-exercise-feedback').hidden,
+      unselectedCorrectRevealed: document.querySelector('#checkbox-ex [data-key="sam"]').classList.contains('is-correct'),
+      statusText: document.querySelector('#checkbox-ex .quarto-exercise-status').textContent,
+      frodoBg: getComputedStyle(frodoInput).backgroundColor,
+      frodoBorder: getComputedStyle(frodoInput).borderColor,
+      legolasBg: getComputedStyle(legolasInput).backgroundColor,
+      legolasBorder: getComputedStyle(legolasInput).borderColor
+    };
+  });
 
   await page.click('#checkbox-ex .quarto-exercise-reset-btn');
   await page.click('#checkbox-ex [data-key="frodo"]');
@@ -275,7 +306,7 @@ async function runVisualMode(playwright, mode) {
   }));
 
   await browser.close();
-  return { hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState };
+  return { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState };
 }
 
 test.describe('Quarto Exercises Extension Tests', () => {
@@ -380,8 +411,10 @@ The Fellowship leaves [Rivendell / Minas Tirith / Edoras]{.choose answer="Rivend
     // Basic blank renders as input
     assert.match(html, /class="quarto-exercise-blank-input"/);
     assert.match(html, /class="quarto-exercise-blank-check-btn"/);
+    assert.doesNotMatch(html, /placeholder=/);
     assert.match(html, /data-answers="Gandalf"/);
     assert.match(html, /data-ignore-case="true"/);
+    assert.match(html, /data-feedback-incorrect=""/);
 
     // Standalone choose renders as dropdown
     assert.match(html, /class="quarto-exercise-choose-select"/);
@@ -667,12 +700,29 @@ Legolas
         }
         throw error;
       }
-      const { hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState } = result;
+      const { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState } = result;
 
+      assert.strictEqual(standaloneBlankState.placeholder, '', `${mode} standalone blank placeholder should be empty`);
+      assert.strictEqual(standaloneBlankState.shortWidth, standaloneBlankState.longWidth, `${mode} placeholder should not affect default width of entry box`);
+      if (mode === 'dark') {
+        assert.match(standaloneBlankState.buttonBg, /rgb\(45, 46, 48\)/, `${mode} blank check button background`);
+        assert.match(standaloneBlankState.buttonBorder, /rgb\(85, 85, 85\)/, `${mode} blank check button border`);
+      } else {
+        assert.match(standaloneBlankState.buttonBg, /rgb\(248, 249, 250\)/, `${mode} blank check button background`);
+        assert.match(standaloneBlankState.buttonBorder, /rgb\(204, 204, 204\)/, `${mode} blank check button border`);
+      }
+      assert.strictEqual(standaloneBlankState.feedbackHiddenAfterWrong, true, `${mode} default blank wrong feedback should be hidden`);
       assert.strictEqual(hintState.initiallyHidden, true, `${mode} hint should start hidden`);
       assert.strictEqual(hintState.visibleAfterClick, true, `${mode} hint button should reveal hint`);
-      assert.match(incorrectState.answerColor, /rgb\(197, 34, 31\)/, `${mode} incorrect answer color`);
-      assert.match(incorrectState.feedbackColor, /rgb\(197, 34, 31\)/, `${mode} inline feedback color`);
+
+      if (mode === 'dark') {
+        assert.match(incorrectState.answerColor, /rgb\(242, 139, 130\)/, `${mode} incorrect answer color`);
+        assert.match(incorrectState.feedbackColor, /rgb\(242, 139, 130\)/, `${mode} inline feedback color`);
+      } else {
+        assert.match(incorrectState.answerColor, /rgb\(197, 34, 31\)/, `${mode} incorrect answer color`);
+        assert.match(incorrectState.feedbackColor, /rgb\(197, 34, 31\)/, `${mode} inline feedback color`);
+      }
+
       assert.strictEqual(incorrectState.chooseFeedbackVisible, true, `${mode} nested choose feedback should show`);
       assert.strictEqual(incorrectState.blankFeedbackVisible, true, `${mode} nested blank feedback should show`);
       assert.strictEqual(incorrectState.contentRightOfControl, true, `${mode} answer content should sit beside control`);
@@ -684,14 +734,31 @@ Legolas
         assert.match(incorrectState.hintColor, /rgb\(85, 85, 85\)/, 'light hint color');
       }
 
-      assert.match(correctState.answerColor, /rgb\(19, 115, 51\)/, `${mode} correct answer color`);
-      assert.match(correctState.statusColor, /rgb\(19, 115, 51\)/, `${mode} status color`);
-      assert.match(correctState.blankColor, /rgb\(19, 115, 51\)/, `${mode} blank correct text should be green`);
-      assert.match(correctState.blankUnderline, /rgb\(19, 115, 51\)/, `${mode} blank underline should be green`);
+      if (mode === 'dark') {
+        assert.match(correctState.answerColor, /rgb\(129, 201, 149\)/, `${mode} correct answer color`);
+        assert.match(correctState.statusColor, /rgb\(129, 201, 149\)/, `${mode} status color`);
+        assert.match(correctState.blankColor, /rgb\(129, 201, 149\)/, `${mode} blank correct text should be green`);
+        assert.match(correctState.blankUnderline, /rgb\(129, 201, 149\)/, `${mode} blank underline should be green`);
+      } else {
+        assert.match(correctState.answerColor, /rgb\(19, 115, 51\)/, `${mode} correct answer color`);
+        assert.match(correctState.statusColor, /rgb\(19, 115, 51\)/, `${mode} status color`);
+        assert.match(correctState.blankColor, /rgb\(19, 115, 51\)/, `${mode} blank correct text should be green`);
+        assert.match(correctState.blankUnderline, /rgb\(19, 115, 51\)/, `${mode} blank underline should be green`);
+      }
+
       assert.strictEqual(correctState.explanationVisible, true, `${mode} explanation should show after check`);
       assert.strictEqual(correctState.statusText, 'Correct!');
       assert.strictEqual(checkboxWrongState.correctFeedbackVisible, true, `${mode} selected correct checkbox feedback should show`);
       assert.strictEqual(checkboxWrongState.wrongFeedbackVisible, true, `${mode} selected wrong checkbox feedback should show`);
+      
+      if (mode === 'dark') {
+        assert.match(checkboxWrongState.frodoBg, /rgb\(129, 201, 149\)/, `${mode} correct checked checkbox background`);
+        assert.match(checkboxWrongState.legolasBg, /rgb\(242, 139, 130\)/, `${mode} incorrect checked checkbox background`);
+      } else {
+        assert.match(checkboxWrongState.frodoBg, /rgb\(19, 115, 51\)/, `${mode} correct checked checkbox background`);
+        assert.match(checkboxWrongState.legolasBg, /rgb\(197, 34, 31\)/, `${mode} incorrect checked checkbox background`);
+      }
+
       assert.strictEqual(checkboxWrongState.unselectedCorrectRevealed, true, `${mode} reveal=true should reveal unselected correct checkbox`);
       assert.strictEqual(checkboxWrongState.statusText, 'Not quite.');
       assert.strictEqual(checkboxCorrectState.frodoFeedbackVisible, true, `${mode} exact-set feedback should show for Frodo`);
