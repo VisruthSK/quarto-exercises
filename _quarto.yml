@@ -1,0 +1,21 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - "*.qmd"
+    - "*.md"
+
+website:
+  title: quarto-exercises
+  navbar:
+    left:
+      - href: index.md
+        text: Home
+      - href: example.qmd
+        text: Example
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
