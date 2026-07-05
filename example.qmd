@@ -142,3 +142,36 @@ The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gim
 What does Sam call him?
 :::
 :::
+
+## Code Cloze
+
+Blanks and dropdowns can live directly inside code blocks. Syntax highlighting is fully preserved.
+
+A standalone `.code-cloze` block gets its own Check and Reset buttons:
+
+```{.code-cloze lang="r"}
+x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+total <- {{blank answer="sum"}}(x)
+cat("Total:", total, "\n")
+```
+
+Wrapping a `.code-cloze` block in an `.exercise` div gives it the same Check and Reset controls as any other exercise:
+
+::: {.exercise}
+```{.code-cloze lang="python"}
+numbers = [1, 2, 3, 4, 5]
+total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+print({{blank answer="total"}})
+```
+:::
+
+::: {.exercise}
+```{.code-cloze lang="r"}
+x <- 1:10
+mean <- {{choose answer="mean" options="mean,median,sum,length"}}(x)
+cat({{blank answer="mean"}}, "\n")
+```
+:::
+
+
+
