@@ -131,10 +131,10 @@ Use a `.blank` Span for a text input.
 The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
 ```
 
-Multiple accepted answers use a comma-separated `answers` attribute:
+Multiple accepted answers use a pipe-separated `answers` attribute:
 
 ```markdown
-The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
 ```
 
 Regex matching uses `match="regex"` with `answer`:
@@ -146,7 +146,7 @@ The full title of the first volume of Lord of the Rings is [`The Fellowship of t
 Blank attributes:
 
 - `answer`: one accepted answer
-- `answers`: comma-separated accepted answers
+- `answers`: pipe-separated accepted answers
 - `match`: `exact`, `one-of`, or `regex`
 - `ignore-case`: compare without case sensitivity
 - `trim`: trim input before checking, default `true`
@@ -158,20 +158,20 @@ Blank attributes:
 Use a `.choose` Span for a dropdown.
 
 ```markdown
-The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor"}.
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
 ```
 
-The extension parses slash-separated text as options. If an option contains a slash, pass the list explicitly:
+The extension parses pipe-separated text as options. Spaces around `|` are part of the option value, so write compact lists unless the spaces are intentional.
 
 ```markdown
-Is this correct? [`yes/no`]{.choose options="yes/no,maybe,unknown" answer="yes/no"}.
+Is this correct? [`yes/no`]{.choose options="yes/no|maybe|unknown" answer="yes/no"}.
 ```
 
 An `.exercise` can group blanks and choices under one Check and Reset control:
 
 ```markdown
 ::: {.exercise}
-The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 
 ::: {.hint}
 What does Sam call him?
@@ -182,7 +182,7 @@ What does Sam call him?
 Choice attributes:
 
 - `answer`: the correct option
-- `options`: comma-separated options
+- `options`: pipe-separated options
 - `ignore-case`: compare without case sensitivity
 - `shuffle`: shuffle the option order
 - `feedback-correct` and `feedback-incorrect`: override the feedback text
@@ -193,7 +193,7 @@ Use a `.code-cloze` code block when blanks or dropdowns should appear inside hig
 
 ````markdown
 ```{.code-cloze lang="r"}
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3, 4, 5)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3, 4, 5)
 total <- {{blank answer="sum"}}(x)
 cat("Total:", total, "\n")
 ```
@@ -207,7 +207,7 @@ Wrap the code block in an `.exercise` if it should share controls with the rest 
 ::: {.exercise}
 ```{.code-cloze lang="python"}
 numbers = [1, 2, 3, 4, 5]
-total = {{choose answer="sum" options="sum,max,min,len"}}(numbers)
+total = {{choose answer="sum" options="sum|max|min|len"}}(numbers)
 print({{blank answer="total"}})
 ```
 :::

@@ -70,11 +70,12 @@ function resetFeedback(feedback) {
   feedback.hidden = true;
 }
 
+function splitList(value) {
+  return (value || "").split("|").filter(option => option !== "");
+}
+
 function answerOptions(container) {
-  return (container.dataset.options || "")
-    .split(",")
-    .map(option => option.trim())
-    .filter(Boolean);
+  return splitList(container.dataset.options);
 }
 
 function checkBlankMatch(value, answersStr, matchMode, ignoreCase, trimMode, collapseSpace) {
@@ -87,17 +88,17 @@ function checkBlankMatch(value, answersStr, matchMode, ignoreCase, trimMode, col
 
   const compare = text => (ignoreCase ? text.toLowerCase() : text);
   const userValue = compare(normalize(value));
-  const answers = (answersStr || "").split(",").map(answer => compare(normalize(answer)));
 
   if (matchMode === "regex") {
     try {
-      return new RegExp(normalize((answersStr || "").split(",")[0]), ignoreCase ? "i" : "").test(normalize(value));
+      return new RegExp(normalize(answersStr || ""), ignoreCase ? "i" : "").test(normalize(value));
     } catch (error) {
-      console.warn("Invalid regex in blank:", answers[0], error);
+      console.warn("Invalid regex in blank:", answersStr, error);
       return false;
     }
   }
 
+  const answers = splitList(answersStr).map(answer => compare(normalize(answer)));
   return answers.some(answer => answer === userValue);
 }
 
@@ -645,7 +646,7 @@ function initCodeCloze(container, onCheck) {
       const select = document.createElement("select");
       select.className = "quarto-exercise-choose-select quarto-exercise-code-choose";
       select.appendChild(new Option("Choose...", ""));
-      (attrs.options || "").split(",").map(o => o.trim()).filter(Boolean).forEach(opt => {
+      splitList(attrs.options).forEach(opt => {
         select.appendChild(new Option(opt, opt));
       });
       select.dataset.answer = attrs.answer || "";

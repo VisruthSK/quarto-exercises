@@ -251,8 +251,16 @@ end
 
 local function split_values(value, delimiter)
   local out = {}
-  for item in string.gmatch(value or "", "([^" .. delimiter .. "]+)") do
-    out[#out + 1] = item:gsub("^%s*(.-)%s*$", "%1")
+  local text = value or ""
+  local start = 1
+  while true do
+    local pos = string.find(text, delimiter, start, true)
+    local item = pos and string.sub(text, start, pos - 1) or string.sub(text, start)
+    if item ~= "" then
+      out[#out + 1] = item
+    end
+    if not pos then break end
+    start = pos + string.len(delimiter)
   end
   return out
 end
@@ -749,7 +757,7 @@ local function render_choose(el, id)
     warn(id, "choose block with no answer")
   end
 
-  local values = el.attributes.options and split_values(el.attributes.options, ",") or split_values(pandoc.utils.stringify(el), "/")
+  local values = el.attributes.options and split_values(el.attributes.options, "|") or split_values(pandoc.utils.stringify(el), "|")
   if #values == 0 then
     warn(id, "choose block with no parseable options")
   end
@@ -774,7 +782,7 @@ local function render_choose(el, id)
     raw_inline("span", {
       class = "quarto-exercise-choose-container",
       ["data-answer"] = answer,
-      ["data-options"] = table.concat(values, ","),
+      ["data-options"] = table.concat(values, "|"),
       ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
       ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
       ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),

@@ -162,44 +162,44 @@ The Capital of Gondor is [`Minas Tirith`]{.blank answer="Minas Tirith"}.
 ---
 
 ```markdown
-The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
 ```
 
-The Ringbearer is [`Frodo`]{.blank answers="Frodo,Frodo Baggins" ignore-case=true}.
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
 
 ---
 
 ```markdown
-Enter the Fellowship member count in binary (binary representation of 9): [`1001`]{.blank answer="^1001$" match="regex"}.
+Enter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.
 ```
 
-Enter the Fellowship member count in binary (binary representation of 9): [`1001`]{.blank answer="^1001$" match="regex"}.
+Enter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.
 
 ---
 
 ```markdown
-Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise,Sam,Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
+Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
 ```
 
-Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise,Sam,Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
+Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
 
 ---
 
 ## Inline Dropdowns
 
 ```markdown
-The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
 ```
 
-The One Ring was forged in [Mordor / Gondor / Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
 
 ---
 
 ```markdown
-The capital of Rohan is [Edoras / Helm's Deep / Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
+The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
 ```
 
-The capital of Rohan is [Edoras / Helm's Deep / Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
+The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
 
 ---
 
@@ -207,12 +207,12 @@ The capital of Rohan is [Edoras / Helm's Deep / Isengard]{.choose answer="Edoras
 
 ```markdown
 ::: {.exercise}
-The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 :::
 ```
 
 ::: {.exercise}
-The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 :::
 
 ## Code Cloze
@@ -220,14 +220,14 @@ The hobbits are saved at the Prancing Pony by [Aragorn / Boromir / Legolas / Gim
 ````markdown
 ```{.code-cloze lang="r"}
 # Standalone code cloze (gets its own Check/Reset buttons)
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
 total <- {{blank answer="sum"}}(x)
 ```
 ````
 
 ```{.code-cloze lang="r"}
 # Standalone code cloze (gets its own Check/Reset buttons)
-x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3)
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
 total <- {{blank answer="sum"}}(x)
 ```
 
@@ -238,16 +238,16 @@ Wrap the code block in an `.exercise` if it should share controls with the rest 
 ````markdown
 ::: {.exercise explanation="after-check"}
 > [!NOTE]
-> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values.
+> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary
 fellowship = {
     # 1. Option selection using outer single quotes to wrap double-quoted strings:
-    "bearer": {{choose answer='"Frodo"' options='"Frodo","Sam","Merry"' ignore-case="true" shuffle="true"}},
+    "bearer": {{choose answer='"Frodo"' options='"Frodo"|"Sam"|"Merry"' ignore-case="true" shuffle="true"}},
 
     # 2. Text input matching using list:
-    "companion": {{blank answers='"Samwise","Sam","Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+    "companion": {{blank answers='"Samwise"|"Sam"|"Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
 
     # 3. Regex matches Fellowship title (e.g. "Fellowship of the Ring" or "The Fellowship of the Ring"):
     "first_book_title": {{blank answer="^(the\s+)?fellowship\s+of\s+the\s+ring$" match="regex" ignore-case="true"}},
@@ -262,16 +262,16 @@ This program demonstrates Python dictionary property assignments: option selecti
 
 ::: {.exercise explanation="after-check"}
 > [!NOTE]
-> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values.
+> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary
 fellowship = {
     # 1. Option selection using outer single quotes to wrap double-quoted strings:
-    "bearer": {{choose answer='"Frodo"' options='"Frodo","Sam","Merry"' ignore-case="true" shuffle="true"}},
+    "bearer": {{choose answer='"Frodo"' options='"Frodo"|"Sam"|"Merry"' ignore-case="true" shuffle="true"}},
 
     # 2. Text input matching using list:
-    "companion": {{blank answers='"Samwise","Sam","Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
+    "companion": {{blank answers='"Samwise"|"Sam"|"Samwise Gamgee"' match="one-of" ignore-case="true" trim="true" collapse-space="true"}},
 
     # 3. Regex matches Fellowship title (e.g. "Fellowship of the Ring" or "The Fellowship of the Ring"):
     "first_book_title": {{blank answer="^(the\s+)?fellowship\s+of\s+the\s+ring$" match="regex" ignore-case="true"}},
@@ -282,7 +282,4 @@ fellowship = {
 This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
 :::
 :::
-
-
-
 
