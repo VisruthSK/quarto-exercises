@@ -103,6 +103,10 @@ local function normalize_bool(value)
   return string.lower(tostring(value))
 end
 
+local function is_bool(value)
+  return value == nil or value == "" or value == "true" or value == "false"
+end
+
 local function warn(id, msg)
   local label = id and id ~= "" and ("exercise: #" .. id .. " ") or "exercise: "
   io.stderr:write("quarto-exercises warning: " .. label .. msg .. "\n")
@@ -178,7 +182,7 @@ end
 
 local function check_bool(actual, name, id)
   local value = normalize_bool(actual[name])
-  if value ~= nil and value ~= "" and value ~= "true" and value ~= "false" then
+  if not is_bool(value) then
     warn(id, "invalid boolean value for '" .. name .. "': '" .. value .. "'")
   end
 end
@@ -268,7 +272,8 @@ local function parse_exercise(el, id)
   for _, block in ipairs(el.content) do
     if block.t == "Div" and block.classes:includes("answer") then
       check_bool(block.attributes, "correct", id)
-      local correct = normalize_bool(block.attributes.correct) == "true"
+      local correct_value = normalize_bool(block.attributes.correct)
+      local correct = is_bool(correct_value) and correct_value == "true"
       local key = block.attributes.key
 
       if correct then
@@ -450,7 +455,7 @@ local function render_static_exercise(data)
     end
   end
 
-  return pandoc.Div(output)
+  return output
 end
 
 local function render_blank(el, id)
@@ -463,6 +468,9 @@ local function render_blank(el, id)
   end
   if el.attributes.answer and el.attributes.answers then
     warn(id, "both answer and answers on the same blank")
+  end
+  if not el.attributes.answer and not el.attributes.answers then
+    warn(id, "blank with no answer")
   end
   if match == "regex" and not el.attributes.answer then
     warn(id, 'match="regex" with no answer')

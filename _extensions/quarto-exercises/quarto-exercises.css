@@ -125,7 +125,7 @@
 .quarto-exercise-feedback {
   font-size: 0.88em;
   margin-top: 0.2rem;
-  margin-left: calc(1rem + 0.85rem);
+  margin-left: 0;
   grid-column: 2;
   line-height: 1.4;
   color: var(--ex-muted);
@@ -238,6 +238,12 @@ body.quarto-dark .quarto-exercise-explanation {
   border-bottom-color: var(--ex-accent);
 }
 
+.quarto-exercise-blank-input.is-correct,
+.quarto-exercise-choose-select.is-correct {
+  border-bottom-color: var(--ex-correct) !important;
+  color: var(--ex-correct) !important;
+}
+
 .quarto-exercise-blank-input.is-incorrect,
 .quarto-exercise-choose-select.is-incorrect {
   border-bottom-color: var(--ex-incorrect-border) !important;
@@ -265,6 +271,11 @@ body.quarto-dark .quarto-exercise-explanation {
   display: inline !important;
   color: var(--ex-correct) !important;
   font-weight: bold;
+}
+
+.quarto-exercise-blank-correct-text {
+  border-bottom: 1px solid var(--ex-correct);
+  min-width: 3.5rem;
 }
 
 /* Inline Feedback (Compact error logs in parentheses to preserve sentence structure) */

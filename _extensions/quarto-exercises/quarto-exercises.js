@@ -360,6 +360,7 @@ function verifyAnswers(exercise, answers, reveal) {
       setHidden(feedback, false);
     } else if (selected && !correct) {
       answer.classList.add("is-incorrect");
+      setHidden(feedback, false);
       allCorrect = false;
     } else if (!selected && correct) {
       allCorrect = false;

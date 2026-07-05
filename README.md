@@ -187,7 +187,7 @@ quarto-exercises:
   reshuffle-on-reset: false    # Reshuffle choices on reset (default: false)
   show-answers: false          # Show answers in static non-HTML fallbacks (default: false)
   explanation: correct         # Show explanation: 'correct' | 'after-check' | 'never' (default: 'correct')
-  feedback-correct: "Correct." # Default success text
+  feedback-correct: "Correct!" # Default success text
   feedback-incorrect: "Not quite." # Default failure text
 ```
 

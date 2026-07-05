@@ -162,9 +162,18 @@ ${css}
 <div class="quarto-exercise-answer" data-key="b" data-correct="true"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
 </div></fieldset>
 <p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell,Edoras" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
-<div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
-<div class="quarto-exercise-hint" aria-live="polite">Use the base function.</div>
+<div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><button type="button" class="quarto-exercise-hint-btn">Hint</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
+<div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
+</div>
+<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<p>Select all hobbits.</p>
+<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
+<div class="quarto-exercise-answer" data-key="frodo" data-correct="true"><div class="quarto-exercise-control"><input id="checkbox-ex-frodo" type="checkbox" name="checkbox-ex" value="frodo" class="quarto-exercise-input"><label for="checkbox-ex-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Frodo</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Frodo is a hobbit.</div></div>
+<div class="quarto-exercise-answer" data-key="sam" data-correct="true"><div class="quarto-exercise-control"><input id="checkbox-ex-sam" type="checkbox" name="checkbox-ex" value="sam" class="quarto-exercise-input"><label for="checkbox-ex-sam" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Sam</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Sam is a hobbit.</div></div>
+<div class="quarto-exercise-answer" data-key="legolas" data-correct="false"><div class="quarto-exercise-control"><input id="checkbox-ex-legolas" type="checkbox" name="checkbox-ex" value="legolas" class="quarto-exercise-input"><label for="checkbox-ex-legolas" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Legolas</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Legolas is an elf.</div></div>
+</div></fieldset>
+<div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
 </main>
 <script>${js}</script>
@@ -183,10 +192,17 @@ async function runVisualMode(playwright, mode) {
     await page.evaluate(() => document.body.classList.add('quarto-dark'));
   }
 
+  const hintState = await page.evaluate(() => {
+    const hint = document.querySelector('#visual-ex .quarto-exercise-hint');
+    return { initiallyHidden: hint.hidden };
+  });
+  await page.click('#visual-ex .quarto-exercise-hint-btn');
+  hintState.visibleAfterClick = await page.evaluate(() => !document.querySelector('#visual-ex .quarto-exercise-hint').hidden);
+
   await page.click('[data-key="a"]');
   await page.selectOption('.quarto-exercise-choose-select', 'Edoras');
   await page.fill('.quarto-exercise-blank-input', 'Saruman');
-  await page.click('.quarto-exercise-check-btn');
+  await page.click('#visual-ex .quarto-exercise-check-btn');
   await page.screenshot({
     path: path.join(TEMP_DIR, 'visual', `${mode}-incorrect.png`),
     fullPage: true
@@ -195,6 +211,7 @@ async function runVisualMode(playwright, mode) {
   const incorrectState = await page.evaluate(() => {
     const answer = document.querySelector('[data-key="a"]');
     const feedback = document.querySelector('.quarto-exercise-choose-feedback');
+    const blankFeedback = document.querySelector('.quarto-exercise-blank-feedback');
     const hint = document.querySelector('.quarto-exercise-hint');
     const exercise = document.querySelector('.quarto-exercise');
     const answerBox = answer.getBoundingClientRect();
@@ -203,6 +220,8 @@ async function runVisualMode(playwright, mode) {
     return {
       answerColor: getComputedStyle(answer).color,
       feedbackColor: getComputedStyle(feedback).color,
+      chooseFeedbackVisible: !feedback.hidden,
+      blankFeedbackVisible: !blankFeedback.hidden,
       hintColor: getComputedStyle(hint).color,
       exerciseBg: getComputedStyle(exercise).backgroundColor,
       contentRightOfControl: contentBox.left > controlBox.left,
@@ -210,11 +229,11 @@ async function runVisualMode(playwright, mode) {
     };
   });
 
-  await page.click('.quarto-exercise-reset-btn');
+  await page.click('#visual-ex .quarto-exercise-reset-btn');
   await page.click('[data-key="b"]');
   await page.selectOption('.quarto-exercise-choose-select', 'Rivendell');
   await page.fill('.quarto-exercise-blank-input', 'Gandalf');
-  await page.click('.quarto-exercise-check-btn');
+  await page.click('#visual-ex .quarto-exercise-check-btn');
   await page.screenshot({
     path: path.join(TEMP_DIR, 'visual', `${mode}-correct.png`),
     fullPage: true
@@ -224,16 +243,39 @@ async function runVisualMode(playwright, mode) {
     const answer = document.querySelector('[data-key="b"]');
     const status = document.querySelector('.quarto-exercise-status');
     const explanation = document.querySelector('.quarto-exercise-explanation');
+    const blankText = document.querySelector('.quarto-exercise-blank-correct-text');
     return {
       answerColor: getComputedStyle(answer).color,
       statusColor: getComputedStyle(status).color,
+      blankColor: getComputedStyle(blankText).color,
+      blankUnderline: getComputedStyle(blankText).borderBottomColor,
       explanationVisible: !explanation.hidden,
       statusText: status.textContent
     };
   });
 
+  await page.click('#checkbox-ex [data-key="frodo"]');
+  await page.click('#checkbox-ex [data-key="legolas"]');
+  await page.click('#checkbox-ex .quarto-exercise-check-btn');
+  const checkboxWrongState = await page.evaluate(() => ({
+    correctFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="frodo"] .quarto-exercise-feedback').hidden,
+    wrongFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="legolas"] .quarto-exercise-feedback').hidden,
+    unselectedCorrectRevealed: document.querySelector('#checkbox-ex [data-key="sam"]').classList.contains('is-correct'),
+    statusText: document.querySelector('#checkbox-ex .quarto-exercise-status').textContent
+  }));
+
+  await page.click('#checkbox-ex .quarto-exercise-reset-btn');
+  await page.click('#checkbox-ex [data-key="frodo"]');
+  await page.click('#checkbox-ex [data-key="sam"]');
+  await page.click('#checkbox-ex .quarto-exercise-check-btn');
+  const checkboxCorrectState = await page.evaluate(() => ({
+    frodoFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="frodo"] .quarto-exercise-feedback').hidden,
+    samFeedbackVisible: !document.querySelector('#checkbox-ex [data-key="sam"] .quarto-exercise-feedback').hidden,
+    statusText: document.querySelector('#checkbox-ex .quarto-exercise-status').textContent
+  }));
+
   await browser.close();
-  return { incorrectState, correctState };
+  return { hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState };
 }
 
 test.describe('Quarto Exercises Extension Tests', () => {
@@ -368,6 +410,8 @@ No answer blocks.
 
 [\`missing-ans\`]{.blank match="regex"}
 
+[\`Gandalf\`]{.blank}
+
 [No Answer]{.choose}
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'warnings.qmd'), qmdContent);
@@ -379,6 +423,7 @@ No answer blocks.
     assert.match(stderrLog, /has no correct answers/);
     assert.match(stderrLog, /has no \.answer blocks or inline blanks\/choices/);
     assert.match(stderrLog, /match="regex" with no answer/);
+    assert.match(stderrLog, /blank with no answer/);
     assert.match(stderrLog, /choose block with no answer/);
   });
 
@@ -449,7 +494,38 @@ Legolas
     assert.match(html, /data-correct="true"/);
   });
 
-  test('7. JS Click Interaction Simulation (Unit Test)', () => {
+  test('7. Numeric boolean attributes are invalid and not truthy', (t) => {
+    const qmdContent = `---
+title: "Numeric Boolean Test"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #numeric-bool}
+Select the hobbit.
+
+::: {.answer correct=1}
+Frodo
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'numeric-bool.qmd'), qmdContent);
+    const result = renderOrSkip(t, 'numeric-bool.qmd');
+    if (!result) return;
+    const log = result.stderr + result.stdout;
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'numeric-bool.html'), 'utf8');
+
+    assert.match(log, /invalid boolean value for 'correct': '1'/);
+    assert.match(log, /has no correct answers/);
+    assert.match(html, /data-correct="false"/);
+    assert.doesNotMatch(html, /data-correct="true"/);
+  });
+
+  test('8. JS Click Interaction Simulation (Unit Test)', () => {
     let dispatchCount = 0;
     
     const mockInput = {
@@ -541,7 +617,7 @@ Legolas
     assert.strictEqual(dispatchCount, 1);
   });
 
-  test('8. Tests leave tracked files clean', (t) => {
+  test('9. Tests leave tracked files clean', (t) => {
     const res = spawnSync('git status --short -- tests/.tmp', {
       encoding: 'utf8',
       shell: true,
@@ -557,7 +633,7 @@ Legolas
     assert.strictEqual(res.stdout.trim(), '');
   });
 
-  test('9. Documented CSS variables exist in the stylesheet', () => {
+  test('10. Documented CSS variables exist in the stylesheet', () => {
     const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
     const documented = Array.from(readme.matchAll(/--ex-[\w-]+/g), match => match[0]);
@@ -568,7 +644,7 @@ Legolas
     });
   });
 
-  test('10. Light and dark visual smoke snapshots', async (t) => {
+  test('11. Light and dark visual smoke snapshots', async (t) => {
     const playwright = optionalPlaywright();
     if (!playwright) {
       if (process.env.CI) {
@@ -591,10 +667,14 @@ Legolas
         }
         throw error;
       }
-      const { incorrectState, correctState } = result;
+      const { hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState } = result;
 
+      assert.strictEqual(hintState.initiallyHidden, true, `${mode} hint should start hidden`);
+      assert.strictEqual(hintState.visibleAfterClick, true, `${mode} hint button should reveal hint`);
       assert.match(incorrectState.answerColor, /rgb\(197, 34, 31\)/, `${mode} incorrect answer color`);
       assert.match(incorrectState.feedbackColor, /rgb\(197, 34, 31\)/, `${mode} inline feedback color`);
+      assert.strictEqual(incorrectState.chooseFeedbackVisible, true, `${mode} nested choose feedback should show`);
+      assert.strictEqual(incorrectState.blankFeedbackVisible, true, `${mode} nested blank feedback should show`);
       assert.strictEqual(incorrectState.contentRightOfControl, true, `${mode} answer content should sit beside control`);
       assert.ok(incorrectState.exerciseHeight > 20, `${mode} answer row should have visible height`);
 
@@ -606,8 +686,17 @@ Legolas
 
       assert.match(correctState.answerColor, /rgb\(19, 115, 51\)/, `${mode} correct answer color`);
       assert.match(correctState.statusColor, /rgb\(19, 115, 51\)/, `${mode} status color`);
+      assert.match(correctState.blankColor, /rgb\(19, 115, 51\)/, `${mode} blank correct text should be green`);
+      assert.match(correctState.blankUnderline, /rgb\(19, 115, 51\)/, `${mode} blank underline should be green`);
       assert.strictEqual(correctState.explanationVisible, true, `${mode} explanation should show after check`);
       assert.strictEqual(correctState.statusText, 'Correct!');
+      assert.strictEqual(checkboxWrongState.correctFeedbackVisible, true, `${mode} selected correct checkbox feedback should show`);
+      assert.strictEqual(checkboxWrongState.wrongFeedbackVisible, true, `${mode} selected wrong checkbox feedback should show`);
+      assert.strictEqual(checkboxWrongState.unselectedCorrectRevealed, true, `${mode} reveal=true should reveal unselected correct checkbox`);
+      assert.strictEqual(checkboxWrongState.statusText, 'Not quite.');
+      assert.strictEqual(checkboxCorrectState.frodoFeedbackVisible, true, `${mode} exact-set feedback should show for Frodo`);
+      assert.strictEqual(checkboxCorrectState.samFeedbackVisible, true, `${mode} exact-set feedback should show for Sam`);
+      assert.strictEqual(checkboxCorrectState.statusText, 'Correct!');
 
       for (const state of ['incorrect', 'correct']) {
         const shot = path.join(TEMP_DIR, 'visual', `${mode}-${state}.png`);
