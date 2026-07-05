@@ -2,7 +2,7 @@
 
 `quarto-exercises` is a Quarto extension for small interactive practice questions in Quarto documents built to HTML. 
 
-See [this page](https://visruthsk.github.io/quarto-exercises/example.html) for a live example, and the [reference page](https://visruthsk.github.io/quarto-exercises/reference.qmd) for more details on the problem types and options. Read on for an overview.
+See the [example](example.qmd) and [reference](reference.qmd) pages for more details on the problem types and options.
 
 ## Installation
 
@@ -334,4 +334,3 @@ body.quarto-dark {
 - Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if `collapse-space=true`, repeated whitespace is also collapsed to one space.
 - Long text inputs are capped at `380px` and scroll horizontally.
 - Put this filter before filters that rewrite the same Divs, Spans, or code blocks.
-

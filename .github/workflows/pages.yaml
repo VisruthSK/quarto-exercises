@@ -6,9 +6,7 @@ on:
 name: pages.yaml
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,9 +15,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - uses: actions/checkout@v7
@@ -43,14 +38,9 @@ jobs:
         run: |
           touch site-src/_site/.nojekyll
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
-          path: site-src/_site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          branch: gh-pages
+          folder: site-src/_site
+          clean: true
