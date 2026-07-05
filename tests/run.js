@@ -587,6 +587,31 @@ The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
     assert.doesNotMatch(md, /<div>/);
   });
 
+  test('Code cloze fallback renders placeholders and answer keys in non-HTML output', () => {
+    const qmdContent = `---
+title: "Code Cloze Fallback Test"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  show-answers: true
+---
+
+\`\`\`{.code-cloze lang="r"}
+x <- {{choose answer="c" options="c,list,data.frame"}}(1, 2, 3)
+total <- {{blank answer="sum"}}(x)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'code-cloze-fallback.qmd'), qmdContent);
+    renderQuarto('code-cloze-fallback.qmd', 'markdown');
+
+    const md = fs.readFileSync(path.join(TEMP_DIR, 'code-cloze-fallback.md'), 'utf8');
+    assert.match(md, /x <- ________\(1, 2, 3\)/);
+    assert.match(md, /total <- ________\(x\)/);
+    assert.match(md, /Answer:\s*1\. c,\s*2\. sum/);
+    assert.doesNotMatch(md, /\{\{choose/);
+    assert.doesNotMatch(md, /\{\{blank/);
+  });
+
   test('Boolean attributes accept uppercase TRUE', (t) => {
     const qmdContent = `---
 title: "Boolean Test"
@@ -863,6 +888,78 @@ print({{blank answer="total"}})
     }
   });
 
+  test('Exercise browser behavior: reveal, explanation, reset, and lock', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Exercise Browser Behavior"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #reveal-ex reveal=true explanation="after-check"}
+Choose the hobbit.
+
+::: {.answer key="frodo" correct=true}
+Frodo
+:::
+
+::: {.answer key="legolas"}
+Legolas
+:::
+
+::: {.explanation}
+Frodo is the hobbit.
+:::
+:::
+
+::: {.exercise #lock-ex lock=true}
+Choose the wizard.
+
+::: {.answer key="gandalf" correct=true}
+Gandalf
+:::
+
+::: {.answer key="saruman"}
+Saruman
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'browser-behavior.qmd'), qmdContent);
+    renderQuarto('browser-behavior.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 900, height: 600 } });
+      await page.goto(`file://${path.join(TEMP_DIR, 'browser-behavior.html')}`, { waitUntil: 'load' });
+
+      await page.click('#reveal-ex [data-key="legolas"]');
+      await page.click('#reveal-ex .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-status').textContent(), 'Not quite.');
+      assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-explanation').isVisible(), true);
+      assert.strictEqual(await page.locator('#reveal-ex [data-key="frodo"]').evaluate(el => el.classList.contains('is-correct')), true);
+      assert.strictEqual(await page.locator('#reveal-ex [data-key="legolas"]').evaluate(el => el.classList.contains('is-incorrect')), true);
+
+      await page.click('#reveal-ex .quarto-exercise-reset-btn');
+      assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-status').textContent(), '');
+      assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-explanation').isVisible(), false);
+      assert.strictEqual(await page.locator('#reveal-ex [data-key="frodo"]').evaluate(el => el.classList.contains('is-correct')), false);
+      assert.strictEqual(await page.locator('#reveal-ex [data-key="legolas"] input').isChecked(), false);
+
+      await page.click('#lock-ex [data-key="gandalf"]');
+      await page.click('#lock-ex .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#lock-ex').evaluate(el => el.classList.contains('is-locked')), true);
+      assert.strictEqual(await page.locator('#lock-ex [data-key="gandalf"] input').isDisabled(), true);
+      assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-check-btn').isDisabled(), true);
+      assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-reset-btn').isDisabled(), true);
+      assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-status').textContent(), 'Correct!');
+    } finally {
+      await browser.close();
+    }
+  });
+
   test('Tests leave tracked files clean', (t) => {
     const res = spawnSync('git status --short -- tests/.tmp', {
       encoding: 'utf8',
@@ -1004,6 +1101,57 @@ Shuffled choice: [Rivendell / Edoras]{.choose answer="Rivendell"}.
 
     assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="true"/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="true"/);
+  });
+
+  test('Exercise attributes override global metadata for one exercise', () => {
+    const qmdContent = `---
+title: "Local Overrides"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  instant: true
+  reveal: true
+  lock: true
+  reset: false
+  shuffle: true
+  reshuffle-on-reset: true
+  explanation: never
+  feedback-correct: "Global correct"
+  feedback-incorrect: "Global wrong"
+---
+
+::: {.exercise #local instant=false reveal=false lock=false reset=true shuffle=false reshuffle-on-reset=false explanation="after-check" feedback-correct="Local correct" feedback-incorrect="Local wrong"}
+Choose one.
+
+::: {.answer correct=true}
+Correct choice
+:::
+
+::: {.answer}
+Wrong choice
+:::
+
+::: {.explanation}
+Local explanation.
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'local-overrides.qmd'), qmdContent);
+    renderQuarto('local-overrides.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'local-overrides.html'), 'utf8');
+    assert.match(html, /id="local"/);
+    assert.match(html, /data-instant="false"/);
+    assert.match(html, /data-reveal="false"/);
+    assert.match(html, /data-lock="false"/);
+    assert.match(html, /data-reset="true"/);
+    assert.match(html, /data-shuffle="false"/);
+    assert.match(html, /data-reshuffle-on-reset="false"/);
+    assert.match(html, /data-explanation-policy="after-check"/);
+    assert.match(html, /data-feedback-correct="Local correct"/);
+    assert.match(html, /data-feedback-incorrect="Local wrong"/);
+    assert.match(html, /class="quarto-exercise-check-btn"/);
+    assert.match(html, /class="quarto-exercise-reset-btn"/);
   });
 
   test('Stylesheet exposes the expected light and dark CSS defaults', () => {
