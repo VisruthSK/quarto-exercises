@@ -318,270 +318,46 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">quarto-exercises</h1>
+</div>
 
 
 
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
 
 
-<section id="quarto-exercises" class="level1">
-<h1>quarto-exercises</h1>
-<p><code>quarto-exercises</code> is a Quarto extension for small interactive practice questions in Quarto documents built to HTML.</p>
-<p>See the <a href="./example.html">example</a> and <a href="./reference.html">reference</a> pages for more details on the problem types and options.</p>
-<section id="installation" class="level2">
-<h2 class="anchored" data-anchor-id="installation">Installation</h2>
-<p>Add the extension to a Quarto project:</p>
+</header>
+
+
+<p><code>quarto-exercises</code> is a Quarto extension for small interactive practice questions in HTML documents.</p>
+<p>Use it to add multiple-choice questions, inline blanks, inline choices, and code cloze exercises to Quarto pages.</p>
+<section id="install" class="level2">
+<h2 class="anchored" data-anchor-id="install">Install</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> add VisruthSK/quarto-exercises</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Then enable the filter in a document or project config:</p>
+<p>Enable the filter in a document or project:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filters</span><span class="kw">:</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> quarto-exercises</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="multiple-choice" class="level2">
-<h2 class="anchored" data-anchor-id="multiple-choice">Multiple Choice</h2>
-<p>Write a question as an <code>.exercise</code> Div. Each <code>.answer</code> Div becomes one choice. Mark the correct answer with <code>correct=true</code>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Who carried the One Ring out of the Shire?</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>Frodo Baggins</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>Boromir</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>If more than one answer is correct, the extension renders checkboxes instead of radio buttons.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise shuffle=true}</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>Which members of the Fellowship are hobbits? Select all that apply.</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true key="frodo"}</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>Frodo Baggins</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true key="sam"}</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>Samwise Gamgee</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>::: {.answer key="legolas"}</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>Legolas Greenleaf</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true key="merry"}</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>Meriadoc Brandybuck</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>::: {.hint}</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Use <code>key</code> when you want stable answer identifiers in the generated HTML. Without it, the extension assigns <code>a</code>, <code>b</code>, <code>c</code>, and so on.</p>
-</section>
-<section id="feedback-hints-and-explanations" class="level2">
-<h2 class="anchored" data-anchor-id="feedback-hints-and-explanations">Feedback, Hints, and Explanations</h2>
-<p>An answer can contain one <code>.feedback</code> Div. An exercise can contain one <code>.hint</code> Div and one <code>.explanation</code> Div.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>What is the name of the wizard who guides the Fellowship?</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>Gandalf</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>::: {.feedback}</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>Correct! Specifically Gandalf the Grey, who later becomes Gandalf the White.</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>Saruman</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>::: {.feedback}</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>Not quite. Saruman resides in Isengard and betrays the Fellowship.</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>::: {.explanation}</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The <code>explanation</code> option controls when explanations show:</p>
+<section id="pages" class="level2">
+<h2 class="anchored" data-anchor-id="pages">Pages</h2>
 <ul>
-<li><code>correct</code>: after a correct check</li>
-<li><code>after-check</code>: after any check</li>
-<li><code>never</code>: never in HTML output</li>
-</ul>
-</section>
-<section id="inline-blanks" class="level2">
-<h2 class="anchored" data-anchor-id="inline-blanks">Inline Blanks</h2>
-<p>Use a <code>.blank</code> Span for a text input.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>The wizard who guides the Fellowship is <span class="co">[</span><span class="ot">`Gandalf`</span><span class="co">]</span>{.blank answer="Gandalf"}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Multiple accepted answers use a pipe-separated <code>answers</code> attribute:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>The Ringbearer is <span class="co">[</span><span class="ot">`Frodo`</span><span class="co">]</span>{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Use <code>\\|</code> for a literal pipe inside one answer in Quarto Markdown source:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="an">Answer yes or no:</span><span class="co"> [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Regex matching uses <code>match="regex"</code> with <code>answer</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>The full title of the first volume of Lord of the Rings is <span class="co">[</span><span class="ot">`The Fellowship of the Ring`</span><span class="co">]</span>{.blank answer="^The\s+Fellowship\s+of\s+the\s+Ring$" match="regex" ignore-case=true}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Blank attributes:</p>
-<ul>
-<li><code>answer</code>: one accepted answer</li>
-<li><code>answers</code>: pipe-separated accepted answers</li>
-<li><code>match</code>: <code>exact</code>, <code>one-of</code>, or <code>regex</code></li>
-<li><code>ignore-case</code>: compare without case sensitivity</li>
-<li><code>trim</code>: trim input before checking, default <code>true</code></li>
-<li><code>collapse-space</code>: collapse repeated whitespace before checking, default <code>false</code></li>
-<li><code>feedback-correct</code> and <code>feedback-incorrect</code>: override the feedback text</li>
-</ul>
-</section>
-<section id="inline-choices" class="level2">
-<h2 class="anchored" data-anchor-id="inline-choices">Inline Choices</h2>
-<p>Use a <code>.choose</code> Span for a dropdown.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>The One Ring was forged in <span class="co">[</span><span class="ot">Mordor|Gondor|Rohan</span><span class="co">]</span>{.choose answer="Mordor"}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The extension parses pipe-separated text as options. Spaces around <code>|</code> are part of the option value, so write compact lists unless the spaces are intentional. Use <code>\\|</code> for a literal pipe inside one option in Quarto Markdown source.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>Is this correct? <span class="co">[</span><span class="ot">`yes/no`</span><span class="co">]</span>{.choose options="yes/no|maybe|unknown" answer="yes/no"}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="an">Choose the literal token:</span><span class="co"> [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>An <code>.exercise</code> can group blanks and choices under one Check and Reset control:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>The hobbits are saved at the Prancing Pony by <span class="co">[</span><span class="ot">Aragorn|Boromir|Legolas|Gimli</span><span class="co">]</span>{.choose answer="Aragorn"}, who is also known as <span class="co">[</span><span class="ot">Strider</span><span class="co">]</span>{.blank answer="Strider"}.</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>::: {.hint}</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>What does Sam call him?</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Choice attributes:</p>
-<ul>
-<li><code>answer</code>: the correct option</li>
-<li><code>options</code>: pipe-separated options</li>
-<li><code>ignore-case</code>: compare without case sensitivity</li>
-<li><code>shuffle</code>: shuffle the option order</li>
-<li><code>feedback-correct</code> and <code>feedback-incorrect</code>: override the feedback text</li>
-</ul>
-</section>
-<section id="code-cloze" class="level2">
-<h2 class="anchored" data-anchor-id="code-cloze">Code Cloze</h2>
-<p>Use a <code>.code-cloze</code> code block when blanks or dropdowns should appear inside highlighted code. Put cloze controls between <code>{{</code> and <code>}}</code>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="in">```{.code-cloze lang="r"}</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">&lt;-</span> <span class="op">{{</span>choose answer<span class="op">=</span><span class="st">"c"</span> options<span class="op">=</span><span class="st">"c|list|data.frame"</span><span class="op">}}(</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">4</span><span class="op">,</span> <span class="dv">5</span><span class="op">)</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>total <span class="op">&lt;-</span> <span class="op">{{</span>blank answer<span class="op">=</span><span class="st">"sum"</span><span class="op">}}(</span>x<span class="op">)</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>cat<span class="op">(</span><span class="st">"Total:"</span><span class="op">,</span> total<span class="op">,</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span><span class="op">)</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The <code>lang</code> attribute becomes the syntax-highlighting language.</p>
-<p>Pipe-delimited <code>answers</code> and <code>options</code> inside code cloze use the same escape rules, but code cloze markers are parsed from raw code text. Write <code>\|</code> there for a literal pipe.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="in">```{.code-cloze lang="text"}</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> <span class="op">{{</span>choose answer<span class="op">=</span><span class="st">"yes|no"</span> options<span class="op">=</span><span class="st">"yes</span><span class="er">\|</span><span class="st">no|maybe"</span><span class="op">}}</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Wrap the code block in an <code>.exercise</code> if it should share controls with the rest of the exercise:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="in">```{.code-cloze lang="python"}</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>numbers <span class="op">=</span> <span class="op">[</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="dv">4</span><span class="op">,</span> <span class="dv">5</span><span class="op">]</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="op">{{</span>choose answer<span class="op">=</span><span class="st">"sum"</span> options<span class="op">=</span><span class="st">"sum|max|min|len"</span><span class="op">}}(</span>numbers<span class="op">)</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>print<span class="op">({{</span>blank answer<span class="op">=</span><span class="st">"total"</span><span class="op">}})</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Standalone <code>.code-cloze</code> blocks get their own Check and Reset buttons.</p>
-</section>
-<section id="authoring-notes" class="level2">
-<h2 class="anchored" data-anchor-id="authoring-notes">Authoring Notes</h2>
-<p>Use <code>true</code> or <code>false</code> for boolean attributes.</p>
-<p>The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.</p>
-<p>Do not put <code>.blank</code>, <code>.choose</code>, or <code>.code-cloze</code> controls inside <code>.answer</code> blocks. Put them in the exercise stem or in a standalone paragraph instead.</p>
-<p>Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write <code>\\|</code> for a literal pipe and <code>\\\\</code> for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside <code>.code-cloze</code> blocks, write <code>\|</code> for a literal pipe and <code>\\</code> for a literal backslash because code cloze markers are parsed from raw code text.</p>
-</section>
-<section id="options" class="level2">
-<h2 class="anchored" data-anchor-id="options">Options</h2>
-<p>Global options go under <code>quarto-exercises</code> in metadata. Most exercise options can also be set as attributes on a single <code>.exercise</code> Div.</p>
-<p>These are the defaults used by the extension:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quarto-exercises</span><span class="kw">:</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">instant</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reveal</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">lock</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reset</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">shuffle</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">reshuffle-on-reset</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">show-answers</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">explanation</span><span class="kw">:</span><span class="at"> correct</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">feedback-correct</span><span class="kw">:</span><span class="at"> </span><span class="st">"Correct!"</span></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">feedback-incorrect</span><span class="kw">:</span><span class="at"> </span><span class="st">"Not quite."</span></span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">ignore-case</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Per-exercise overrides:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise shuffle=true instant=true lock=true explanation="after-check"}</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>Question content here...</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Exercise attributes:</p>
-<ul>
-<li><code>shuffle</code>: randomize answer choices</li>
-<li><code>reshuffle-on-reset</code>: shuffle again after Reset</li>
-<li><code>instant</code>: check after each change instead of showing a Check button</li>
-<li><code>reveal</code>: reveal correct answers after checking</li>
-<li><code>lock</code>: disable controls after a correct answer</li>
-<li><code>reset</code>: show the Reset button</li>
-<li><code>explanation</code>: <code>correct</code>, <code>after-check</code>, or <code>never</code></li>
-<li><code>feedback-correct</code> and <code>feedback-incorrect</code>: status text for the whole exercise</li>
-</ul>
-</section>
-<section id="non-html-output" class="level2">
-<h2 class="anchored" data-anchor-id="non-html-output">Non-HTML Output</h2>
-<p>For formats such as PDF, DOCX, Typst, and Markdown, the filter removes the interactive controls:</p>
-<ul>
-<li>multiple-choice exercises become lettered lists</li>
-<li>blanks, choices, and code cloze controls become underlines</li>
-<li><code>show-answers: true</code> prints answer keys and explanations</li>
-</ul>
-<p>Example answer key:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="an">Answer:</span><span class="co"> A, C</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="styling" class="level2">
-<h2 class="anchored" data-anchor-id="styling">Styling</h2>
-<p>The extension ships its own CSS and follows Quarto light and dark modes. These are the default light-mode CSS variables:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode css code-with-copy"><code class="sourceCode css"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.quarto-exercise</span> {</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-accent</span><span class="ch">:</span> <span class="cn">#1a73e8</span><span class="op">;</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-accent-dark</span><span class="ch">:</span> <span class="cn">#4285f4</span><span class="op">;</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-correct</span><span class="ch">:</span> <span class="cn">#137333</span><span class="op">;</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-incorrect</span><span class="ch">:</span> <span class="cn">#c5221f</span><span class="op">;</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-incorrect-border</span><span class="ch">:</span> <span class="cn">#ea4335</span><span class="op">;</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-muted</span><span class="ch">:</span> <span class="cn">#555</span><span class="op">;</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-muted-dark</span><span class="ch">:</span> <span class="cn">#aaa</span><span class="op">;</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-border-color</span><span class="ch">:</span> <span class="cn">#ccc</span><span class="op">;</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-border-strong</span><span class="ch">:</span> <span class="cn">#ced4da</span><span class="op">;</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-bg</span><span class="ch">:</span> <span class="dv">transparent</span><span class="op">;</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-bg</span><span class="ch">:</span> <span class="cn">#f8f9fa</span><span class="op">;</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-hover-bg</span><span class="ch">:</span> <span class="cn">#e9ecef</span><span class="op">;</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-primary-bg</span><span class="ch">:</span> <span class="cn">#e9ecef</span><span class="op">;</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-primary-hover-bg</span><span class="ch">:</span> <span class="cn">#dee2e6</span><span class="op">;</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-border-radius</span><span class="ch">:</span> <span class="dv">4</span><span class="dt">px</span><span class="op">;</span></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-focus-ring</span><span class="ch">:</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">2</span><span class="dt">px</span> <span class="fu">rgba(</span><span class="dv">26</span><span class="op">,</span> <span class="dv">115</span><span class="op">,</span> <span class="dv">232</span><span class="op">,</span> <span class="dv">0.3</span><span class="fu">)</span><span class="op">;</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-panel-border</span><span class="ch">:</span> <span class="cn">#6c757d</span><span class="op">;</span></span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-panel-border-dark</span><span class="ch">:</span> <span class="cn">#adb5bd</span><span class="op">;</span></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>These are the dark-mode overrides:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode css code-with-copy"><code class="sourceCode css"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>body<span class="fu">.quarto-dark</span> {</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-accent</span><span class="ch">:</span> <span class="cn">#8ab4f8</span><span class="op">;</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-accent-dark</span><span class="ch">:</span> <span class="cn">#aecbfa</span><span class="op">;</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-correct</span><span class="ch">:</span> <span class="cn">#81c995</span><span class="op">;</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-incorrect</span><span class="ch">:</span> <span class="cn">#f28b82</span><span class="op">;</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-incorrect-border</span><span class="ch">:</span> <span class="cn">#f28b82</span><span class="op">;</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-muted</span><span class="ch">:</span> <span class="cn">#aaa</span><span class="op">;</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-muted-dark</span><span class="ch">:</span> <span class="cn">#aaa</span><span class="op">;</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-border-color</span><span class="ch">:</span> <span class="cn">#555</span><span class="op">;</span></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-border-strong</span><span class="ch">:</span> <span class="cn">#666</span><span class="op">;</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-bg</span><span class="ch">:</span> <span class="dv">transparent</span><span class="op">;</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-bg</span><span class="ch">:</span> <span class="cn">#2d2e30</span><span class="op">;</span></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-hover-bg</span><span class="ch">:</span> <span class="cn">#3c4043</span><span class="op">;</span></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-primary-bg</span><span class="ch">:</span> <span class="cn">#3c4043</span><span class="op">;</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-control-primary-hover-bg</span><span class="ch">:</span> <span class="cn">#4f5357</span><span class="op">;</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-focus-ring</span><span class="ch">:</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">2</span><span class="dt">px</span> <span class="fu">rgba(</span><span class="dv">138</span><span class="op">,</span> <span class="dv">180</span><span class="op">,</span> <span class="dv">248</span><span class="op">,</span> <span class="dv">0.4</span><span class="fu">)</span><span class="op">;</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="va">--ex-panel-border</span><span class="ch">:</span> <span class="cn">#9aa0a6</span><span class="op">;</span></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="limitations" class="level2">
-<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
-<ul>
-<li>The correct answers and feedback are stored in the HTML source.</li>
-<li>Inline blanks or choices inside <code>.answer</code> blocks are not supported.</li>
-<li>Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if <code>collapse-space=true</code>, repeated whitespace is also collapsed to one space.</li>
-<li>Long text inputs are capped at <code>380px</code> and scroll horizontally.</li>
-<li>Put this filter before filters that rewrite the same Divs, Spans, or code blocks.</li>
+<li><a href="./example.html">Example</a>: a complete document showing the extension in use.</li>
+<li><a href="./reference.html">Reference</a>: problem types, configuration, options, and authoring patterns.</li>
+<li><a href="https://github.com/VisruthSK/quarto-exercises#readme">GitHub README</a>: package documentation and source-level usage notes.</li>
 </ul>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
