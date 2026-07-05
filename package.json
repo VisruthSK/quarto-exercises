@@ -13,7 +13,7 @@
     "exercise",
     "practice"
   ],
-  "author": "DeepMind Antigravity",
+  "author": "Visruth Srimath Kandali",
   "license": "MIT",
   "devDependencies": {
     "playwright": "^1.61.1"
