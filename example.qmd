@@ -17,6 +17,8 @@ quarto-exercises:
   show-answers: false
 ---
 
+See the extension in action. If you want to learn more about how to write the questions, read the [reference page](reference.qmd).
+
 ## Multiple Choice / Multiple Answer
 
 ### Minimal Single-Choice
@@ -117,10 +119,6 @@ The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
 ### Multiple Accepted Answers (Case-insensitive)
 
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
-
-### Escaped Pipe in Answers
-
-Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
 
 ### Regex Matching
 

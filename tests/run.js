@@ -85,6 +85,10 @@ function parseCssVariables(css, selector) {
   );
 }
 
+function countMatches(text, pattern) {
+  return Array.from(text.matchAll(pattern)).length;
+}
+
 function loadRuntime() {
   const listeners = {};
   const runtime = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
@@ -419,6 +423,33 @@ test.describe('Quarto Exercises Extension Tests', () => {
       adjustCodeBlankWidthToText(long);
       assert.strictEqual(long.style.width, '380px', 'long text should use the explicit width cap');
       assert.strictEqual(long.style.borderBottom, 'none', 'underline should still be removed for long text');
+    });
+  });
+
+  test('Example document render snapshot keeps the public filter API working', () => {
+    const example = fs.readFileSync(path.join(__dirname, '..', 'example.qmd'), 'utf8');
+    assert.match(example, /filters:\s*\r?\n\s*-\s+quarto-exercises/, 'example should enable the extension with filters: - quarto-exercises');
+
+    fs.writeFileSync(path.join(TEMP_DIR, 'example.qmd'), example);
+    renderQuarto('example.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'example.html'), 'utf8');
+    assert.deepStrictEqual({
+      exercises: countMatches(html, /class="quarto-exercise"/g),
+      answers: countMatches(html, /class="quarto-exercise-answer/g),
+      inlineBlanks: countMatches(html, /class="quarto-exercise-blank-container"/g),
+      inlineChooses: countMatches(html, /class="quarto-exercise-choose-container"/g),
+      codeClozes: countMatches(html, /class="[^"]*quarto-exercise-code-cloze-container/g),
+      hasRuntime: html.includes('window.QuartoExercises'),
+      hasStyles: html.includes('.quarto-exercise-answer')
+    }, {
+      exercises: 7,
+      answers: 30,
+      inlineBlanks: 4,
+      inlineChooses: 3,
+      codeClozes: 3,
+      hasRuntime: true,
+      hasStyles: true
     });
   });
 
@@ -1177,6 +1208,25 @@ Gandalf
 Saruman
 :::
 :::
+
+::: {.exercise #code-lock-ex lock=true}
+Complete the call.
+
+\`\`\`{.code-cloze lang="r"}
+{{blank answer="mean"}}(x, na.rm = {{choose options="TRUE|FALSE" answer="TRUE"}})
+\`\`\`
+:::
+
+::: {.exercise #reveal-controls reveal=true}
+Fill and choose.
+
+Blank: [\`wrong\`]{.blank answer="right"}.
+Choice: [north|south]{.choose answer="north"}.
+
+\`\`\`{.code-cloze lang="r"}
+{{blank answer="sum"}}(x, na.rm = {{choose options="TRUE|FALSE" answer="TRUE"}})
+\`\`\`
+:::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'browser-behavior.qmd'), qmdContent);
     renderQuarto('browser-behavior.qmd');
@@ -1206,6 +1256,118 @@ Saruman
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-check-btn').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-reset-btn').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-status').textContent(), 'Correct!');
+
+      await page.fill('#code-lock-ex .quarto-exercise-code-blank', 'mean');
+      await page.selectOption('#code-lock-ex .quarto-exercise-code-choose', 'TRUE');
+      await page.click('#code-lock-ex .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#code-lock-ex').evaluate(el => el.classList.contains('is-locked')), true);
+      assert.strictEqual(await page.locator('#code-lock-ex .quarto-exercise-code-blank').isDisabled(), true);
+      assert.strictEqual(await page.locator('#code-lock-ex .quarto-exercise-code-choose').count(), 0);
+      assert.strictEqual(await page.locator('#code-lock-ex .quarto-exercise-code-choose-correct').textContent(), 'TRUE');
+
+      await page.fill('#reveal-controls .quarto-exercise-blank-container .quarto-exercise-blank-input', 'bad');
+      await page.selectOption('#reveal-controls .quarto-exercise-choose-container .quarto-exercise-choose-select', 'south');
+      await page.fill('#reveal-controls .quarto-exercise-code-blank', 'prod');
+      await page.selectOption('#reveal-controls .quarto-exercise-code-choose', 'FALSE');
+      await page.click('#reveal-controls .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-blank-correct-text').textContent(), 'right');
+      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-choose-correct-text').textContent(), 'north');
+      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-code-blank').inputValue(), 'sum');
+      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-code-choose-correct').textContent(), 'TRUE');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Exercise instant mode checks every control type on change', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Instant Controls"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #instant-radio instant=true}
+Choose the wizard.
+
+::: {.answer key="gandalf" correct=true}
+Gandalf
+:::
+
+::: {.answer key="saruman"}
+Saruman
+:::
+:::
+
+::: {.exercise #instant-checkbox type=checkbox instant=true}
+Choose the hobbits.
+
+::: {.answer key="frodo" correct=true}
+Frodo
+:::
+
+::: {.answer key="sam" correct=true}
+Sam
+:::
+:::
+
+::: {.exercise #instant-blank instant=true}
+Blank: [\`right\`]{.blank answer="right"}.
+:::
+
+::: {.exercise #instant-choose instant=true}
+Choice: [north|south]{.choose answer="north"}.
+:::
+
+::: {.exercise #instant-code-blank instant=true}
+\`\`\`{.code-cloze lang="r"}
+{{blank answer="sum"}}(x)
+\`\`\`
+:::
+
+::: {.exercise #instant-code-choose instant=true}
+\`\`\`{.code-cloze lang="r"}
+mean(x, na.rm = {{choose options="TRUE|FALSE" answer="TRUE" shuffle="true"}})
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'instant-controls.qmd'), qmdContent);
+    renderQuarto('instant-controls.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 900, height: 600 } });
+      await page.addInitScript(() => {
+        Math.random = () => 0;
+      });
+      await page.goto(`file://${path.join(TEMP_DIR, 'instant-controls.html')}`, { waitUntil: 'load' });
+
+      await page.click('#instant-radio [data-key="gandalf"]');
+      assert.strictEqual(await page.locator('#instant-radio .quarto-exercise-status').textContent(), 'Correct!');
+
+      await page.click('#instant-checkbox [data-key="frodo"]');
+      assert.strictEqual(await page.locator('#instant-checkbox .quarto-exercise-status').textContent(), 'Not quite.');
+      await page.click('#instant-checkbox [data-key="sam"]');
+      assert.strictEqual(await page.locator('#instant-checkbox .quarto-exercise-status').textContent(), 'Correct!');
+
+      await page.fill('#instant-blank .quarto-exercise-blank-input', 'right');
+      assert.strictEqual(await page.locator('#instant-blank .quarto-exercise-status').textContent(), 'Correct!');
+
+      await page.selectOption('#instant-choose .quarto-exercise-choose-select', 'north');
+      assert.strictEqual(await page.locator('#instant-choose .quarto-exercise-status').textContent(), 'Correct!');
+
+      await page.fill('#instant-code-blank .quarto-exercise-code-blank', 'sum');
+      assert.strictEqual(await page.locator('#instant-code-blank .quarto-exercise-status').textContent(), 'Correct!');
+
+      assert.deepStrictEqual(
+        await page.locator('#instant-code-choose .quarto-exercise-code-choose option').evaluateAll(options => options.map(option => option.value)),
+        ['', 'FALSE', 'TRUE']
+      );
+      await page.selectOption('#instant-code-choose .quarto-exercise-code-choose', 'TRUE');
+      assert.strictEqual(await page.locator('#instant-code-choose .quarto-exercise-status').textContent(), 'Correct!');
     } finally {
       await browser.close();
     }
@@ -1224,6 +1386,7 @@ Saruman
       t.skip(`git cannot be spawned here: ${res.error.message}`);
       return;
     }
+    assert.strictEqual(res.status, 0, res.stderr);
     assert.strictEqual(res.stdout.trim(), '');
   });
 

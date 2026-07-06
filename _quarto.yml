@@ -16,8 +16,3 @@ website:
       - href: reference.qmd
         text: Reference
 
-format:
-  html:
-    theme:
-      light: cosmo
-      dark: darkly
