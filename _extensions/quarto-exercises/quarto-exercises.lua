@@ -412,12 +412,21 @@ local function parse_exercise(el, id)
   return parsed
 end
 
-local function render_html_exercise(data, id, exercise_options)
+local function render_html_exercise(data, id, exercise_options, user_classes)
   local output = pandoc.List()
   local input_type = data.correct_count > 1 and "checkbox" or "radio"
 
+  local classes = { "quarto-exercise" }
+  if user_classes then
+    for _, c in ipairs(user_classes) do
+      if c ~= "exercise" then
+        classes[#classes + 1] = c
+      end
+    end
+  end
+
   output:insert(raw_block("div", {
-    class = "quarto-exercise",
+    class = table.concat(classes, " "),
     id = id,
     ["data-id"] = id,
     ["data-type"] = input_type,
@@ -762,17 +771,29 @@ local function render_blank(el, id)
     return options["show-answers"] and pandoc.Underline({ pandoc.Str(answer) }) or pandoc.Str("________")
   end
 
+  local classes = { "quarto-exercise-blank-container" }
+  for _, c in ipairs(el.classes) do
+    if c ~= "blank" then
+      classes[#classes + 1] = c
+    end
+  end
+
+  local container_attrs = {
+    class = table.concat(classes, " "),
+    ["data-answers"] = answer,
+    ["data-match"] = match,
+    ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"]),
+    ["data-trim"] = el.attributes.trim or "true",
+    ["data-collapse-space"] = el.attributes["collapse-space"] or "false",
+    ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
+    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+  }
+  if el.identifier and el.identifier ~= "" then
+    container_attrs.id = el.identifier
+  end
+
   return pandoc.RawInline("html",
-    raw_inline("span", {
-      class = "quarto-exercise-blank-container",
-      ["data-answers"] = answer,
-      ["data-match"] = match,
-      ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"]),
-      ["data-trim"] = el.attributes.trim or "true",
-      ["data-collapse-space"] = el.attributes["collapse-space"] or "false",
-      ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-      ["data-feedback-incorrect"] = attr_or_empty(el.attributes, "feedback-incorrect")
-    }) ..
+    raw_inline("span", container_attrs) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..
     '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>' ..
@@ -810,16 +831,28 @@ local function render_choose(el, id)
     return options["show-answers"] and pandoc.Underline({ pandoc.Str(answer) }) or pandoc.Str("________")
   end
 
+  local classes = { "quarto-exercise-choose-container" }
+  for _, c in ipairs(el.classes) do
+    if c ~= "choose" then
+      classes[#classes + 1] = c
+    end
+  end
+
+  local container_attrs = {
+    class = table.concat(classes, " "),
+    ["data-answer"] = answer,
+    ["data-options"] = join_values(values, "|"),
+    ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
+    ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
+    ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
+    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+  }
+  if el.identifier and el.identifier ~= "" then
+    container_attrs.id = el.identifier
+  end
+
   return pandoc.RawInline("html",
-    raw_inline("span", {
-      class = "quarto-exercise-choose-container",
-      ["data-answer"] = answer,
-      ["data-options"] = join_values(values, "|"),
-      ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
-      ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
-      ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-      ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
-    }) ..
+    raw_inline("span", container_attrs) ..
     '<select class="quarto-exercise-choose-select"><option value="">Choose...</option></select>' ..
     '<span class="quarto-exercise-choose-correct-text" hidden></span>' ..
     '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>' ..
@@ -885,7 +918,7 @@ function Div(el)
     explanation = validate_explanation(string_option(el.attributes, "explanation"), id),
     ["feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
-  })
+  }, el.classes)
 end
 
 function CodeBlock(el)

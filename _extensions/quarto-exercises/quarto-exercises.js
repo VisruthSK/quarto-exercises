@@ -541,8 +541,12 @@ function lockExercise(exercise, { answers, blanks, chooses, codeClozes, checkBut
     $(choose, ".quarto-exercise-choose-select").disabled = true;
   });
   (codeClozes || []).forEach(codeCloze => {
-    (codeCloze._clozeControls || []).forEach(({ el }) => {
-      el.disabled = true;
+    (codeCloze._clozeControls || []).forEach(({ type, el }) => {
+      if (type === "choose") {
+        revealCodeClozeChoose(el, el.value);
+      } else {
+        el.disabled = true;
+      }
     });
   });
 }
@@ -747,7 +751,7 @@ function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {
       const ok = el.value !== "" && (ignoreCase ? el.value.toLowerCase() === answer.toLowerCase() : el.value === answer);
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok && el.value !== "");
-      if (ok || reveal) {
+      if (reveal) {
         revealCodeClozeChoose(el, ok ? el.value : answer);
       }
       if (!ok) allCorrect = false;

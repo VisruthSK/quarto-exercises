@@ -538,7 +538,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
     assert.doesNotMatch(html, /placeholder=/);
     assert.match(html, /data-answers="Gandalf"/);
     assert.match(html, /data-ignore-case="true"/);
-    assert.match(html, /data-feedback-incorrect=""/);
+    assert.match(html, /data-feedback-incorrect="Not quite."/);
 
     // Standalone choose renders as dropdown
     assert.match(html, /class="quarto-exercise-choose-select"/);
@@ -1690,4 +1690,69 @@ Local explanation.
       }
     }
   });
+
+  test('TDD: ID and custom class preservation on blanks, chooses, and exercises, plus global incorrect feedback on blanks', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "TDD test"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  feedback-incorrect: "Global feedback incorrect override"
+---
+
+::: {.exercise .my-custom-ex-class #my-custom-ex-id}
+Choose one.
+
+[blank]{.blank #my-custom-blank-id .my-custom-blank-class answer="hello"}
+
+[choose]{.choose #my-custom-choose-id .my-custom-choose-class answer="yes" options="yes|no"}
+:::
+
+\`\`\`{.code-cloze lang="python"}
+total = {{choose answer="sum" options="sum|max"}}(numbers)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'tdd-test.qmd'), qmdContent);
+    renderQuarto('tdd-test.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'tdd-test.html'), 'utf8');
+
+    // 2. ID and class custom attributes preservation on blank and choose
+    // 3. Exercise custom classes preservation
+    assert.match(html, /class="[^"]*quarto-exercise[^"]* my-custom-ex-class[^"]*"/);
+    assert.match(html, /id="my-custom-ex-id"/);
+    assert.match(html, /class="[^"]*quarto-exercise-blank-container[^"]* my-custom-blank-class[^"]*"/);
+    assert.match(html, /id="my-custom-blank-id"/);
+    assert.match(html, /class="[^"]*quarto-exercise-choose-container[^"]* my-custom-choose-class[^"]*"/);
+    assert.match(html, /id="my-custom-choose-id"/);
+
+    // 4. Global feedback-incorrect applies to blanks
+    assert.match(html, /data-feedback-incorrect="Global feedback incorrect override"/);
+
+    // 1. Code-cloze dropdowns remain editable/selects when correct, unless reveal=true
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'tdd-test.html')}`, { waitUntil: 'load' });
+      
+      const select = page.locator('.quarto-exercise-code-choose');
+      // Initially, it's a select element
+      assert.strictEqual(await select.count(), 1);
+      
+      // Select the correct option
+      await select.selectOption('sum');
+      
+      // Trigger check
+      await page.locator('.quarto-exercise-code-cloze-wrapper .quarto-exercise-check-btn').click();
+      
+      // Since lock=false, reset=true, reveal=false (defaults), and it is correct, 
+      // the select element should NOT be replaced by a span! It should still exist and be editable.
+      assert.strictEqual(await select.count(), 1);
+      assert.strictEqual(await select.evaluate(el => el.classList.contains('is-correct')), true);
+    } finally {
+      await browser.close();
+    }
+  });
 });
+
