@@ -345,23 +345,23 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 /* Correct Inline States (Renders like normal text, no boxes/borders/backgrounds) */
-.quarto-exercise-blank-container.is-correct,
-.quarto-exercise-choose-container.is-correct {
+.quarto-exercise-blank-container.is-locked.is-correct,
+.quarto-exercise-choose-container.is-locked.is-correct {
   display: inline !important;
   vertical-align: baseline !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
-.quarto-exercise-blank-container.is-correct .quarto-exercise-blank-input,
-.quarto-exercise-choose-container.is-correct .quarto-exercise-choose-select,
-.quarto-exercise-choose-container.is-correct .quarto-exercise-choose-check-btn,
-.quarto-exercise-blank-container.is-correct .quarto-exercise-blank-check-btn {
+.quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-input,
+.quarto-exercise-choose-container.is-locked.is-correct .quarto-exercise-choose-select,
+.quarto-exercise-choose-container.is-locked.is-correct .quarto-exercise-choose-check-btn,
+.quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-check-btn {
   display: none !important;
 }
 
-.quarto-exercise-blank-correct-text,
-.quarto-exercise-choose-correct-text {
+.quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-correct-text,
+.quarto-exercise-choose-container.is-locked.is-correct .quarto-exercise-choose-correct-text {
   display: inline !important;
   color: var(--ex-correct) !important;
   font-weight: bold;

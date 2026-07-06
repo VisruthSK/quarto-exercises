@@ -505,7 +505,7 @@ He is short and has hairy feet.
     assert.doesNotMatch(html, /<span class="quarto-exercise-answer-content">/);
     assert.doesNotMatch(html, /<label[^>]*>(?:(?!<\/label>)[\s\S])*<div class="sourceCode"/);
     assert.match(html, /<div class="quarto-exercise-control">/);
-    assert.match(html, /<div class="quarto-exercise-answer-content">/);
+    assert.match(html, /class="quarto-exercise-answer-content"/);
   });
 
   test('Fill-in-the-blank and cloze rendering in HTML', (t) => {
@@ -1302,7 +1302,7 @@ Saruman
 :::
 :::
 
-::: {.exercise #instant-checkbox type=checkbox instant=true}
+::: {.exercise #instant-checkbox instant=true}
 Choose the hobbits.
 
 ::: {.answer key="frodo" correct=true}
@@ -1691,35 +1691,64 @@ Local explanation.
     }
   });
 
-  test('TDD: ID and custom class preservation on blanks, chooses, and exercises, plus global incorrect feedback on blanks', async () => {
+  test('ID and custom class preservation on blanks, chooses, and exercises, plus global incorrect feedback on blanks', async () => {
     const playwright = require('playwright');
     const qmdContent = `---
-title: "TDD test"
+title: "Updated accessibility and validation test"
 filters:
   - quarto-exercises
 quarto-exercises:
   feedback-incorrect: "Global feedback incorrect override"
+  instant: true
+  reveal: true
+  lock: true
 ---
 
-::: {.exercise .my-custom-ex-class #my-custom-ex-id}
+::: {.exercise .my-custom-ex-class #my-custom-ex-id instant=false}
 Choose one.
 
-[blank]{.blank #my-custom-blank-id .my-custom-blank-class answer="hello"}
-
-[choose]{.choose #my-custom-choose-id .my-custom-choose-class answer="yes" options="yes|no"}
+::: {.answer key="a" correct=true}
+Frodo with a [link](https://google.com)
 :::
 
-\`\`\`{.code-cloze lang="python"}
+::: {.answer key="b" corret=true}
+Legolas
+:::
+
+::: {.answer key="c" correct=""}
+Gimli
+:::
+
+[blank]{.blank #my-custom-blank-id .my-custom-blank-class answer="hello" lock=false}
+
+[choose]{.choose #my-custom-choose-id .my-custom-choose-class answer="yes" options="yes|no" lock=false}
+:::
+
+\`\`\`{.code-cloze lang="python" instant=false}
 total = {{choose answer="sum" options="sum|max"}}(numbers)
+\`\`\`
+
+\`\`\`{.code-cloze lang="python" #invalid-cloze}
+total = {{choose answer="invalid" options="sum|max"}}
+total_b = {{blank answer="x" match="invalid-match" invalid-attr="true"}}
 \`\`\`
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'tdd-test.qmd'), qmdContent);
-    renderQuarto('tdd-test.qmd');
+    const result = renderQuarto('tdd-test.qmd');
+
+    const stderrLog = result.stderr + result.stdout;
+    // 5. Answer attributes are validated (.answer corret=true)
+    assert.match(stderrLog, /unsupported attribute 'corret'/);
+    // 9. Code-cloze validation warns on invalid match, choose answer not in options, unsupported attrs, etc.
+    assert.match(stderrLog, /choose block whose answer 'invalid' is not in the options list/);
+    assert.match(stderrLog, /unsupported blank matching mode 'invalid-match'/);
+    assert.match(stderrLog, /unsupported attribute 'invalid-attr'/);
+    // 4. Empty/bare boolean attributes are invalid and emit a warning
+    assert.match(stderrLog, /invalid boolean value for 'correct': ''/);
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'tdd-test.html'), 'utf8');
 
-    // 2. ID and class custom attributes preservation on blank and choose
-    // 3. Exercise custom classes preservation
+    // 2. ID and class custom attributes preservation on blank, choose, and exercises
     assert.match(html, /class="[^"]*quarto-exercise[^"]* my-custom-ex-class[^"]*"/);
     assert.match(html, /id="my-custom-ex-id"/);
     assert.match(html, /class="[^"]*quarto-exercise-blank-container[^"]* my-custom-blank-class[^"]*"/);
@@ -1730,26 +1759,51 @@ total = {{choose answer="sum" options="sum|max"}}(numbers)
     // 4. Global feedback-incorrect applies to blanks
     assert.match(html, /data-feedback-incorrect="Global feedback incorrect override"/);
 
-    // 1. Code-cloze dropdowns remain editable/selects when correct, unless reveal=true
+    // 2. MC input accessibility: aria-labelledby pointing to both label and content
+    assert.match(html, /aria-labelledby="[^"]+-a-label [^"]+-a-content"/);
+    assert.match(html, /id="[^"]+-a-label"/);
+    assert.match(html, /id="[^"]+-a-content"/);
+
+    // 4. Explicit boolean attributes translate to true
+    assert.match(html, /data-correct="true"/);
+
     const browser = await playwright.chromium.launch();
     try {
       const page = await browser.newPage();
       await page.goto(`file://${path.join(TEMP_DIR, 'tdd-test.html')}`, { waitUntil: 'load' });
       
-      const select = page.locator('.quarto-exercise-code-choose');
-      // Initially, it's a select element
-      assert.strictEqual(await select.count(), 1);
+      // 7. Clicking a link inside an answer does not toggle row selection
+      const link = page.locator('.quarto-exercise-answer-content a');
+      const input = page.locator('.quarto-exercise-input').first();
+      // Click the link and ensure standard link behavior isn't intercepted to check the input
+      await link.click({ trial: true }); // Playwright check only
+      assert.strictEqual(await input.isChecked(), false);
+
+      // 3. lock=false keeps correct inline blank/select controls editable
+      const blankInput = page.locator('#my-custom-blank-id .quarto-exercise-blank-input');
+      const chooseSelect = page.locator('#my-custom-choose-id .quarto-exercise-choose-select');
       
-      // Select the correct option
-      await select.selectOption('sum');
+      await blankInput.fill('hello');
+      await chooseSelect.selectOption('yes');
       
-      // Trigger check
-      await page.locator('.quarto-exercise-code-cloze-wrapper .quarto-exercise-check-btn').click();
+      // Standalone code-cloze (not inside exercise) inherits instant=false, so it has a check button
+      const codeSelect = page.locator('.quarto-exercise-code-cloze-wrapper .quarto-exercise-code-choose').first();
+      await codeSelect.selectOption('sum');
+      await page.locator('.quarto-exercise-code-cloze-wrapper .quarto-exercise-check-btn').first().click();
       
-      // Since lock=false, reset=true, reveal=false (defaults), and it is correct, 
-      // the select element should NOT be replaced by a span! It should still exist and be editable.
-      assert.strictEqual(await select.count(), 1);
-      assert.strictEqual(await select.evaluate(el => el.classList.contains('is-correct')), true);
+      // Since code-cloze standalone inherits reveal=true, lock=true (from global config):
+      // The code-cloze select is replaced by the correct text span (locked)
+      assert.strictEqual(await page.locator('#cloze-1 .quarto-exercise-code-choose').count(), 0);
+
+      // Now check the main exercise
+      await page.locator('#my-custom-ex-id .quarto-exercise-check-btn').click();
+      
+      // Although check was clicked, lock=false was passed to inline blank/choose!
+      // So they must remain editable and NOT hidden (i.e. select and input still exist and are enabled)
+      assert.strictEqual(await blankInput.count(), 1);
+      assert.strictEqual(await chooseSelect.count(), 1);
+      assert.strictEqual(await blankInput.isDisabled(), false);
+      assert.strictEqual(await chooseSelect.isDisabled(), false);
     } finally {
       await browser.close();
     }

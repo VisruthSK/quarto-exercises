@@ -55,6 +55,24 @@ local choose_attrs = {
   ["feedback-incorrect"] = true
 }
 
+local answer_attrs = {
+  correct = true,
+  key = true
+}
+
+local code_cloze_attrs = {
+  id = true,
+  class = true,
+  lang = true,
+  instant = true,
+  reveal = true,
+  lock = true,
+  reset = true,
+  ["feedback-correct"] = true,
+  ["feedback-incorrect"] = true,
+  ["ignore-case"] = true
+}
+
 local bool_attrs = {
   shuffle = true,
   ["reshuffle-on-reset"] = true,
@@ -104,7 +122,7 @@ local function normalize_bool(value)
 end
 
 local function is_bool(value)
-  return value == nil or value == "" or value == "true" or value == "false"
+  return value == nil or value == "true" or value == "false"
 end
 
 local function warn(id, msg)
@@ -360,6 +378,7 @@ local function parse_exercise(el, id)
 
   for _, block in ipairs(el.content) do
     if block.t == "Div" and block.classes:includes("answer") then
+      check_attrs(block.attributes, answer_attrs, id)
       check_bool(block.attributes, "correct", id)
       local correct_value = normalize_bool(block.attributes.correct)
       local correct = is_bool(correct_value) and correct_value == "true"
@@ -449,12 +468,14 @@ local function render_html_exercise(data, id, exercise_options, user_classes)
     output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">'))
     for _, answer in ipairs(data.answers) do
       local input_id = id .. "-" .. answer.key
+      local label_id = input_id .. "-label"
+      local content_id = input_id .. "-content"
       output:insert(pandoc.RawBlock("html",
         '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer.key) .. '" data-correct="' .. tostring(answer.correct) .. '">' ..
         '<div class="quarto-exercise-control">' ..
-        '<input id="' .. html_escape(input_id) .. '" type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer.key) .. '" class="quarto-exercise-input" />' ..
-        '<label for="' .. html_escape(input_id) .. '" class="quarto-exercise-answer-label"></label>' ..
-        '</div><div class="quarto-exercise-answer-content">'
+        '<input id="' .. html_escape(input_id) .. '" type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer.key) .. '" class="quarto-exercise-input" aria-labelledby="' .. html_escape(label_id) .. ' ' .. html_escape(content_id) .. '" />' ..
+        '<label id="' .. html_escape(label_id) .. '" for="' .. html_escape(input_id) .. '" class="quarto-exercise-answer-label"></label>' ..
+        '</div><div id="' .. html_escape(content_id) .. '" class="quarto-exercise-answer-content">'
       ))
       for _, block in ipairs(answer.content) do
         output:insert(block)
@@ -631,15 +652,37 @@ local function process_code_cloze(el, parent_id)
       local attrs_str = string.match(content, "^%s*%a+%s*(.-)%s*$")
       local attrs = parse_attributes(attrs_str)
       if control_type == "blank" then
+        check_attrs(attrs, blank_attrs, id)
+        check_bools(attrs, id)
         if not attrs.answer and not attrs.answers then
           warn(id, "blank with no answer")
         end
+        local match = attrs.match or "exact"
+        if match ~= "exact" and match ~= "one-of" and match ~= "regex" then
+          warn(id, "unsupported blank matching mode '" .. match .. "'")
+        end
       elseif control_type == "choose" then
+        check_attrs(attrs, choose_attrs, id)
+        check_bools(attrs, id)
         if not attrs.answer then
           warn(id, "choose with no answer")
         end
         if not attrs.options then
           warn(id, "choose with no options")
+        end
+        local answer = attrs.answer or ""
+        local options_str = attrs.options or ""
+        local values = split_values(options_str, "|")
+        local ignore_case = normalize_bool(attrs["ignore-case"]) == "true"
+        local found = answer == ""
+        for _, value in ipairs(values) do
+          if ignore_case and string.lower(value) == string.lower(answer) or value == answer then
+            found = true
+            break
+          end
+        end
+        if not found then
+          warn(id, "choose block whose answer '" .. answer .. "' is not in the options list")
         end
       end
     end
@@ -720,6 +763,11 @@ local function process_code_cloze(el, parent_id)
     classes[#classes + 1] = "quarto-exercise-code-cloze-standalone"
   end
 
+  if parent_id == nil then
+    check_attrs(el.attributes, code_cloze_attrs, id)
+    check_bools(el.attributes, id)
+  end
+
   local container_attrs = {
     class = table.concat(classes, " "),
     ["data-cloze-metadata"] = meta_json
@@ -730,6 +778,12 @@ local function process_code_cloze(el, parent_id)
   else
     container_attrs["id"] = id
     container_attrs["data-id"] = id
+    container_attrs["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant)
+    container_attrs["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal)
+    container_attrs["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock)
+    container_attrs["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
+    container_attrs["data-feedback-correct"] = string_option(el.attributes, "feedback-correct")
+    container_attrs["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   end
 
   local container = pandoc.Div({ el }, container_attrs)
@@ -786,7 +840,11 @@ local function render_blank(el, id)
     ["data-trim"] = el.attributes.trim or "true",
     ["data-collapse-space"] = el.attributes["collapse-space"] or "false",
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
+    ["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant),
+    ["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal),
+    ["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock),
+    ["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
   }
   if el.identifier and el.identifier ~= "" then
     container_attrs.id = el.identifier
@@ -845,7 +903,11 @@ local function render_choose(el, id)
     ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
     ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
+    ["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant),
+    ["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal),
+    ["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock),
+    ["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
   }
   if el.identifier and el.identifier ~= "" then
     container_attrs.id = el.identifier

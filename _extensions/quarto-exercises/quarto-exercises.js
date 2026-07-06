@@ -255,7 +255,10 @@ function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
   container.classList.toggle("is-correct", isCorrect);
   input.classList.toggle("is-correct", isCorrect);
   input.classList.toggle("is-incorrect", !isCorrect);
-  setCorrectText(container, ".quarto-exercise-blank-correct-text", isCorrect ? input.value : reveal ? firstAnswer(container.dataset.answers) : "");
+  if (reveal) {
+    container.classList.add("is-locked");
+  }
+  setCorrectText(container, ".quarto-exercise-blank-correct-text", reveal ? (isCorrect ? input.value : firstAnswer(container.dataset.answers)) : "");
 
   if (showFeedback) {
     setFeedback(
@@ -272,7 +275,7 @@ function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
 
 function resetBlank(container) {
   const input = $(container, ".quarto-exercise-blank-input");
-  container.classList.remove("is-correct");
+  container.classList.remove("is-correct", "is-locked");
   input.disabled = false;
   input.value = "";
   input.classList.remove("is-correct", "is-incorrect");
@@ -283,9 +286,18 @@ function resetBlank(container) {
 
 function initStandaloneBlank(container) {
   const checkButton = $(container, ".quarto-exercise-blank-check-btn");
-  const check = () => verifyBlank(container, { showFeedback: true });
+  const check = () => {
+    const ok = verifyBlank(container, { showFeedback: true, reveal: bool(container.dataset.reveal) });
+    if (bool(container.dataset.lock) && ok) {
+      container.classList.add("is-locked");
+      const input = $(container, ".quarto-exercise-blank-input");
+      input.disabled = true;
+      if (checkButton) checkButton.disabled = true;
+      setCorrectText(container, ".quarto-exercise-blank-correct-text", input.value);
+    }
+  };
 
-  initBlank(container, check);
+  initBlank(container, check, { instant: bool(container.dataset.instant) });
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);
@@ -334,7 +346,10 @@ function verifyChoose(container, { showFeedback = false, reveal = false } = {}) 
   container.classList.toggle("is-correct", isCorrect);
   select.classList.toggle("is-correct", isCorrect);
   select.classList.toggle("is-incorrect", !isCorrect);
-  setCorrectText(container, ".quarto-exercise-choose-correct-text", isCorrect ? userValue : reveal ? answer : "");
+  if (reveal) {
+    container.classList.add("is-locked");
+  }
+  setCorrectText(container, ".quarto-exercise-choose-correct-text", reveal ? answer : "");
 
   if (showFeedback && userValue) {
     setFeedback(
@@ -351,7 +366,7 @@ function verifyChoose(container, { showFeedback = false, reveal = false } = {}) 
 
 function resetChoose(container) {
   const select = $(container, ".quarto-exercise-choose-select");
-  container.classList.remove("is-correct");
+  container.classList.remove("is-correct", "is-locked");
   select.disabled = false;
   select.value = "";
   select.classList.remove("is-correct", "is-incorrect");
@@ -362,7 +377,16 @@ function resetChoose(container) {
 
 function initStandaloneChoose(container) {
   const checkButton = $(container, ".quarto-exercise-choose-check-btn");
-  const check = () => verifyChoose(container, { showFeedback: true });
+  const check = () => {
+    const ok = verifyChoose(container, { showFeedback: true, reveal: bool(container.dataset.reveal) });
+    if (bool(container.dataset.lock) && ok) {
+      container.classList.add("is-locked");
+      const select = $(container, ".quarto-exercise-choose-select");
+      select.disabled = true;
+      if (checkButton) checkButton.disabled = true;
+      setCorrectText(container, ".quarto-exercise-choose-correct-text", select.value);
+    }
+  };
 
   initChoose(container, check, { instant: !checkButton || bool(container.dataset.instant) });
   if (checkButton && !checkButton.dataset.initialized) {
@@ -420,6 +444,7 @@ function initAnswers(exercise, answers, verify, instant) {
 
     answer.addEventListener("click", event => {
       if (exercise.classList.contains("is-locked") || event.target === input) return;
+      if (event.target.closest("a, button, input, select, textarea, label")) return;
       event.preventDefault();
       input.checked = input.type === "radio" || !input.checked;
       input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -789,14 +814,27 @@ function initStandaloneCodeCloze(container) {
   const status = wrapper.querySelector(".quarto-exercise-status");
 
   const check = () => {
-    const ok = verifyCodeCloze(container, { showFeedback: true });
+    const ok = verifyCodeCloze(container, { showFeedback: true, reveal: bool(container.dataset.reveal) });
     if (status) {
       status.textContent = ok ? "Correct!" : "Not quite.";
       status.className = "quarto-exercise-status " + (ok ? "is-correct" : "is-incorrect");
     }
+    if (bool(container.dataset.lock) && ok) {
+      container.classList.add("is-locked");
+      if (checkButton) checkButton.disabled = true;
+      if (resetButton) resetButton.disabled = true;
+      const controls = container._clozeControls || [];
+      controls.forEach(({ type, el }) => {
+        if (type === "choose") {
+          revealCodeClozeChoose(el, el.value);
+        } else {
+          el.disabled = true;
+        }
+      });
+    }
   };
 
-  initCodeCloze(container, check);
+  initCodeCloze(container, check, { instant: bool(container.dataset.instant) });
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);
@@ -806,7 +844,13 @@ function initStandaloneCodeCloze(container) {
     resetButton.dataset.initialized = "true";
     resetButton.addEventListener("click", () => {
       resetCodeCloze(container);
-      if (status) { status.textContent = ""; status.className = "quarto-exercise-status"; }
+      if (checkButton) checkButton.disabled = false;
+      if (resetButton) resetButton.disabled = false;
+      container.classList.remove("is-locked");
+      if (status) {
+        status.textContent = "";
+        status.className = "quarto-exercise-status";
+      }
     });
   }
 }
