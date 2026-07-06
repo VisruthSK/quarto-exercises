@@ -41,7 +41,11 @@ local blank_attrs = {
   trim = true,
   ["collapse-space"] = true,
   ["feedback-correct"] = true,
-  ["feedback-incorrect"] = true
+  ["feedback-incorrect"] = true,
+  instant = true,
+  reveal = true,
+  lock = true,
+  reset = true
 }
 
 local choose_attrs = {
@@ -52,7 +56,11 @@ local choose_attrs = {
   ["ignore-case"] = true,
   shuffle = true,
   ["feedback-correct"] = true,
-  ["feedback-incorrect"] = true
+  ["feedback-incorrect"] = true,
+  instant = true,
+  reveal = true,
+  lock = true,
+  reset = true
 }
 
 local answer_attrs = {
@@ -366,6 +374,40 @@ local function split_answer(block, id)
   return content, feedback
 end
 
+local function check_and_strip_interactive_in_answer(answer_block, id)
+  return answer_block:walk({
+    Span = function(span)
+      if span.classes:includes("blank") or span.classes:includes("choose") then
+        local ctrl_type = span.classes:includes("blank") and "blank" or "choose"
+        warn(id, "interactive control ." .. ctrl_type .. " is not allowed inside .answer blocks")
+        local classes = span.classes
+        for i, c in ipairs(classes) do
+          if c == "blank" or c == "choose" then
+            table.remove(classes, i)
+            break
+          end
+        end
+        span.classes = classes
+        return span
+      end
+    end,
+    CodeBlock = function(code)
+      if code.classes:includes("code-cloze") then
+        warn(id, "interactive control .code-cloze is not allowed inside .answer blocks")
+        local classes = code.classes
+        for i, c in ipairs(classes) do
+          if c == "code-cloze" then
+            table.remove(classes, i)
+            break
+          end
+        end
+        code.classes = classes
+        return code
+      end
+    end
+  })
+end
+
 local function parse_exercise(el, id)
   local parsed = {
     stem = pandoc.List(),
@@ -374,10 +416,10 @@ local function parse_exercise(el, id)
     hint = nil,
     correct_count = 0
   }
-  local keys_seen = {}
 
   for _, block in ipairs(el.content) do
     if block.t == "Div" and block.classes:includes("answer") then
+      block = check_and_strip_interactive_in_answer(block, id)
       check_attrs(block.attributes, answer_attrs, id)
       check_bool(block.attributes, "correct", id)
       local correct_value = normalize_bool(block.attributes.correct)
@@ -386,12 +428,6 @@ local function parse_exercise(el, id)
 
       if correct then
         parsed.correct_count = parsed.correct_count + 1
-      end
-      if key and key ~= "" then
-        if keys_seen[key] then
-          warn(id, "duplicate answer key '" .. key .. "'")
-        end
-        keys_seen[key] = true
       end
 
       local content, feedback = split_answer(block, id)
@@ -416,10 +452,29 @@ local function parse_exercise(el, id)
     end
   end
 
+  -- Validate manual keys pattern
+  for _, answer in ipairs(parsed.answers) do
+    if answer.key and answer.key ~= "" then
+      if not string.match(answer.key, "^[A-Za-z][A-Za-z0-9_-]*$") then
+        warn(id, "invalid answer key '" .. answer.key .. "' (must match ^[A-Za-z][A-Za-z0-9_-]*$)")
+      end
+    end
+  end
+
+  -- Assign auto keys
   for index, answer in ipairs(parsed.answers) do
     if not answer.key or answer.key == "" then
       answer.key = string.lower(alpha_key(index))
     end
+  end
+
+  -- Check final uniqueness
+  local final_keys = {}
+  for _, answer in ipairs(parsed.answers) do
+    if final_keys[answer.key] then
+      warn(id, "duplicate answer key '" .. answer.key .. "'")
+    end
+    final_keys[answer.key] = true
   end
 
   if #parsed.answers == 0 and not has_inline_interaction(parsed.stem) and el.attributes["data-has-code-cloze"] ~= "true" then
@@ -730,7 +785,14 @@ local function process_code_cloze(el, parent_id)
   end
 
   if not html() then
-    local new_code = pandoc.CodeBlock(static_text, el.attr)
+    local lang = el.attributes["lang"] or ""
+    local classes = pandoc.List()
+    if lang ~= "" then
+      classes:insert(lang)
+    end
+    classes:insert("quarto-exercise-code-cloze-code")
+    local attr = pandoc.Attr(el.identifier, classes, { ["data-cloze-processed"] = "true" })
+    local new_code = pandoc.CodeBlock(static_text, attr)
     if options["show-answers"] and #static_answers > 0 then
       local ans_list = {}
       for idx, ans in ipairs(static_answers) do
@@ -749,6 +811,11 @@ local function process_code_cloze(el, parent_id)
   -- syntax-highlights the block. The lang= attribute is NOT how Pandoc
   -- selects a highlighter — the first matching class is.
   local lang = el.attributes["lang"] or ""
+  local original_classes = {}
+  for _, c in ipairs(el.classes) do
+    original_classes[#original_classes + 1] = c
+  end
+
   el.classes = pandoc.List()
   if lang ~= "" then
     el.classes:insert(lang)
@@ -763,6 +830,12 @@ local function process_code_cloze(el, parent_id)
     classes[#classes + 1] = "quarto-exercise-code-cloze-standalone"
   end
 
+  for _, c in ipairs(original_classes) do
+    if c ~= "code-cloze" and c ~= lang then
+      classes[#classes + 1] = c
+    end
+  end
+
   if parent_id == nil then
     check_attrs(el.attributes, code_cloze_attrs, id)
     check_bools(el.attributes, id)
@@ -770,7 +843,8 @@ local function process_code_cloze(el, parent_id)
 
   local container_attrs = {
     class = table.concat(classes, " "),
-    ["data-cloze-metadata"] = meta_json
+    ["data-cloze-metadata"] = meta_json,
+    ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])
   }
 
   if parent_id then

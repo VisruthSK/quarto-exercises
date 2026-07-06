@@ -560,13 +560,25 @@ function lockExercise(exercise, { answers, blanks, chooses, codeClozes, checkBut
     $(answer, ".quarto-exercise-input").disabled = true;
   });
   blanks.forEach(blank => {
-    $(blank, ".quarto-exercise-blank-input").disabled = true;
+    if (blank.dataset.lock === "false") return;
+    blank.classList.add("is-locked");
+    const input = $(blank, ".quarto-exercise-blank-input");
+    input.disabled = true;
+    const isCorrect = input.classList.contains("is-correct");
+    setCorrectText(blank, ".quarto-exercise-blank-correct-text", isCorrect ? input.value : firstAnswer(blank.dataset.answers));
   });
   chooses.forEach(choose => {
-    $(choose, ".quarto-exercise-choose-select").disabled = true;
+    if (choose.dataset.lock === "false") return;
+    choose.classList.add("is-locked");
+    const select = $(choose, ".quarto-exercise-choose-select");
+    select.disabled = true;
+    const isCorrect = select.classList.contains("is-correct");
+    const answer = select.dataset.answer || "";
+    setCorrectText(choose, ".quarto-exercise-choose-correct-text", isCorrect ? select.value : answer);
   });
   (codeClozes || []).forEach(codeCloze => {
     (codeCloze._clozeControls || []).forEach(({ type, el }) => {
+      if (el.dataset.lock === "false") return;
       if (type === "choose") {
         revealCodeClozeChoose(el, el.value);
       } else {
@@ -685,25 +697,39 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
   for (const [token, info] of Object.entries(metadata)) {
     if (info.type === "blank") {
       const attrs = info.attrs || {};
+      const blankSpan = document.createElement("span");
+      blankSpan.className = "quarto-exercise-code-blank-container";
+
       const input = document.createElement("input");
       input.type = "text";
       input.className = "quarto-exercise-blank-input quarto-exercise-code-blank";
       input.setAttribute("aria-label", "Fill in the blank");
       input.dataset.answers = attrs.answer || attrs.answers || "";
       input.dataset.match = attrs.match || "exact";
-      input.dataset.ignoreCase = attrs["ignore-case"] || "false";
+      input.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : (container.dataset.ignoreCase || "false");
       input.dataset.trim = attrs.trim || "true";
       input.dataset.collapseSpace = attrs["collapse-space"] || "false";
+      input.dataset.lock = attrs.lock || "";
       input.addEventListener("input", () => {
         adjustCodeBlankWidthToText(input);
         if (instant && onCheck) onCheck();
       });
       input.addEventListener("blur", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
-      // Size is deferred until after the element is in the DOM so
-      // getComputedStyle returns real font metrics.
-      replaceTokenWithElement(code, token, input);
-      // No initial sizing to hint text - uses CSS default width
+      blankSpan.appendChild(input);
+
+      const correctSpan = document.createElement("span");
+      correctSpan.className = "quarto-exercise-code-blank-correct-text";
+      correctSpan.style.color = "var(--ex-correct)";
+      correctSpan.style.fontWeight = "bold";
+      correctSpan.style.fontFamily = "inherit";
+      correctSpan.style.marginLeft = "0.3em";
+      correctSpan.hidden = true;
+      blankSpan.appendChild(correctSpan);
+
+      input._codeBlankCorrectSpan = correctSpan;
+
+      replaceTokenWithElement(code, token, blankSpan);
       controls.push({ type: "blank", el: input, attrs });
     } else if (info.type === "choose") {
       const attrs = info.attrs || {};
@@ -715,7 +741,8 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
         select.appendChild(new Option(opt, opt));
       });
       select.dataset.answer = attrs.answer || "";
-      select.dataset.ignoreCase = attrs["ignore-case"] || "false";
+      select.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : (container.dataset.ignoreCase || "false");
+      select.dataset.lock = attrs.lock || "";
       select.addEventListener("change", () => {
         adjustSelectWidth(select);
         if (instant && onCheck) onCheck();
@@ -766,8 +793,10 @@ function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok);
       if (reveal && !ok) {
-        el.value = firstAnswer(el.dataset.answers);
-        adjustCodeBlankWidthToText(el);
+        if (el._codeBlankCorrectSpan) {
+          el._codeBlankCorrectSpan.textContent = firstAnswer(el.dataset.answers);
+          el._codeBlankCorrectSpan.hidden = false;
+        }
       }
       if (!ok) allCorrect = false;
     } else if (type === "choose") {
@@ -792,6 +821,10 @@ function resetCodeCloze(container) {
     el.classList.remove("is-correct", "is-incorrect");
     if (type === "blank") {
       el.value = "";
+      if (el._codeBlankCorrectSpan) {
+        el._codeBlankCorrectSpan.textContent = "";
+        el._codeBlankCorrectSpan.hidden = true;
+      }
       // Reset to default CSS width and restore underline
       el.style.width = "";
       el.style.borderBottom = "";
@@ -813,10 +846,20 @@ function initStandaloneCodeCloze(container) {
   const resetButton = wrapper.querySelector(".quarto-exercise-reset-btn");
   const status = wrapper.querySelector(".quarto-exercise-status");
 
+  const instant = bool(container.dataset.instant);
+  const resetOption = bool(container.dataset.reset, true);
+
+  if (instant && checkButton) {
+    checkButton.style.display = "none";
+  }
+  if (!resetOption && resetButton) {
+    resetButton.style.display = "none";
+  }
+
   const check = () => {
     const ok = verifyCodeCloze(container, { showFeedback: true, reveal: bool(container.dataset.reveal) });
     if (status) {
-      status.textContent = ok ? "Correct!" : "Not quite.";
+      status.textContent = ok ? container.dataset.feedbackCorrect : container.dataset.feedbackIncorrect;
       status.className = "quarto-exercise-status " + (ok ? "is-correct" : "is-incorrect");
     }
     if (bool(container.dataset.lock) && ok) {
@@ -825,6 +868,7 @@ function initStandaloneCodeCloze(container) {
       if (resetButton) resetButton.disabled = true;
       const controls = container._clozeControls || [];
       controls.forEach(({ type, el }) => {
+        if (el.dataset.lock === "false") return;
         if (type === "choose") {
           revealCodeClozeChoose(el, el.value);
         } else {
@@ -834,7 +878,7 @@ function initStandaloneCodeCloze(container) {
     }
   };
 
-  initCodeCloze(container, check, { instant: bool(container.dataset.instant) });
+  initCodeCloze(container, check, { instant });
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);

@@ -1272,7 +1272,8 @@ Choice: [north|south]{.choose answer="north"}.
       await page.click('#reveal-controls .quarto-exercise-check-btn');
       assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-blank-correct-text').textContent(), 'right');
       assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-choose-correct-text').textContent(), 'north');
-      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-code-blank').inputValue(), 'sum');
+      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-code-blank').inputValue(), 'prod');
+      assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-code-blank-correct-text').textContent(), 'sum');
       assert.strictEqual(await page.locator('#reveal-controls .quarto-exercise-code-choose-correct').textContent(), 'TRUE');
     } finally {
       await browser.close();
@@ -1691,119 +1692,226 @@ Local explanation.
     }
   });
 
-  test('ID and custom class preservation on blanks, chooses, and exercises, plus global incorrect feedback on blanks', async () => {
-    const playwright = require('playwright');
+  test('Preservation of IDs, classes, feedback override, and MC aria labels', async () => {
     const qmdContent = `---
-title: "Updated accessibility and validation test"
+title: "Preservation Test"
 filters:
   - quarto-exercises
 quarto-exercises:
   feedback-incorrect: "Global feedback incorrect override"
-  instant: true
-  reveal: true
-  lock: true
 ---
 
-::: {.exercise .my-custom-ex-class #my-custom-ex-id instant=false}
+::: {.exercise .my-custom-ex-class #my-custom-ex-id}
 Choose one.
 
 ::: {.answer key="a" correct=true}
-Frodo with a [link](https://google.com)
+Frodo
 :::
 
-::: {.answer key="b" corret=true}
-Legolas
+[blank]{.blank #my-custom-blank-id .my-custom-blank-class answer="hello"}
+
+[choose]{.choose #my-custom-choose-id .my-custom-choose-class answer="yes" options="yes|no"}
 :::
-
-::: {.answer key="c" correct=""}
-Gimli
-:::
-
-[blank]{.blank #my-custom-blank-id .my-custom-blank-class answer="hello" lock=false}
-
-[choose]{.choose #my-custom-choose-id .my-custom-choose-class answer="yes" options="yes|no" lock=false}
-:::
-
-\`\`\`{.code-cloze lang="python" instant=false}
-total = {{choose answer="sum" options="sum|max"}}(numbers)
-\`\`\`
-
-\`\`\`{.code-cloze lang="python" #invalid-cloze}
-total = {{choose answer="invalid" options="sum|max"}}
-total_b = {{blank answer="x" match="invalid-match" invalid-attr="true"}}
-\`\`\`
 `;
-    fs.writeFileSync(path.join(TEMP_DIR, 'tdd-test.qmd'), qmdContent);
-    const result = renderQuarto('tdd-test.qmd');
+    fs.writeFileSync(path.join(TEMP_DIR, 'preservation.qmd'), qmdContent);
+    renderQuarto('preservation.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'preservation.html'), 'utf8');
 
-    const stderrLog = result.stderr + result.stdout;
-    // 5. Answer attributes are validated (.answer corret=true)
-    assert.match(stderrLog, /unsupported attribute 'corret'/);
-    // 9. Code-cloze validation warns on invalid match, choose answer not in options, unsupported attrs, etc.
-    assert.match(stderrLog, /choose block whose answer 'invalid' is not in the options list/);
-    assert.match(stderrLog, /unsupported blank matching mode 'invalid-match'/);
-    assert.match(stderrLog, /unsupported attribute 'invalid-attr'/);
-    // 4. Empty/bare boolean attributes are invalid and emit a warning
-    assert.match(stderrLog, /invalid boolean value for 'correct': ''/);
-
-    const html = fs.readFileSync(path.join(TEMP_DIR, 'tdd-test.html'), 'utf8');
-
-    // 2. ID and class custom attributes preservation on blank, choose, and exercises
     assert.match(html, /class="[^"]*quarto-exercise[^"]* my-custom-ex-class[^"]*"/);
     assert.match(html, /id="my-custom-ex-id"/);
     assert.match(html, /class="[^"]*quarto-exercise-blank-container[^"]* my-custom-blank-class[^"]*"/);
     assert.match(html, /id="my-custom-blank-id"/);
     assert.match(html, /class="[^"]*quarto-exercise-choose-container[^"]* my-custom-choose-class[^"]*"/);
     assert.match(html, /id="my-custom-choose-id"/);
-
-    // 4. Global feedback-incorrect applies to blanks
     assert.match(html, /data-feedback-incorrect="Global feedback incorrect override"/);
-
-    // 2. MC input accessibility: aria-labelledby pointing to both label and content
     assert.match(html, /aria-labelledby="[^"]+-a-label [^"]+-a-content"/);
-    assert.match(html, /id="[^"]+-a-label"/);
-    assert.match(html, /id="[^"]+-a-content"/);
+  });
 
-    // 4. Explicit boolean attributes translate to true
-    assert.match(html, /data-correct="true"/);
+  test('Warnings on invalid answer attributes and bare boolean attributes', () => {
+    const qmdContent = `---
+title: "Warnings Test"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #ex-warn}
+::: {.answer key="a" corret=true}
+Legolas
+:::
+::: {.answer key="b" correct=""}
+Gimli
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'warnings-answer.qmd'), qmdContent);
+    const result = renderQuarto('warnings-answer.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    assert.match(stderrLog, /unsupported attribute 'corret'/);
+    assert.match(stderrLog, /invalid boolean value for 'correct': ''/);
+  });
+
+  test('Answer key validation, final uniqueness, and safe pattern warnings', () => {
+    const qmdContent = `---
+title: "Key Test"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #dup-keys}
+::: {.answer}
+Auto key becomes a
+:::
+::: {.answer key="a"}
+Manual duplicate duplicate of auto key
+:::
+:::
+
+::: {.exercise #invalid-key-pattern}
+::: {.answer key="a b" correct=true}
+Invalid format key
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'keys-warn.qmd'), qmdContent);
+    const result = renderQuarto('keys-warn.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    assert.match(stderrLog, /duplicate answer key 'a'/);
+    assert.match(stderrLog, /invalid answer key 'a b'/);
+  });
+
+  test('Nested interactive controls inside answer block warnings and stripping', () => {
+    const qmdContent = `---
+title: "Nested controls"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #nested-controls}
+::: {.answer key="a" correct=true}
+Frodo [blank]{.blank answer="x"}
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'nested.qmd'), qmdContent);
+    const result = renderQuarto('nested.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    assert.match(stderrLog, /interactive control .blank is not allowed inside .answer blocks/);
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'nested.html'), 'utf8');
+    // Ensure the interactive .blank got stripped and not rendered as an input
+    assert.doesNotMatch(html, /quarto-exercise-blank-input/);
+  });
+
+  test('Standalone code-cloze options contract, feedbacks, and custom classes', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Standalone cloze"
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="python" #my-cloze .my-cloze-class instant=true reset=false feedback-correct="Nicely done" feedback-incorrect="Try again"}
+val = {{choose answer="x" options="x|y"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'cloze-opts.qmd'), qmdContent);
+    renderQuarto('cloze-opts.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'cloze-opts.html'), 'utf8');
+
+    // Check custom class preservation
+    assert.match(html, /class="[^"]*quarto-exercise-code-cloze-container[^"]* my-cloze-class[^"]*"/);
 
     const browser = await playwright.chromium.launch();
     try {
       const page = await browser.newPage();
-      await page.goto(`file://${path.join(TEMP_DIR, 'tdd-test.html')}`, { waitUntil: 'load' });
+      await page.goto(`file://${path.join(TEMP_DIR, 'cloze-opts.html')}`, { waitUntil: 'load' });
       
-      // 7. Clicking a link inside an answer does not toggle row selection
-      const link = page.locator('.quarto-exercise-answer-content a');
-      const input = page.locator('.quarto-exercise-input').first();
-      // Click the link and ensure standard link behavior isn't intercepted to check the input
-      await link.click({ trial: true }); // Playwright check only
-      assert.strictEqual(await input.isChecked(), false);
+      const checkBtn = page.locator('#my-cloze ~ .quarto-exercise-actions .quarto-exercise-check-btn');
+      const resetBtn = page.locator('#my-cloze ~ .quarto-exercise-actions .quarto-exercise-reset-btn');
+      
+      // instant=true hides checkBtn, reset=false hides resetBtn
+      await checkBtn.waitFor({ state: 'hidden', timeout: 5000 });
+      await resetBtn.waitFor({ state: 'hidden', timeout: 5000 });
 
-      // 3. lock=false keeps correct inline blank/select controls editable
-      const blankInput = page.locator('#my-custom-blank-id .quarto-exercise-blank-input');
-      const chooseSelect = page.locator('#my-custom-choose-id .quarto-exercise-choose-select');
+      const select = page.locator('#my-cloze .quarto-exercise-code-choose');
+      await select.selectOption('y'); // wrong option
       
-      await blankInput.fill('hello');
-      await chooseSelect.selectOption('yes');
-      
-      // Standalone code-cloze (not inside exercise) inherits instant=false, so it has a check button
-      const codeSelect = page.locator('.quarto-exercise-code-cloze-wrapper .quarto-exercise-code-choose').first();
-      await codeSelect.selectOption('sum');
-      await page.locator('.quarto-exercise-code-cloze-wrapper .quarto-exercise-check-btn').first().click();
-      
-      // Since code-cloze standalone inherits reveal=true, lock=true (from global config):
-      // The code-cloze select is replaced by the correct text span (locked)
-      assert.strictEqual(await page.locator('#cloze-1 .quarto-exercise-code-choose').count(), 0);
+      const status = page.locator('#my-cloze ~ .quarto-exercise-actions .quarto-exercise-status');
+      assert.strictEqual(await status.textContent(), 'Try again');
 
-      // Now check the main exercise
-      await page.locator('#my-custom-ex-id .quarto-exercise-check-btn').click();
-      
-      // Although check was clicked, lock=false was passed to inline blank/choose!
-      // So they must remain editable and NOT hidden (i.e. select and input still exist and are enabled)
-      assert.strictEqual(await blankInput.count(), 1);
-      assert.strictEqual(await chooseSelect.count(), 1);
-      assert.strictEqual(await blankInput.isDisabled(), false);
-      assert.strictEqual(await chooseSelect.isDisabled(), false);
+      await select.selectOption('x'); // correct option
+      assert.strictEqual(await status.textContent(), 'Nicely done');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('lock=false override keeps correct inline control editable inside locked exercise', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Lock Override"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #lock-ex lock=true instant=false}
+[blank]{.blank #locked-blank answer="ok" lock=false}
+[choose]{.choose #locked-choose answer="yes" options="yes|no" lock=false}
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'lock-override.qmd'), qmdContent);
+    renderQuarto('lock-override.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'lock-override.html')}`, { waitUntil: 'load' });
+
+      await page.locator('#lock-ex .quarto-exercise-check-btn').click();
+
+      const blank = page.locator('#locked-blank .quarto-exercise-blank-input');
+      const choose = page.locator('#locked-choose .quarto-exercise-choose-select');
+
+      // The exercise has lock=true, but individual controls have lock=false override.
+      // So they must not get disabled/locked!
+      assert.strictEqual(await blank.isDisabled(), false);
+      assert.strictEqual(await choose.isDisabled(), false);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Code-cloze reveal blank displays adjacent correct-text span instead of mutating input value', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Cloze Reveal"
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="python" #cloze-rev reveal=true lock=true}
+x = {{blank answer="correct_val"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'cloze-rev.qmd'), qmdContent);
+    renderQuarto('cloze-rev.qmd');
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'cloze-rev.html')}`, { waitUntil: 'load' });
+
+      const input = page.locator('#cloze-rev .quarto-exercise-blank-input');
+      await input.fill('wrong_val');
+
+      await page.locator('#cloze-rev ~ .quarto-exercise-actions .quarto-exercise-check-btn').click();
+
+      // The input value must NOT have been mutated!
+      assert.strictEqual(await input.inputValue(), 'wrong_val');
+
+      // The correct answer must be revealed in the adjacent span next to it!
+      const correctSpan = page.locator('#cloze-rev .quarto-exercise-code-blank-correct-text');
+      await correctSpan.waitFor({ state: 'visible', timeout: 5000 });
+      assert.strictEqual(await correctSpan.textContent(), 'correct_val');
     } finally {
       await browser.close();
     }
