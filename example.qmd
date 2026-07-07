@@ -2,7 +2,11 @@
 title: "Quarto Exercises Extension Example"
 format:
     html: default
-    pdf: default 
+    typst:
+        output-file: example-typst.pdf
+    pdf:
+        output-file: example-latex.pdf   
+    docx: default
 filters:
   - quarto-exercises
 quarto-exercises:
@@ -13,6 +17,8 @@ quarto-exercises:
   shuffle: false
   show-answers: false
 ---
+
+See the extension in action. If you want to learn more about how to write the questions, read the [reference page](reference.qmd).
 
 ## Multiple Choice / Multiple Answer
 
@@ -114,10 +120,6 @@ The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
 ### Multiple Accepted Answers (Case-insensitive)
 
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
-
-### Escaped Pipe in Answers
-
-Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
 
 ### Regex Matching
 
