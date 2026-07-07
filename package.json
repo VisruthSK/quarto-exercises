@@ -1,6 +1,7 @@
 {
   "name": "quarto-exercises",
   "version": "1.0.0",
+  "private": true,
   "packageManager": "pnpm@11.9.0",
   "description": "Interactive practice exercises for Quarto HTML documents",
   "scripts": {

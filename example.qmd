@@ -1,11 +1,8 @@
 ---
 title: "Quarto Exercises Extension Example"
 format:
-  html:
-    embed-resources: true
-    theme:
-      light: cosmo
-      dark: darkly
+    html: default
+    pdf: default 
 filters:
   - quarto-exercises
 quarto-exercises:

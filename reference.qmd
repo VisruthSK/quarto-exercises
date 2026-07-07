@@ -1,11 +1,5 @@
 ---
 title: "Quarto Exercises Reference"
-format:
-  html:
-    embed-resources: true
-    theme:
-      light: cosmo
-      dark: darkly
 filters:
   - quarto-exercises
 ---
