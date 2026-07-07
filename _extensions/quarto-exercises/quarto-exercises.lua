@@ -17,6 +17,8 @@ for key, value in pairs(defaults) do
   options[key] = value
 end
 
+local INTERNAL_PARENT_ATTR = "data-qex-parent"
+
 local exercise_attrs = {
   id = true,
   class = true,
@@ -45,8 +47,7 @@ local blank_attrs = {
   instant = true,
   reveal = true,
   lock = true,
-  reset = true,
-  ["data-exercise-parent"] = true
+  reset = true
 }
 
 local choose_attrs = {
@@ -61,8 +62,7 @@ local choose_attrs = {
   instant = true,
   reveal = true,
   lock = true,
-  reset = true,
-  ["data-exercise-parent"] = true
+  reset = true
 }
 
 local code_cloze_blank_attrs = {
@@ -102,13 +102,10 @@ local code_cloze_attrs = {
 }
 
 local grouped_code_cloze_attrs = {
-  id = true,
   class = true,
   lang = true,
   instant = true,
-  ["ignore-case"] = true,
-  ["data-exercise-parent"] = true,
-  ["data-cloze-processed"] = true
+  ["ignore-case"] = true
 }
 
 local bool_attrs = {
@@ -134,12 +131,16 @@ local function html()
   return FORMAT:match("html")
 end
 
+local function fresh_id(prefix)
+  counter = counter + 1
+  return prefix .. "-" .. counter
+end
+
 local function id_for(el, prefix)
   if el.identifier and el.identifier ~= "" then
     return el.identifier
   end
-  counter = counter + 1
-  return prefix .. "-" .. counter
+  return fresh_id(prefix)
 end
 
 local function alpha_key(index)
@@ -485,6 +486,7 @@ local function check_and_strip_interactive_in_answer(answer_block, id)
         span.attributes["feedback-correct"] = nil
         span.attributes["feedback-incorrect"] = nil
         span.attributes["data-exercise-parent"] = nil
+        span.attributes[INTERNAL_PARENT_ATTR] = nil
         return span
       end
     end,
@@ -500,7 +502,14 @@ local function check_and_strip_interactive_in_answer(answer_block, id)
           end
         end
         code.classes = classes
+        code.attributes.instant = nil
+        code.attributes.reveal = nil
+        code.attributes.lock = nil
+        code.attributes.reset = nil
+        code.attributes["feedback-correct"] = nil
+        code.attributes["feedback-incorrect"] = nil
         code.attributes["data-exercise-parent"] = nil
+        code.attributes[INTERNAL_PARENT_ATTR] = nil
         return code
       end
     end
@@ -787,7 +796,7 @@ local function process_code_cloze(el, parent_id)
   local metadata = {}
   local static_answers = {}
   local count = 0
-  local id = id_for(el, "cloze")
+  local id = parent_id and fresh_id("cloze") or id_for(el, "cloze")
 
   local pos = 1
   while true do
@@ -894,14 +903,39 @@ local function process_code_cloze(el, parent_id)
 
   static_text = static_cloze_text(static_text)
 
+  local lang = el.attributes["lang"] or ""
+  local block_attrs = {}
+  for key, value in pairs(el.attributes) do
+    block_attrs[key] = value
+  end
+  block_attrs[INTERNAL_PARENT_ATTR] = nil
+  local original_classes = {}
+  for _, c in ipairs(el.classes) do
+    original_classes[#original_classes + 1] = c
+  end
+
+  if parent_id == nil then
+    check_attrs(block_attrs, code_cloze_attrs, id)
+    check_bools(block_attrs, id)
+  else
+    if el.identifier and el.identifier ~= "" then
+      warn(id, "unsupported attribute 'id'")
+    end
+    check_attrs(block_attrs, grouped_code_cloze_attrs, id)
+    check_bools(block_attrs, id)
+  end
+
   if not html() then
-    local lang = el.attributes["lang"] or ""
+    local code_id = el.identifier
+    if parent_id and code_id ~= "" then
+      code_id = ""
+    end
     local classes = pandoc.List()
     if lang ~= "" then
       classes:insert(lang)
     end
     classes:insert("quarto-exercise-code-cloze-code")
-    local attr = pandoc.Attr(el.identifier, classes, {})
+    local attr = pandoc.Attr(code_id, classes, {})
     local new_code = pandoc.CodeBlock(static_text, attr)
     if options["show-answers"] and #static_answers > 0 then
       local ans_list = {}
@@ -920,23 +954,11 @@ local function process_code_cloze(el, parent_id)
   -- Replace the .code-cloze class with the actual language so Pandoc
   -- syntax-highlights the block. The lang= attribute is NOT how Pandoc
   -- selects a highlighter — the first matching class is.
-  local lang = el.attributes["lang"] or ""
-  local block_attrs = {}
-  for key, value in pairs(el.attributes) do
-    block_attrs[key] = value
-  end
-  local original_classes = {}
-  for _, c in ipairs(el.classes) do
-    original_classes[#original_classes + 1] = c
-  end
-
   el.classes = pandoc.List()
   if lang ~= "" then
     el.classes:insert(lang)
   end
   el.classes:insert("quarto-exercise-code-cloze-code")
-  el.attributes["lang"] = nil
-  el.attributes["data-cloze-processed"] = nil
 
   local meta_json = json_encode(metadata)
   local classes = { "quarto-exercise-code-cloze-container" }
@@ -948,14 +970,6 @@ local function process_code_cloze(el, parent_id)
     if c ~= "code-cloze" and c ~= lang then
       classes[#classes + 1] = c
     end
-  end
-
-  if parent_id == nil then
-    check_attrs(block_attrs, code_cloze_attrs, id)
-    check_bools(block_attrs, id)
-  else
-    check_attrs(block_attrs, grouped_code_cloze_attrs, id)
-    check_bools(block_attrs, id)
   end
 
   local container_attrs = {
@@ -980,12 +994,9 @@ local function process_code_cloze(el, parent_id)
   end
 
   el.identifier = ""
-  for key in pairs(code_cloze_attrs) do
-    if key ~= "class" then
-      el.attributes[key] = nil
-    end
+  for key in pairs(el.attributes) do
+    el.attributes[key] = nil
   end
-  el.attributes["data-exercise-parent"] = nil
 
   local container = pandoc.Div({ el }, container_attrs)
 
@@ -1010,9 +1021,22 @@ local function process_code_cloze(el, parent_id)
 end
 
 local function render_blank(el, id)
+  if el.attributes["data-exercise-parent"] ~= nil then
+    warn(id, "unsupported attribute 'data-exercise-parent'")
+    el.attributes["data-exercise-parent"] = nil
+  end
+  local parent_id = el.attributes[INTERNAL_PARENT_ATTR]
+  el.attributes[INTERNAL_PARENT_ATTR] = nil
+  if parent_id then
+    for _, key in ipairs({ "instant", "reveal", "lock", "reset" }) do
+      if el.attributes[key] ~= nil then
+        warn(id, "unsupported grouped inline attribute '" .. key .. "'")
+        el.attributes[key] = nil
+      end
+    end
+  end
   check_attrs(el.attributes, blank_attrs, id)
   check_bools(el.attributes, id)
-  local parent_id = el.attributes["data-exercise-parent"]
 
   local match = el.attributes.match or "exact"
   if match ~= "exact" and match ~= "one-of" and match ~= "regex" then
@@ -1048,14 +1072,14 @@ local function render_blank(el, id)
     ["data-trim"] = bool_string(el.attributes, "trim", true),
     ["data-collapse-space"] = bool_string(el.attributes, "collapse-space", false),
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
-    ["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant),
-    ["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal),
-    ["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
+    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   }
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
   else
+    container_attrs["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant)
+    container_attrs["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal)
+    container_attrs["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
     container_attrs["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock)
   end
   if el.identifier and el.identifier ~= "" then
@@ -1078,9 +1102,22 @@ local function render_blank(el, id)
 end
 
 local function render_choose(el, id)
+  if el.attributes["data-exercise-parent"] ~= nil then
+    warn(id, "unsupported attribute 'data-exercise-parent'")
+    el.attributes["data-exercise-parent"] = nil
+  end
+  local parent_id = el.attributes[INTERNAL_PARENT_ATTR]
+  el.attributes[INTERNAL_PARENT_ATTR] = nil
+  if parent_id then
+    for _, key in ipairs({ "instant", "reveal", "lock", "reset" }) do
+      if el.attributes[key] ~= nil then
+        warn(id, "unsupported grouped inline attribute '" .. key .. "'")
+        el.attributes[key] = nil
+      end
+    end
+  end
   check_attrs(el.attributes, choose_attrs, id)
   check_bools(el.attributes, id)
-  local parent_id = el.attributes["data-exercise-parent"]
 
   local answer = el.attributes.answer or ""
   if answer == "" then
@@ -1122,14 +1159,14 @@ local function render_choose(el, id)
     ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
     ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"]),
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
-    ["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant),
-    ["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal),
-    ["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
+    ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   }
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
   else
+    container_attrs["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant)
+    container_attrs["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal)
+    container_attrs["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
     container_attrs["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock)
   end
   if el.identifier and el.identifier ~= "" then
@@ -1190,15 +1227,14 @@ function Div(el)
   el = el:walk({
     Span = function(span)
       if span.classes:includes("blank") or span.classes:includes("choose") then
-        span.attributes["data-exercise-parent"] = id
+        span.attributes[INTERNAL_PARENT_ATTR] = id
         return span
       end
     end,
     CodeBlock = function(code)
       if code.classes:includes("code-cloze") then
         has_code_cloze = true
-        code.attributes["data-exercise-parent"] = id
-        code.attributes["data-cloze-processed"] = "true"
+        code.attributes[INTERNAL_PARENT_ATTR] = id
         return process_code_cloze(code, id)
       end
     end
@@ -1228,10 +1264,6 @@ end
 function CodeBlock(el)
   if not el.classes:includes("code-cloze") then
     return nil
-  end
-  if el.attributes["data-cloze-processed"] == "true" then
-    el.attributes["data-cloze-processed"] = nil
-    return el
   end
   return process_code_cloze(el, nil)
 end

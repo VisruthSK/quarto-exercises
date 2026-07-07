@@ -237,7 +237,9 @@ body.quarto-dark {
 .quarto-exercise-check-btn,
 .quarto-exercise-reset-btn,
 .quarto-exercise-hint-btn,
-.quarto-exercise-blank-check-btn {
+.quarto-exercise-blank-check-btn,
+.quarto-exercise-blank-reset-btn,
+.quarto-exercise-choose-reset-btn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
   border: 1px solid var(--ex-border-color);
@@ -251,7 +253,9 @@ body.quarto-dark {
 .quarto-exercise-check-btn:hover,
 .quarto-exercise-reset-btn:hover,
 .quarto-exercise-hint-btn:hover,
-.quarto-exercise-blank-check-btn:hover {
+.quarto-exercise-blank-check-btn:hover,
+.quarto-exercise-blank-reset-btn:hover,
+.quarto-exercise-choose-reset-btn:hover {
   background-color: var(--ex-control-hover-bg);
 }
 
@@ -356,7 +360,9 @@ body.quarto-dark .quarto-exercise-explanation {
 .quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-input,
 .quarto-exercise-choose-container.is-locked.is-correct .quarto-exercise-choose-select,
 .quarto-exercise-choose-container.is-locked.is-correct .quarto-exercise-choose-check-btn,
-.quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-check-btn {
+.quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-check-btn,
+.quarto-exercise-choose-container.is-locked.is-correct .quarto-exercise-choose-reset-btn,
+.quarto-exercise-blank-container.is-locked.is-correct .quarto-exercise-blank-reset-btn {
   display: none !important;
 }
 
@@ -436,7 +442,9 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-choose-check-btn,
-.quarto-exercise-blank-check-btn {
+.quarto-exercise-blank-check-btn,
+.quarto-exercise-choose-reset-btn,
+.quarto-exercise-blank-reset-btn {
   display: inline-block;
   vertical-align: baseline;
   padding: 0.15rem 0.5rem;
@@ -453,13 +461,17 @@ body.quarto-dark .quarto-exercise-explanation {
 }
 
 .quarto-exercise-choose-check-btn:hover,
-.quarto-exercise-blank-check-btn:hover {
+.quarto-exercise-blank-check-btn:hover,
+.quarto-exercise-choose-reset-btn:hover,
+.quarto-exercise-blank-reset-btn:hover {
   background-color: var(--ex-control-hover-bg);
 }
 
 /* Hide standalone button if nested in an exercise block */
 .quarto-exercise .quarto-exercise-choose-check-btn,
-.quarto-exercise .quarto-exercise-blank-check-btn {
+.quarto-exercise .quarto-exercise-blank-check-btn,
+.quarto-exercise .quarto-exercise-choose-reset-btn,
+.quarto-exercise .quarto-exercise-blank-reset-btn {
   display: none !important;
 }
 

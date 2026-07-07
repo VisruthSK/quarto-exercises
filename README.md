@@ -137,6 +137,7 @@ Blank attributes:
 - `ignore-case`: compare without case sensitivity
 - `trim`: trim input before checking, default `true`
 - `collapse-space`: collapse repeated whitespace before checking, default `false`
+- `instant`, `reveal`, `lock`, and `reset`: standalone control behavior
 - `feedback-correct` and `feedback-incorrect`: override the feedback text
 
 ## Inline Choices
@@ -175,7 +176,10 @@ Choice attributes:
 - `options`: pipe-separated options
 - `ignore-case`: compare without case sensitivity
 - `shuffle`: shuffle the option order
+- `instant`, `reveal`, `lock`, and `reset`: standalone control behavior
 - `feedback-correct` and `feedback-incorrect`: override the feedback text
+
+When `.blank` or `.choose` controls are inside an `.exercise`, the parent exercise owns `instant`, `reveal`, `lock`, and `reset`. Set those on the `.exercise`, not on the individual inline control.
 
 ## Code Cloze
 
@@ -217,7 +221,7 @@ Standalone `.code-cloze` blocks get their own Check and Reset buttons. Inside an
 
 Use `true` or `false` for boolean attributes.
 
-The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
+The filter warns during render for unsupported attributes in every output format, including non-HTML output. It also warns for missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
 
 Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
 

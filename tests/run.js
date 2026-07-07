@@ -895,6 +895,68 @@ total <- {{blank answer="sum"}}(x)
     assert.doesNotMatch(md, /data-cloze-processed/);
   });
 
+  test('Grouped code cloze id warns and is dropped in non-HTML output', () => {
+    const qmdContent = `---
+title: "Grouped Code Cloze ID Fallback"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise}
+\`\`\`{.code-cloze #grouped-code-id lang="r"}
+{{blank answer="sum"}}(x)
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-code-id-fallback.qmd'), qmdContent);
+    const result = renderQuarto('grouped-code-id-fallback.qmd', 'markdown');
+    const stderrLog = result.stderr + result.stdout;
+    const md = fs.readFileSync(path.join(TEMP_DIR, 'grouped-code-id-fallback.md'), 'utf8');
+
+    assert.match(stderrLog, /unsupported attribute 'id'/);
+    assert.match(md, /________\(x\)/);
+    assert.doesNotMatch(md, /grouped-code-id/);
+    assert.doesNotMatch(md, /data-cloze-processed/);
+  });
+
+  test('Non-HTML code cloze block attrs warn consistently', () => {
+    const standalone = `---
+title: "Standalone Code Attr Warning"
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="r" foo="bar"}
+{{blank answer="sum"}}(x)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-code-attr-warning.qmd'), standalone);
+    const standaloneResult = renderQuarto('standalone-code-attr-warning.qmd', 'markdown');
+    assert.match(standaloneResult.stderr + standaloneResult.stdout, /unsupported attribute 'foo'/);
+    const standaloneMd = fs.readFileSync(path.join(TEMP_DIR, 'standalone-code-attr-warning.md'), 'utf8');
+    assert.doesNotMatch(standaloneMd, /foo|bar/);
+
+    const grouped = `---
+title: "Grouped Code Attr Warning"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise}
+\`\`\`{.code-cloze lang="r" foo="bar" reset=false}
+{{blank answer="sum"}}(x)
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-code-attr-warning.qmd'), grouped);
+    const groupedResult = renderQuarto('grouped-code-attr-warning.qmd', 'markdown');
+    const groupedLog = groupedResult.stderr + groupedResult.stdout;
+    assert.match(groupedLog, /unsupported attribute 'foo'/);
+    assert.match(groupedLog, /unsupported attribute 'reset'/);
+    const groupedMd = fs.readFileSync(path.join(TEMP_DIR, 'grouped-code-attr-warning.md'), 'utf8');
+    assert.doesNotMatch(groupedMd, /foo|bar|reset/);
+  });
+
   test('Non-HTML answer blocks strip code cloze without leaking answers or tokens', () => {
     const qmdContent = `---
 title: "Answer Code Cloze Fallback"
@@ -906,7 +968,7 @@ quarto-exercises:
 
 ::: {.exercise}
 ::: {.answer correct=true}
-\`\`\`{.code-cloze lang="r"}
+\`\`\`{.code-cloze lang="r" instant=true reset=false feedback-correct="Yes" feedback-incorrect="No"}
 {{blank answer="sum"}}(x)
 \`\`\`
 :::
@@ -926,6 +988,7 @@ Other
     assert.doesNotMatch(md, /sum\(x\)/);
     assert.doesNotMatch(md, /QEXCLOZEP/);
     assert.doesNotMatch(md, /data-cloze-processed/);
+    assert.doesNotMatch(md, /instant|reset|feedback-correct|feedback-incorrect/);
     assert.doesNotMatch(md, /\{\{blank/);
     assert.match(md, /Answer:\s+A/);
   });
@@ -938,7 +1001,7 @@ filters:
 ---
 
 ::: {.exercise #grouped-sanitize}
-\`\`\`{.code-cloze lang="r" reveal=true lock=true reset=false feedback-correct="Block yes" feedback-incorrect="Block no"}
+\`\`\`{.code-cloze lang="r" #dropped-code-id reveal=true lock=true reset=false feedback-correct="Block yes" feedback-incorrect="Block no"}
 {{blank answer="sum" reveal=true lock=true reset=false feedback-correct="Marker yes"}}(x)
 {{choose answer="TRUE" options="TRUE|FALSE" reveal=true lock=true reset=false feedback-incorrect="Marker no"}}
 \`\`\`
@@ -951,11 +1014,54 @@ filters:
     const containerTag = html.match(/<div class="quarto-exercise-code-cloze-container"[^>]*>/)[0];
     const metadata = html.match(/data-cloze-metadata="([^"]+)"/)[1];
 
-    for (const attr of ['reveal', 'lock', 'reset', 'feedback-correct', 'feedback-incorrect']) {
+    for (const attr of ['id', 'reveal', 'lock', 'reset', 'feedback-correct', 'feedback-incorrect']) {
       assert.match(stderrLog, new RegExp(`unsupported attribute '${attr}'`));
       assert.doesNotMatch(metadata, new RegExp(attr));
     }
+    assert.doesNotMatch(html, /dropped-code-id/);
     assert.doesNotMatch(containerTag, /data-(reveal|lock|reset|feedback-correct|feedback-incorrect)=/);
+  });
+
+  test('Code cloze unknown block attrs do not leak onto highlighted code', () => {
+    const qmdContent = `---
+title: "Code Cloze Unknown Attr"
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="r" foo="bar"}
+{{blank answer="sum"}}(x)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'code-cloze-unknown-attr.qmd'), qmdContent);
+    const result = renderQuarto('code-cloze-unknown-attr.qmd');
+    assert.match(result.stderr + result.stdout, /unsupported attribute 'foo'/);
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'code-cloze-unknown-attr.html'), 'utf8');
+    const sourceCode = html.match(/<div class="sourceCode"[\s\S]*?<\/pre><\/div>/)[0];
+    assert.doesNotMatch(sourceCode, /foo|bar|data-foo/);
+  });
+
+  test('Authored data-cloze-processed does not bypass code cloze processing', () => {
+    const qmdContent = `---
+title: "Authored Cloze Sentinel"
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="r" data-cloze-processed="true"}
+{{blank answer="sum"}}(x)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'authored-cloze-sentinel.qmd'), qmdContent);
+    const result = renderQuarto('authored-cloze-sentinel.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'authored-cloze-sentinel.html'), 'utf8');
+
+    assert.match(stderrLog, /unsupported attribute 'data-cloze-processed'/);
+    assert.match(html, /quarto-exercise-code-cloze-container/);
+    assert.match(html, /data-cloze-metadata=/);
+    assert.doesNotMatch(html, /\{\{blank/);
+    assert.doesNotMatch(html, /data-cloze-processed="true"/);
   });
 
   test('Lua JSON encoder escapes tabs and remaining control characters', () => {
@@ -1722,6 +1828,8 @@ Local explanation.
       '--ex-focus-ring': '0 0 0 2px rgba(138, 180, 248, 0.4)',
       '--ex-panel-border': '#9aa0a6'
     });
+    assert.match(css, /\.quarto-exercise-blank-reset-btn/);
+    assert.match(css, /\.quarto-exercise-choose-reset-btn/);
   });
 
   test('Light and dark visual smoke snapshots', async () => {
@@ -2030,6 +2138,56 @@ filters:
     }
   });
 
+  test('Authored data-exercise-parent on standalone inline controls warns and is ignored', () => {
+    const qmdContent = `---
+title: "Authored Internal Inline Attr"
+filters:
+  - quarto-exercises
+---
+
+Fake blank: [\`x\`]{.blank #fake-parent-blank answer="x" data-exercise-parent="fake"}.
+
+Fake choice: [yes|no]{.choose #fake-parent-choose answer="yes" data-exercise-parent="fake"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'authored-internal-inline.qmd'), qmdContent);
+    const result = renderQuarto('authored-internal-inline.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'authored-internal-inline.html'), 'utf8');
+
+    assert.match(stderrLog, /unsupported attribute 'data-exercise-parent'/);
+    assert.match(html, /id="fake-parent-blank"[\s\S]*quarto-exercise-blank-check-btn/);
+    assert.match(html, /id="fake-parent-choose"[\s\S]*quarto-exercise-choose-check-btn/);
+    assert.doesNotMatch(html, /data-parent-id="fake"/);
+  });
+
+  test('Grouped inline behavior attrs warn and do not render data attrs', () => {
+    const qmdContent = `---
+title: "Grouped Inline Behavior Attrs"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #grouped-inline-behavior}
+[blank]{.blank #grouped-behavior-blank answer="ok" instant=true reveal=true lock=true reset=false feedback-correct="Blank ok"}
+[choose]{.choose #grouped-behavior-choose answer="yes" options="yes|no" instant=true reveal=true lock=true reset=false feedback-incorrect="Choose no"}
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-inline-behavior.qmd'), qmdContent);
+    const result = renderQuarto('grouped-inline-behavior.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'grouped-inline-behavior.html'), 'utf8');
+    const blankTag = html.match(/<span class="quarto-exercise-blank-container"[^>]*id="grouped-behavior-blank"[^>]*>/)[0];
+    const chooseTag = html.match(/<span class="quarto-exercise-choose-container"[^>]*id="grouped-behavior-choose"[^>]*>/)[0];
+
+    for (const attr of ['instant', 'reveal', 'lock', 'reset']) {
+      assert.match(stderrLog, new RegExp(`unsupported grouped inline attribute '${attr}'`));
+      assert.doesNotMatch(blankTag, new RegExp(`data-${attr}=`));
+      assert.doesNotMatch(chooseTag, new RegExp(`data-${attr}=`));
+    }
+    assert.match(blankTag, /data-feedback-correct="Blank ok"/);
+    assert.match(chooseTag, /data-feedback-incorrect="Choose no"/);
+  });
+
   test('Standalone inline instant/reset options render matching controls', async () => {
     const playwright = require('playwright');
     const qmdContent = `---
@@ -2120,7 +2278,7 @@ filters:
 
 ::: {.exercise #answer-code-cloze}
 ::: {.answer key="a" correct=true}
-\`\`\`{.code-cloze lang="r"}
+\`\`\`{.code-cloze lang="r" instant=true reset=false feedback-correct="Yes" feedback-incorrect="No"}
 {{blank answer="sum"}}(x)
 \`\`\`
 :::
@@ -2136,6 +2294,8 @@ filters:
     assert.doesNotMatch(html, /data-cloze-metadata/);
     assert.doesNotMatch(html, /quarto-exercise-code-blank/);
     assert.doesNotMatch(html, /QEXCLOZEP/);
+    const answerContent = html.match(/<div id="answer-code-cloze-a-content" class="quarto-exercise-answer-content">[\s\S]*?<\/div>/)[0];
+    assert.doesNotMatch(answerContent, /instant|reset|feedback-correct|feedback-incorrect/);
   });
 
   test('Interactive controls inside answer blocks do not leak control attributes', () => {

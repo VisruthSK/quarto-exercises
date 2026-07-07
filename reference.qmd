@@ -223,6 +223,8 @@ The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" sh
 
 ## Shared Controls Exercise
 
+Inside an `.exercise`, inline `.blank` and `.choose` controls inherit behavior from the parent exercise. Put `instant`, `reveal`, `lock`, and `reset` on the `.exercise`; individual controls should only describe their own answer check and feedback text.
+
 ```markdown
 ::: {.exercise}
 The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
@@ -280,6 +282,8 @@ fellowship = {
 This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
 :::
 :::
+
+Unsupported attributes warn during render in both HTML and non-HTML output.
 ````
 
 ::: {.exercise explanation="after-check"}
