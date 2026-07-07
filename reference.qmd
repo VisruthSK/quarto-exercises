@@ -255,7 +255,7 @@ total <- {{blank answer="sum"}}(x)
 
 Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
 
-For grouped code cloze, put behavior options such as `instant`, `reset`, `reveal`, `lock`, and feedback text on the `.exercise`. The `{{blank ...}}` and `{{choose ...}}` markers should only describe the answer check itself: answers, matching, casing, whitespace handling, options, and shuffle.
+In a grouped code cloze, the parent `.exercise` controls `reset`, `reveal`, `lock`, and feedback text. The code block and its markers can use `instant` and answer-checking attributes such as answers, matching, casing, whitespace handling, options, and shuffle.
 
 ````markdown
 ::: {.exercise explanation="after-check"}

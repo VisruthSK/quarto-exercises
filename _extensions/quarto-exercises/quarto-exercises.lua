@@ -71,14 +71,16 @@ local code_cloze_blank_attrs = {
   match = true,
   ["ignore-case"] = true,
   trim = true,
-  ["collapse-space"] = true
+  ["collapse-space"] = true,
+  instant = true
 }
 
 local code_cloze_choose_attrs = {
   answer = true,
   options = true,
   ["ignore-case"] = true,
-  shuffle = true
+  shuffle = true,
+  instant = true
 }
 
 local answer_attrs = {
@@ -97,6 +99,16 @@ local code_cloze_attrs = {
   ["feedback-correct"] = true,
   ["feedback-incorrect"] = true,
   ["ignore-case"] = true
+}
+
+local grouped_code_cloze_attrs = {
+  id = true,
+  class = true,
+  lang = true,
+  instant = true,
+  ["ignore-case"] = true,
+  ["data-exercise-parent"] = true,
+  ["data-cloze-processed"] = true
 }
 
 local bool_attrs = {
@@ -357,6 +369,16 @@ local function join_values(values, delimiter)
   return table.concat(escaped, delimiter)
 end
 
+local function keep_attrs(actual, valid)
+  local kept = {}
+  for key, value in pairs(actual) do
+    if valid[key] then
+      kept[key] = value
+    end
+  end
+  return kept
+end
+
 local function has_inline_interaction(blocks)
   local found = false
   for _, block in ipairs(blocks) do
@@ -408,6 +430,18 @@ local function split_answer(block, id)
   return content, feedback
 end
 
+local function static_cloze_text(text)
+  local static_text = text
+  while true do
+    local start_pos = string.find(static_text, "{{", 1, true)
+    if not start_pos then break end
+    local end_pos = string.find(static_text, "}}", start_pos, true)
+    if not end_pos then break end
+    static_text = string.sub(static_text, 1, start_pos - 1) .. "________" .. string.sub(static_text, end_pos + 2)
+  end
+  return static_text
+end
+
 local function check_and_strip_interactive_in_answer(answer_block, id)
   return answer_block:walk({
     Div = function(div)
@@ -457,6 +491,7 @@ local function check_and_strip_interactive_in_answer(answer_block, id)
     CodeBlock = function(code)
       if code.classes:includes("code-cloze") then
         warn(id, "interactive control .code-cloze is not allowed inside .answer blocks")
+        code.text = static_cloze_text(code.text)
         local classes = code.classes
         for i, c in ipairs(classes) do
           if c == "code-cloze" then
@@ -488,7 +523,7 @@ local function parse_exercise(el, id)
       check_bool(block.attributes, "correct", id)
       local correct_value = normalize_bool(block.attributes.correct)
       local correct = is_bool(correct_value) and correct_value == "true"
-      local key = block.attributes.key
+      local answer_key = block.attributes.key
 
       if correct then
         parsed.correct_count = parsed.correct_count + 1
@@ -497,7 +532,7 @@ local function parse_exercise(el, id)
       local content, feedback = split_answer(block, id)
       parsed.answers[#parsed.answers + 1] = {
         correct = correct,
-        key = key,
+        key = answer_key,
         content = content,
         feedback = feedback
       }
@@ -660,27 +695,12 @@ local function render_static_exercise(data)
     local items = {}
     for index, answer in ipairs(data.answers) do
       local item = pandoc.List()
-      local prefix = alpha_key(index) .. ". "
-      local first = answer.content[1]
-
-      if first and (first.t == "Para" or first.t == "Plain") then
-        local inlines = pandoc.List({ pandoc.Str(prefix) })
-        for _, inline in ipairs(first.content) do
-          inlines:insert(inline)
-        end
-        item:insert(pandoc.Para(inlines))
-        for i = 2, #answer.content do
-          item:insert(answer.content[i])
-        end
-      else
-        item:insert(pandoc.Para({ pandoc.Str(prefix) }))
-        for _, block in ipairs(answer.content) do
-          item:insert(block)
-        end
+      for _, block in ipairs(answer.content) do
+        item:insert(block)
       end
       items[#items + 1] = item
     end
-    output:insert(pandoc.BulletList(items))
+    output:insert(pandoc.OrderedList(items, pandoc.ListAttributes(1, "UpperAlpha", "Period")))
   end
 
   if options["show-answers"] then
@@ -719,7 +739,18 @@ end
 
 local function json_encode(val)
   if type(val) == "string" then
-    return '"' .. val:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r') .. '"'
+    local escaped = val
+      :gsub('\\', '\\\\')
+      :gsub('"', '\\"')
+      :gsub('\b', '\\b')
+      :gsub('\f', '\\f')
+      :gsub('\n', '\\n')
+      :gsub('\r', '\\r')
+      :gsub('\t', '\\t')
+      :gsub("[%z\1-\31]", function(char)
+        return string.format("\\u%04x", string.byte(char))
+      end)
+    return '"' .. escaped .. '"'
   elseif type(val) == "boolean" then
     return tostring(val)
   elseif type(val) == "table" then
@@ -835,6 +866,7 @@ local function process_code_cloze(el, parent_id)
           attrs[k] = normalize_bool(v)
         end
       end
+      attrs = keep_attrs(attrs, control_type == "blank" and code_cloze_blank_attrs or code_cloze_choose_attrs)
       if attrs["ignore-case"] == nil then
         attrs["ignore-case"] = block_ignore_case
       end
@@ -860,14 +892,7 @@ local function process_code_cloze(el, parent_id)
     end
   end
 
-  while true do
-    local start_pos = string.find(static_text, "{{", 1, true)
-    if not start_pos then break end
-    local end_pos = string.find(static_text, "}}", start_pos, true)
-    if not end_pos then break end
-
-    static_text = string.sub(static_text, 1, start_pos - 1) .. "________" .. string.sub(static_text, end_pos + 2)
-  end
+  static_text = static_cloze_text(static_text)
 
   if not html() then
     local lang = el.attributes["lang"] or ""
@@ -876,7 +901,7 @@ local function process_code_cloze(el, parent_id)
       classes:insert(lang)
     end
     classes:insert("quarto-exercise-code-cloze-code")
-    local attr = pandoc.Attr(el.identifier, classes, { ["data-cloze-processed"] = "true" })
+    local attr = pandoc.Attr(el.identifier, classes, {})
     local new_code = pandoc.CodeBlock(static_text, attr)
     if options["show-answers"] and #static_answers > 0 then
       local ans_list = {}
@@ -928,34 +953,30 @@ local function process_code_cloze(el, parent_id)
   if parent_id == nil then
     check_attrs(block_attrs, code_cloze_attrs, id)
     check_bools(block_attrs, id)
+  else
+    check_attrs(block_attrs, grouped_code_cloze_attrs, id)
+    check_bools(block_attrs, id)
   end
 
   local container_attrs = {
     class = table.concat(classes, " "),
     ["data-cloze-metadata"] = meta_json,
     ["data-cloze-static-text"] = static_text,
-    ["data-ignore-case"] = block_ignore_case
+    ["data-ignore-case"] = block_ignore_case,
+    ["data-instant"] = normalize_bool(block_attrs.instant)
   }
 
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
-    if normalize_bool(block_attrs.instant) ~= nil
-        or normalize_bool(block_attrs.reset) ~= nil
-        or normalize_bool(block_attrs.reveal) ~= nil
-        or normalize_bool(block_attrs.lock) ~= nil
-        or block_attrs["feedback-correct"] ~= nil
-        or block_attrs["feedback-incorrect"] ~= nil then
-      warn(id, ".code-cloze block-level behavior attributes are ignored inside .exercise; set them on the parent .exercise")
-    end
   else
     container_attrs["id"] = id
     container_attrs["data-id"] = id
-    container_attrs["data-instant"] = normalize_bool(block_attrs.instant) or tostring(options.instant)
+    container_attrs["data-instant"] = container_attrs["data-instant"] or tostring(options.instant)
     container_attrs["data-reveal"] = normalize_bool(block_attrs.reveal) or tostring(options.reveal)
     container_attrs["data-lock"] = normalize_bool(block_attrs.lock) or tostring(options.lock)
     container_attrs["data-reset"] = normalize_bool(block_attrs.reset) or tostring(options.reset)
-    container_attrs["data-feedback-correct"] = string_option(block_attrs, "feedback-correct")
-    container_attrs["data-feedback-incorrect"] = string_option(block_attrs, "feedback-incorrect")
+    container_attrs["data-feedback-correct"] = block_attrs["feedback-correct"] or options["feedback-correct"]
+    container_attrs["data-feedback-incorrect"] = block_attrs["feedback-incorrect"] or options["feedback-incorrect"]
   end
 
   el.identifier = ""
@@ -1158,6 +1179,12 @@ function Div(el)
   local id = id_for(el, "ex")
   check_attrs(el.attributes, exercise_attrs, id)
   check_bools(el.attributes, id)
+
+  for index, block in ipairs(el.content) do
+    if block.t == "Div" and block.classes:includes("answer") then
+      el.content[index] = check_and_strip_interactive_in_answer(block, id)
+    end
+  end
 
   local has_code_cloze = false
   el = el:walk({

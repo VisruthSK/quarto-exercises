@@ -230,6 +230,14 @@ class Control {
     this.container = container;
   }
 
+  get exercise() {
+    return this.container.closest(".quarto-exercise");
+  }
+
+  get parentLockActive() {
+    return Boolean(this.exercise && bool(this.exercise.dataset.lock));
+  }
+
   get answers() {
     return dataValue(this.el, this.container, "answers");
   }
@@ -243,7 +251,7 @@ class Control {
   }
 
   get ignoreCase() {
-    return dataValue(this.el, this.container, "ignoreCase", "false") === "true";
+    return dataValue(this.el, this.container, "ignoreCase", this.exercise?.dataset.ignoreCase || "false") === "true";
   }
 
   get trim() {
@@ -255,7 +263,7 @@ class Control {
   }
 
   get lock() {
-    return dataValue(this.el, this.container, "lock");
+    return dataValue(this.el, this.container, "lock", this.exercise?.dataset.lock || "");
   }
 
   verify(reveal = false) {
@@ -318,7 +326,7 @@ class Control {
   }
 
   lockControl() {
-    if (this.lock === "false") return;
+    if (!this.parentLockActive && this.lock === "false") return;
     this.el.disabled = true;
     if (this.type === "blank") {
       if (this.el._codeBlankCorrectSpan) {
@@ -811,6 +819,12 @@ function replaceTokenWithElement(code, token, el) {
   parent.insertBefore(beforeNode, el);
 }
 
+function behaviorValue(attrs, container, name, fallback = "") {
+  if (attrs && attrs[name] !== undefined && attrs[name] !== "") return attrs[name];
+  const datasetName = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  return dataValue(null, container, datasetName, fallback);
+}
+
 function initCodeCloze(container, onCheck, { instant = false } = {}) {
   if (container.dataset.initialized) return;
   container.dataset.initialized = "true";
@@ -820,9 +834,11 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
 
   const metadata = parseClozeMetadata(container);
   const controls = [];
+  const blockInstant = bool(container.dataset.instant, instant);
 
   for (const [token, info] of Object.entries(metadata)) {
     const attrs = info.attrs || {};
+    const controlInstant = behaviorValue(attrs, container, "instant", blockInstant ? "true" : "false") === "true";
     if (info.type === "blank") {
       const blankSpan = document.createElement("span");
       blankSpan.className = "quarto-exercise-code-blank-container";
@@ -833,12 +849,12 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
       input.setAttribute("aria-label", "Fill in the blank");
       input.dataset.answers = attrs.answer || attrs.answers || "";
       input.dataset.match = attrs.match || "exact";
-      input.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : dataValue(null, container, "ignoreCase", "false");
+      input.dataset.ignoreCase = behaviorValue(attrs, container, "ignore-case", "false");
       input.dataset.trim = attrs.trim || "true";
       input.dataset.collapseSpace = attrs["collapse-space"] || "false";
       input.addEventListener("input", () => {
         adjustCodeBlankWidthToText(input);
-        if (instant && onCheck) onCheck();
+        if (controlInstant && onCheck) onCheck();
       });
       input.addEventListener("blur", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
@@ -862,10 +878,10 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
         select.appendChild(new Option(opt, opt));
       });
       select.dataset.answer = attrs.answer || "";
-      select.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : dataValue(null, container, "ignoreCase", "false");
+      select.dataset.ignoreCase = behaviorValue(attrs, container, "ignore-case", "false");
       select.addEventListener("change", () => {
         adjustSelectWidth(select);
-        if (instant && onCheck) onCheck();
+        if (controlInstant && onCheck) onCheck();
       });
       select.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
       adjustSelectWidth(select);

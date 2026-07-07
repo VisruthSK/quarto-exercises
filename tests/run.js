@@ -832,7 +832,7 @@ No answer blocks.
     assert.match(stderrLog, /choose block with no answer/);
   });
 
-  test('Non-HTML fallback rendering', (t) => {
+  test('Non-HTML fallback rendering uses semantic ordered choices', (t) => {
     const qmdContent = `---
 title: "Fallback Test"
 filters:
@@ -861,9 +861,9 @@ The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
     const mdPath = path.join(TEMP_DIR, 'fallback.md');
     const md = fs.readFileSync(mdPath, 'utf8');
 
-    // Should render list letters and answer keys
-    assert.match(md, /A\.\s+Frodo/);
-    assert.match(md, /B\.\s+Legolas/);
+    assert.match(md, /^[A-Z]\.\s+Frodo/m);
+    assert.match(md, /^[A-Z]\.\s+Legolas/m);
+    assert.doesNotMatch(md, /^\s*-\s+A\.\s+Frodo/m);
     assert.match(md, /Answer:\s+A/);
     assert.match(md, /Gandalf/);
     assert.doesNotMatch(md, /<div>/);
@@ -892,6 +892,118 @@ total <- {{blank answer="sum"}}(x)
     assert.match(md, /Answer:\s*1\. c,\s*2\. sum/);
     assert.doesNotMatch(md, /\{\{choose/);
     assert.doesNotMatch(md, /\{\{blank/);
+    assert.doesNotMatch(md, /data-cloze-processed/);
+  });
+
+  test('Non-HTML answer blocks strip code cloze without leaking answers or tokens', () => {
+    const qmdContent = `---
+title: "Answer Code Cloze Fallback"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  show-answers: true
+---
+
+::: {.exercise}
+::: {.answer correct=true}
+\`\`\`{.code-cloze lang="r"}
+{{blank answer="sum"}}(x)
+\`\`\`
+:::
+
+::: {.answer}
+Other
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'answer-code-cloze-fallback.qmd'), qmdContent);
+    const result = renderQuarto('answer-code-cloze-fallback.qmd', 'markdown');
+    const stderrLog = result.stderr + result.stdout;
+    const md = fs.readFileSync(path.join(TEMP_DIR, 'answer-code-cloze-fallback.md'), 'utf8');
+
+    assert.match(stderrLog, /interactive control .code-cloze is not allowed inside .answer blocks/);
+    assert.match(md, /________\(x\)/);
+    assert.doesNotMatch(md, /sum\(x\)/);
+    assert.doesNotMatch(md, /QEXCLOZEP/);
+    assert.doesNotMatch(md, /data-cloze-processed/);
+    assert.doesNotMatch(md, /\{\{blank/);
+    assert.match(md, /Answer:\s+A/);
+  });
+
+  test('Grouped code cloze strips unsupported behavior attrs from block and marker metadata', () => {
+    const qmdContent = `---
+title: "Grouped Attr Sanitizing"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #grouped-sanitize}
+\`\`\`{.code-cloze lang="r" reveal=true lock=true reset=false feedback-correct="Block yes" feedback-incorrect="Block no"}
+{{blank answer="sum" reveal=true lock=true reset=false feedback-correct="Marker yes"}}(x)
+{{choose answer="TRUE" options="TRUE|FALSE" reveal=true lock=true reset=false feedback-incorrect="Marker no"}}
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-attr-sanitizing.qmd'), qmdContent);
+    const result = renderQuarto('grouped-attr-sanitizing.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'grouped-attr-sanitizing.html'), 'utf8');
+    const containerTag = html.match(/<div class="quarto-exercise-code-cloze-container"[^>]*>/)[0];
+    const metadata = html.match(/data-cloze-metadata="([^"]+)"/)[1];
+
+    for (const attr of ['reveal', 'lock', 'reset', 'feedback-correct', 'feedback-incorrect']) {
+      assert.match(stderrLog, new RegExp(`unsupported attribute '${attr}'`));
+      assert.doesNotMatch(metadata, new RegExp(attr));
+    }
+    assert.doesNotMatch(containerTag, /data-(reveal|lock|reset|feedback-correct|feedback-incorrect)=/);
+  });
+
+  test('Lua JSON encoder escapes tabs and remaining control characters', () => {
+    const lua = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.lua'), 'utf8');
+    assert.match(lua, /:gsub\('\\t', '\\\\t'\)/);
+    assert.match(lua, /:gsub\("\[%z\\1-\\31\]"/);
+    assert.match(lua, /string\.format\("\\\\u%04x", string\.byte\(char\)\)/);
+  });
+
+  test('DOCX, Typst, and PDF non-HTML smoke renders stay usable', (t) => {
+    const qmdContent = `---
+title: "Non HTML Smoke"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  show-answers: true
+---
+
+::: {.exercise}
+Pick one.
+
+::: {.answer correct=true}
+Frodo
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+
+\`\`\`{.code-cloze lang="r"}
+total <- {{blank answer="sum"}}(x)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'non-html-smoke.qmd'), qmdContent);
+
+    for (const format of ['docx', 'typst', 'pdf']) {
+      const result = runQuarto('non-html-smoke.qmd', format);
+      if (!result.success && format === 'pdf') {
+        t.skip(`PDF render unavailable in this environment: ${result.stderr || result.stdout}`);
+        continue;
+      }
+      assert.strictEqual(result.success, true, result.stderr || result.stdout);
+      const ext = format === 'typst' || format === 'pdf' ? 'pdf' : 'docx';
+      const output = path.join(TEMP_DIR, `non-html-smoke.${ext}`);
+      assert.ok(fs.existsSync(output), `${format} output should exist`);
+      assert.ok(fs.statSync(output).size > 1000, `${format} output should not be empty`);
+    }
   });
 
   test('Boolean attributes accept uppercase TRUE', (t) => {
@@ -2089,23 +2201,44 @@ filters:
     assert.doesNotMatch(sourceCode, /data-(instant|reset|feedback-correct|feedback-incorrect|ignore-case|cloze-metadata)=/);
   });
 
-  test('Grouped code cloze warns for ignored block-level behavior attrs', () => {
+  test('Grouped code cloze inherits exercise behavior and allows local instant override', async () => {
+    const playwright = require('playwright');
     const qmdContent = `---
-title: "Grouped Code Attr Warning"
+title: "Grouped Code Attr Inheritance"
 filters:
   - quarto-exercises
 ---
 
-::: {.exercise #grouped-code-attrs}
-\`\`\`{.code-cloze lang="r" instant=true reset=false feedback-correct="Yes" lock=true reveal=true}
-{{blank answer="sum"}}(x)
+::: {.exercise #grouped-code-attrs instant=false lock=true reveal=false}
+\`\`\`{.code-cloze lang="r" instant=true}
+{{blank answer="sum"}}(x, {{choose answer="TRUE" options="TRUE|FALSE" instant=false}})
 \`\`\`
 :::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'grouped-code-attrs.qmd'), qmdContent);
     const result = renderQuarto('grouped-code-attrs.qmd');
     const stderrLog = result.stderr + result.stdout;
-    assert.match(stderrLog, /block-level behavior attributes are ignored inside .exercise/);
+    assert.doesNotMatch(stderrLog, /block-level behavior attributes are ignored inside .exercise/);
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'grouped-code-attrs.html')}`, { waitUntil: 'load' });
+
+      await page.fill('#grouped-code-attrs .quarto-exercise-code-blank', 'sum');
+      assert.strictEqual(await page.locator('#grouped-code-attrs .quarto-exercise-status').textContent(), 'Not quite.');
+
+      await page.selectOption('#grouped-code-attrs .quarto-exercise-code-choose', 'TRUE');
+      assert.strictEqual(await page.locator('#grouped-code-attrs .quarto-exercise-status').textContent(), 'Not quite.');
+
+      await page.click('#grouped-code-attrs .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#grouped-code-attrs .quarto-exercise-status').textContent(), 'Correct!');
+      assert.strictEqual(await page.locator('#grouped-code-attrs .quarto-exercise-code-blank').isDisabled(), true);
+      assert.strictEqual(await page.locator('#grouped-code-attrs .quarto-exercise-code-choose').count(), 0);
+      assert.strictEqual(await page.locator('#grouped-code-attrs .quarto-exercise-code-choose-correct').textContent(), 'TRUE');
+    } finally {
+      await browser.close();
+    }
   });
 
   test('Invalid and duplicate answer keys do not render unsafe or duplicate ids', () => {
