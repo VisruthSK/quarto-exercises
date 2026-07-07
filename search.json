@@ -53,21 +53,21 @@
     "href": "example.html",
     "title": "Quarto Exercises Extension Example",
     "section": "",
-    "text": "Who carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\n\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\n\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\n\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
+    "text": "See the extension in action. If you want to learn more about how to write the questions, read the reference page."
   },
   {
     "objectID": "example.html#multiple-choice-multiple-answer",
     "href": "example.html#multiple-choice-multiple-answer",
     "title": "Quarto Exercises Extension Example",
-    "section": "",
-    "text": "Who carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\n\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\n\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\n\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
+    "section": "Multiple Choice / Multiple Answer",
+    "text": "Multiple Choice / Multiple Answer\n\nMinimal Single-Choice\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\nMultiple-Correct with Custom Keys & Shuffling\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\nPer-Answer Feedback & Question Explanation\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\nCode Blocks in Choices\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
   },
   {
     "objectID": "example.html#fill-in-the-blank",
     "href": "example.html#fill-in-the-blank",
     "title": "Quarto Exercises Extension Example",
     "section": "Fill-in-the-blank",
-    "text": "Fill-in-the-blank\n\nBasic Blank\nThe wizard who guides the Fellowship is Check.\n\n\nMultiple Accepted Answers (Case-insensitive)\nThe Ringbearer is Check.\n\n\nEscaped Pipe in Answers\nAnswer with the literal token Check.\n\n\nRegex Matching\nThe full title of the first volume of Lord of the Rings is Check."
+    "text": "Fill-in-the-blank\n\nBasic Blank\nThe wizard who guides the Fellowship is Check.\n\n\nMultiple Accepted Answers (Case-insensitive)\nThe Ringbearer is Check.\n\n\nRegex Matching\nThe full title of the first volume of Lord of the Rings is Check."
   },
   {
     "objectID": "example.html#inline-choice-dropdown-cloze",
