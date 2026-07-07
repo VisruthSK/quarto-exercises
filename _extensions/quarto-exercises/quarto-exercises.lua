@@ -838,7 +838,7 @@ function Meta(meta)
   if quarto and quarto.doc and quarto.doc.add_html_dependency and html() then
     quarto.doc.add_html_dependency({
       name = "quarto-exercises",
-      version = "1.0.0",
+      version = "0.1.0",
       stylesheets = { "quarto-exercises.css" },
       scripts = { "quarto-exercises.js" }
     })
