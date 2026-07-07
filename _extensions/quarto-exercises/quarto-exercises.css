@@ -546,3 +546,18 @@ body.quarto-dark .quarto-exercise-explanation {
   color: var(--ex-incorrect);
 }
 
+.quarto-exercise-code-blank-correct-text,
+.quarto-exercise-code-choose-correct {
+  color: var(--ex-correct);
+  font-weight: 700;
+  font-size: inherit;
+}
+
+.quarto-exercise-code-blank-correct-text {
+  font-family: inherit;
+  margin-left: 0.3em;
+}
+
+.quarto-exercise-code-choose-correct {
+  font-family: var(--bs-font-monospace, monospace);
+}

@@ -45,7 +45,8 @@ local blank_attrs = {
   instant = true,
   reveal = true,
   lock = true,
-  reset = true
+  reset = true,
+  ["data-exercise-parent"] = true
 }
 
 local choose_attrs = {
@@ -60,7 +61,24 @@ local choose_attrs = {
   instant = true,
   reveal = true,
   lock = true,
-  reset = true
+  reset = true,
+  ["data-exercise-parent"] = true
+}
+
+local code_cloze_blank_attrs = {
+  answer = true,
+  answers = true,
+  match = true,
+  ["ignore-case"] = true,
+  trim = true,
+  ["collapse-space"] = true
+}
+
+local code_cloze_choose_attrs = {
+  answer = true,
+  options = true,
+  ["ignore-case"] = true,
+  shuffle = true
 }
 
 local answer_attrs = {
@@ -263,6 +281,22 @@ local function string_option(actual, name)
   return actual[name] or options[name]
 end
 
+local function bool_string(actual, name, fallback)
+  local value = normalize_bool(actual[name])
+  if value ~= nil then
+    return value
+  end
+  return tostring(fallback)
+end
+
+local function inherited_bool(actual, name)
+  local value = normalize_bool(actual[name])
+  if value ~= nil then
+    return value == "true"
+  end
+  return options[name] == true or normalize_bool(options[name]) == "true"
+end
+
 local function attr_or_empty(actual, name)
   return actual[name] or ""
 end
@@ -376,6 +410,20 @@ end
 
 local function check_and_strip_interactive_in_answer(answer_block, id)
   return answer_block:walk({
+    Div = function(div)
+      if div.classes:includes("quarto-exercise-code-cloze-container") then
+        warn(id, "interactive control .code-cloze is not allowed inside .answer blocks")
+        local code = div.content and div.content[1]
+        if code and code.t == "CodeBlock" then
+          code.text = div.attributes["data-cloze-static-text"] or code.text
+          code.attributes["data-cloze-metadata"] = nil
+          code.attributes["data-cloze-processed"] = nil
+          code.attributes["data-cloze-static-text"] = nil
+          return code
+        end
+        return pandoc.Div(div.content)
+      end
+    end,
     Span = function(span)
       if span.classes:includes("blank") or span.classes:includes("choose") then
         local ctrl_type = span.classes:includes("blank") and "blank" or "choose"
@@ -388,6 +436,21 @@ local function check_and_strip_interactive_in_answer(answer_block, id)
           end
         end
         span.classes = classes
+        span.attributes.answer = nil
+        span.attributes.answers = nil
+        span.attributes.options = nil
+        span.attributes.match = nil
+        span.attributes["ignore-case"] = nil
+        span.attributes.trim = nil
+        span.attributes["collapse-space"] = nil
+        span.attributes.shuffle = nil
+        span.attributes.instant = nil
+        span.attributes.reveal = nil
+        span.attributes.lock = nil
+        span.attributes.reset = nil
+        span.attributes["feedback-correct"] = nil
+        span.attributes["feedback-incorrect"] = nil
+        span.attributes["data-exercise-parent"] = nil
         return span
       end
     end,
@@ -402,6 +465,7 @@ local function check_and_strip_interactive_in_answer(answer_block, id)
           end
         end
         code.classes = classes
+        code.attributes["data-exercise-parent"] = nil
         return code
       end
     end
@@ -452,11 +516,12 @@ local function parse_exercise(el, id)
     end
   end
 
-  -- Validate manual keys pattern
-  for _, answer in ipairs(parsed.answers) do
+  -- Validate manual keys pattern and discard unsafe keys before HTML ids are built.
+  for index, answer in ipairs(parsed.answers) do
     if answer.key and answer.key ~= "" then
       if not string.match(answer.key, "^[A-Za-z][A-Za-z0-9_-]*$") then
         warn(id, "invalid answer key '" .. answer.key .. "' (must match ^[A-Za-z][A-Za-z0-9_-]*$)")
+        answer.key = nil
       end
     end
   end
@@ -470,9 +535,13 @@ local function parse_exercise(el, id)
 
   -- Check final uniqueness
   local final_keys = {}
-  for _, answer in ipairs(parsed.answers) do
+  for index, answer in ipairs(parsed.answers) do
     if final_keys[answer.key] then
       warn(id, "duplicate answer key '" .. answer.key .. "'")
+      answer.key = string.lower(alpha_key(index))
+      while final_keys[answer.key] do
+        answer.key = answer.key .. "-" .. tostring(index)
+      end
     end
     final_keys[answer.key] = true
   end
@@ -683,6 +752,7 @@ end
 
 local function process_code_cloze(el, parent_id)
   local text = el.text
+  local block_ignore_case = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])
   local metadata = {}
   local static_answers = {}
   local count = 0
@@ -707,7 +777,7 @@ local function process_code_cloze(el, parent_id)
       local attrs_str = string.match(content, "^%s*%a+%s*(.-)%s*$")
       local attrs = parse_attributes(attrs_str)
       if control_type == "blank" then
-        check_attrs(attrs, blank_attrs, id)
+        check_attrs(attrs, code_cloze_blank_attrs, id)
         check_bools(attrs, id)
         if not attrs.answer and not attrs.answers then
           warn(id, "blank with no answer")
@@ -717,7 +787,7 @@ local function process_code_cloze(el, parent_id)
           warn(id, "unsupported blank matching mode '" .. match .. "'")
         end
       elseif control_type == "choose" then
-        check_attrs(attrs, choose_attrs, id)
+        check_attrs(attrs, code_cloze_choose_attrs, id)
         check_bools(attrs, id)
         if not attrs.answer then
           warn(id, "choose with no answer")
@@ -728,7 +798,7 @@ local function process_code_cloze(el, parent_id)
         local answer = attrs.answer or ""
         local options_str = attrs.options or ""
         local values = split_values(options_str, "|")
-        local ignore_case = normalize_bool(attrs["ignore-case"]) == "true"
+        local ignore_case = normalize_bool(attrs["ignore-case"]) == "true" or (attrs["ignore-case"] == nil and block_ignore_case == "true")
         local found = answer == ""
         for _, value in ipairs(values) do
           if ignore_case and string.lower(value) == string.lower(answer) or value == answer then
@@ -760,6 +830,21 @@ local function process_code_cloze(el, parent_id)
       count = count + 1
       local token = make_token(html_text, count)
       local attrs = parse_attributes(attrs_str)
+      for k, v in pairs(attrs) do
+        if bool_attrs[k] then
+          attrs[k] = normalize_bool(v)
+        end
+      end
+      if attrs["ignore-case"] == nil then
+        attrs["ignore-case"] = block_ignore_case
+      end
+      if control_type == "blank" then
+        attrs.match = attrs.match or "exact"
+        attrs.trim = bool_string(attrs, "trim", true)
+        attrs["collapse-space"] = bool_string(attrs, "collapse-space", false)
+      elseif control_type == "choose" then
+        attrs.shuffle = bool_string(attrs, "shuffle", options.shuffle)
+      end
 
       metadata[token] = {
         type = control_type,
@@ -811,6 +896,10 @@ local function process_code_cloze(el, parent_id)
   -- syntax-highlights the block. The lang= attribute is NOT how Pandoc
   -- selects a highlighter — the first matching class is.
   local lang = el.attributes["lang"] or ""
+  local block_attrs = {}
+  for key, value in pairs(el.attributes) do
+    block_attrs[key] = value
+  end
   local original_classes = {}
   for _, c in ipairs(el.classes) do
     original_classes[#original_classes + 1] = c
@@ -837,36 +926,59 @@ local function process_code_cloze(el, parent_id)
   end
 
   if parent_id == nil then
-    check_attrs(el.attributes, code_cloze_attrs, id)
-    check_bools(el.attributes, id)
+    check_attrs(block_attrs, code_cloze_attrs, id)
+    check_bools(block_attrs, id)
   end
 
   local container_attrs = {
     class = table.concat(classes, " "),
     ["data-cloze-metadata"] = meta_json,
-    ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])
+    ["data-cloze-static-text"] = static_text,
+    ["data-ignore-case"] = block_ignore_case
   }
 
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
+    if normalize_bool(block_attrs.instant) ~= nil
+        or normalize_bool(block_attrs.reset) ~= nil
+        or normalize_bool(block_attrs.reveal) ~= nil
+        or normalize_bool(block_attrs.lock) ~= nil
+        or block_attrs["feedback-correct"] ~= nil
+        or block_attrs["feedback-incorrect"] ~= nil then
+      warn(id, ".code-cloze block-level behavior attributes are ignored inside .exercise; set them on the parent .exercise")
+    end
   else
     container_attrs["id"] = id
     container_attrs["data-id"] = id
-    container_attrs["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant)
-    container_attrs["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal)
-    container_attrs["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock)
-    container_attrs["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
-    container_attrs["data-feedback-correct"] = string_option(el.attributes, "feedback-correct")
-    container_attrs["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+    container_attrs["data-instant"] = normalize_bool(block_attrs.instant) or tostring(options.instant)
+    container_attrs["data-reveal"] = normalize_bool(block_attrs.reveal) or tostring(options.reveal)
+    container_attrs["data-lock"] = normalize_bool(block_attrs.lock) or tostring(options.lock)
+    container_attrs["data-reset"] = normalize_bool(block_attrs.reset) or tostring(options.reset)
+    container_attrs["data-feedback-correct"] = string_option(block_attrs, "feedback-correct")
+    container_attrs["data-feedback-incorrect"] = string_option(block_attrs, "feedback-incorrect")
   end
+
+  el.identifier = ""
+  for key in pairs(code_cloze_attrs) do
+    if key ~= "class" then
+      el.attributes[key] = nil
+    end
+  end
+  el.attributes["data-exercise-parent"] = nil
 
   local container = pandoc.Div({ el }, container_attrs)
 
   if parent_id == nil then
+    local instant_val = normalize_bool(block_attrs.instant) or tostring(options.instant)
+    local reset_val = normalize_bool(block_attrs.reset) or tostring(options.reset)
+
+    local check_btn = (instant_val ~= "true") and '<button type="button" class="quarto-exercise-check-btn">Check</button>' or ''
+    local reset_btn = (reset_val == "true") and '<button type="button" class="quarto-exercise-reset-btn">Reset</button>' or ''
+
     local actions = pandoc.RawBlock("html",
       '<div class="quarto-exercise-actions">' ..
-      '<button type="button" class="quarto-exercise-check-btn">Check</button>' ..
-      '<button type="button" class="quarto-exercise-reset-btn">Reset</button>' ..
+      check_btn ..
+      reset_btn ..
       '<span class="quarto-exercise-status" aria-live="polite"></span>' ..
       '</div>'
     )
@@ -879,6 +991,7 @@ end
 local function render_blank(el, id)
   check_attrs(el.attributes, blank_attrs, id)
   check_bools(el.attributes, id)
+  local parent_id = el.attributes["data-exercise-parent"]
 
   local match = el.attributes.match or "exact"
   if match ~= "exact" and match ~= "one-of" and match ~= "regex" then
@@ -911,24 +1024,34 @@ local function render_blank(el, id)
     ["data-answers"] = answer,
     ["data-match"] = match,
     ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"]),
-    ["data-trim"] = el.attributes.trim or "true",
-    ["data-collapse-space"] = el.attributes["collapse-space"] or "false",
+    ["data-trim"] = bool_string(el.attributes, "trim", true),
+    ["data-collapse-space"] = bool_string(el.attributes, "collapse-space", false),
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
     ["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant),
     ["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal),
-    ["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock),
     ["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
   }
+  if parent_id then
+    container_attrs["data-parent-id"] = parent_id
+  else
+    container_attrs["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock)
+  end
   if el.identifier and el.identifier ~= "" then
     container_attrs.id = el.identifier
   end
+
+  local check_btn = (not parent_id and bool_string(el.attributes, "instant", options.instant) ~= "true")
+      and '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>' or ''
+  local reset_btn = (not parent_id and bool_string(el.attributes, "reset", options.reset) == "true")
+      and '<button type="button" class="quarto-exercise-blank-reset-btn">Reset</button>' or ''
 
   return pandoc.RawInline("html",
     raw_inline("span", container_attrs) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..
-    '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>' ..
+    check_btn ..
+    reset_btn ..
     '<span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>'
   )
 end
@@ -936,6 +1059,7 @@ end
 local function render_choose(el, id)
   check_attrs(el.attributes, choose_attrs, id)
   check_bools(el.attributes, id)
+  local parent_id = el.attributes["data-exercise-parent"]
 
   local answer = el.attributes.answer or ""
   if answer == "" then
@@ -947,7 +1071,7 @@ local function render_choose(el, id)
     warn(id, "choose block with no parseable options")
   end
 
-  local ignore_case = normalize_bool(el.attributes["ignore-case"]) == "true"
+  local ignore_case = inherited_bool(el.attributes, "ignore-case")
   local found = answer == ""
   for _, value in ipairs(values) do
     if ignore_case and string.lower(value) == string.lower(answer) or value == answer then
@@ -975,23 +1099,33 @@ local function render_choose(el, id)
     ["data-answer"] = answer,
     ["data-options"] = join_values(values, "|"),
     ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
-    ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false",
+    ["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"]),
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
     ["data-instant"] = normalize_bool(el.attributes.instant) or tostring(options.instant),
     ["data-reveal"] = normalize_bool(el.attributes.reveal) or tostring(options.reveal),
-    ["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock),
     ["data-reset"] = normalize_bool(el.attributes.reset) or tostring(options.reset)
   }
+  if parent_id then
+    container_attrs["data-parent-id"] = parent_id
+  else
+    container_attrs["data-lock"] = normalize_bool(el.attributes.lock) or tostring(options.lock)
+  end
   if el.identifier and el.identifier ~= "" then
     container_attrs.id = el.identifier
   end
+
+  local check_btn = (not parent_id and bool_string(el.attributes, "instant", options.instant) ~= "true")
+      and '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>' or ''
+  local reset_btn = (not parent_id and bool_string(el.attributes, "reset", options.reset) == "true")
+      and '<button type="button" class="quarto-exercise-choose-reset-btn">Reset</button>' or ''
 
   return pandoc.RawInline("html",
     raw_inline("span", container_attrs) ..
     '<select class="quarto-exercise-choose-select"><option value="">Choose...</option></select>' ..
     '<span class="quarto-exercise-choose-correct-text" hidden></span>' ..
-    '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>' ..
+    check_btn ..
+    reset_btn ..
     '<span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span>'
   )
 end
@@ -1027,9 +1161,16 @@ function Div(el)
 
   local has_code_cloze = false
   el = el:walk({
+    Span = function(span)
+      if span.classes:includes("blank") or span.classes:includes("choose") then
+        span.attributes["data-exercise-parent"] = id
+        return span
+      end
+    end,
     CodeBlock = function(code)
       if code.classes:includes("code-cloze") then
         has_code_cloze = true
+        code.attributes["data-exercise-parent"] = id
         code.attributes["data-cloze-processed"] = "true"
         return process_code_cloze(code, id)
       end

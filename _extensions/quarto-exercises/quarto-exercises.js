@@ -25,6 +25,12 @@ function bool(value, fallback = false) {
   return value == null ? fallback : value === "true";
 }
 
+function dataValue(el, container, name, fallback = "") {
+  if (el && el.dataset[name] !== undefined && el.dataset[name] !== "") return el.dataset[name];
+  if (container && container.dataset[name] !== undefined && container.dataset[name] !== "") return container.dataset[name];
+  return fallback;
+}
+
 function shuffle(items) {
   for (let i = items.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -213,9 +219,128 @@ function adjustSelectWidth(select) {
   const paddingRight = parseFloat(style.paddingRight) || 0;
   const borderLeft = parseFloat(style.borderLeftWidth) || 0;
   const borderRight = parseFloat(style.borderRightWidth) || 0;
-  
   select.style.width = `${textWidth + paddingLeft + paddingRight + borderLeft + borderRight + 6}px`;
   measurer.remove();
+}
+
+class Control {
+  constructor(el, type, container) {
+    this.el = el;
+    this.type = type;
+    this.container = container;
+  }
+
+  get answers() {
+    return dataValue(this.el, this.container, "answers");
+  }
+
+  get answer() {
+    return dataValue(this.el, this.container, "answer");
+  }
+
+  get match() {
+    return dataValue(this.el, this.container, "match", "exact");
+  }
+
+  get ignoreCase() {
+    return dataValue(this.el, this.container, "ignoreCase", "false") === "true";
+  }
+
+  get trim() {
+    return dataValue(this.el, this.container, "trim", "true") !== "false";
+  }
+
+  get collapseSpace() {
+    return dataValue(this.el, this.container, "collapseSpace", "false") === "true";
+  }
+
+  get lock() {
+    return dataValue(this.el, this.container, "lock");
+  }
+
+  verify(reveal = false) {
+    this.el.classList.remove("is-correct", "is-incorrect");
+    let ok = false;
+    if (this.type === "blank") {
+      ok = checkBlankMatch(this.el.value, this.answers, this.match, this.ignoreCase, this.trim, this.collapseSpace);
+      this.el.classList.toggle("is-correct", ok);
+      this.el.classList.toggle("is-incorrect", !ok);
+      if (reveal) {
+        const displayText = ok ? this.el.value : firstAnswer(this.answers);
+        if (this.el._codeBlankCorrectSpan) {
+          this.el._codeBlankCorrectSpan.textContent = displayText;
+          this.el._codeBlankCorrectSpan.hidden = false;
+        } else {
+          setCorrectText(this.container, ".quarto-exercise-blank-correct-text", displayText);
+        }
+      }
+    } else if (this.type === "choose") {
+      ok = checkChooseMatch(this.el.value, this.answer, this.ignoreCase);
+      this.el.classList.toggle("is-correct", ok);
+      this.el.classList.toggle("is-incorrect", !ok && this.el.value !== "");
+      if (reveal) {
+        if (this.el.classList.contains("quarto-exercise-code-choose")) {
+          revealCodeClozeChoose(this.el, ok ? this.el.value : this.answer);
+        } else {
+          setCorrectText(this.container, ".quarto-exercise-choose-correct-text", ok ? this.el.value : this.answer);
+        }
+      }
+    }
+    return ok;
+  }
+
+  reset() {
+    this.el.classList.remove("is-correct", "is-incorrect");
+    this.el.disabled = false;
+    this.el.value = "";
+    if (this.type === "blank") {
+      if (this.el._codeBlankCorrectSpan) {
+        this.el._codeBlankCorrectSpan.textContent = "";
+        this.el._codeBlankCorrectSpan.hidden = true;
+      } else {
+        setCorrectText(this.container, ".quarto-exercise-blank-correct-text", "");
+      }
+      if (this.el.classList.contains("quarto-exercise-code-blank")) {
+        this.el.style.width = "";
+        this.el.style.borderBottom = "";
+      } else {
+        adjustInputWidth(this.el);
+      }
+    } else if (this.type === "choose") {
+      if (this.el._codeClozeCorrectSpan && this.el._codeClozeCorrectSpan.parentNode) {
+        this.el._codeClozeCorrectSpan.parentNode.replaceChild(this.el, this.el._codeClozeCorrectSpan);
+        this.el._codeClozeCorrectSpan = null;
+      } else {
+        setCorrectText(this.container, ".quarto-exercise-choose-correct-text", "");
+      }
+      adjustSelectWidth(this.el);
+    }
+  }
+
+  lockControl() {
+    if (this.lock === "false") return;
+    this.el.disabled = true;
+    if (this.type === "blank") {
+      if (this.el._codeBlankCorrectSpan) {
+        // Keeps disabled
+      } else {
+        this.container.classList.add("is-locked");
+        setCorrectText(this.container, ".quarto-exercise-blank-correct-text", this.el.value);
+      }
+    } else if (this.type === "choose") {
+      if (this.el.classList.contains("quarto-exercise-code-choose")) {
+        revealCodeClozeChoose(this.el, this.el.value);
+      } else {
+        this.container.classList.add("is-locked");
+        setCorrectText(this.container, ".quarto-exercise-choose-correct-text", this.el.value);
+      }
+    }
+  }
+}
+
+function checkChooseMatch(userValue, answer, ignoreCase) {
+  if (!userValue) return false;
+  return ignoreCase ? userValue.toLowerCase() === answer.toLowerCase() : userValue === answer;
 }
 
 function initBlank(container, onCheck, { instant = false } = {}) {
@@ -242,58 +367,50 @@ function firstAnswer(value) {
 
 function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
   const input = $(container, ".quarto-exercise-blank-input");
-  const feedback = $(container, ".quarto-exercise-blank-feedback");
-  const isCorrect = checkBlankMatch(
-    input.value,
-    container.dataset.answers,
-    container.dataset.match || "exact",
-    bool(container.dataset.ignoreCase),
-    container.dataset.trim !== "false",
-    bool(container.dataset.collapseSpace)
-  );
+  const control = new Control(input, "blank", container);
+  const ok = control.verify(reveal);
+  container.classList.toggle("is-correct", ok);
+  container.classList.toggle("is-incorrect", !ok);
 
-  container.classList.toggle("is-correct", isCorrect);
-  input.classList.toggle("is-correct", isCorrect);
-  input.classList.toggle("is-incorrect", !isCorrect);
   if (reveal) {
     container.classList.add("is-locked");
   }
-  setCorrectText(container, ".quarto-exercise-blank-correct-text", reveal ? (isCorrect ? input.value : firstAnswer(container.dataset.answers)) : "");
 
-  if (showFeedback) {
+  const feedback = $(container, ".quarto-exercise-blank-feedback");
+  if (showFeedback && feedback) {
     setFeedback(
       feedback,
-      isCorrect ? container.dataset.feedbackCorrect : container.dataset.feedbackIncorrect,
-      isCorrect ? "correct" : "incorrect"
+      ok ? container.dataset.feedbackCorrect : container.dataset.feedbackIncorrect,
+      ok ? "correct" : "incorrect"
     );
   } else {
     resetFeedback(feedback);
   }
 
-  return isCorrect;
+  return ok;
 }
 
 function resetBlank(container) {
+  container.classList.remove("is-correct", "is-incorrect", "is-locked");
   const input = $(container, ".quarto-exercise-blank-input");
-  container.classList.remove("is-correct", "is-locked");
-  input.disabled = false;
-  input.value = "";
-  input.classList.remove("is-correct", "is-incorrect");
-  setCorrectText(container, ".quarto-exercise-blank-correct-text", "");
+  if (input) {
+    const control = new Control(input, "blank", container);
+    control.reset();
+  }
   resetFeedback($(container, ".quarto-exercise-blank-feedback"));
-  adjustInputWidth(input);
 }
 
 function initStandaloneBlank(container) {
   const checkButton = $(container, ".quarto-exercise-blank-check-btn");
+  const resetButton = $(container, ".quarto-exercise-blank-reset-btn");
   const check = () => {
     const ok = verifyBlank(container, { showFeedback: true, reveal: bool(container.dataset.reveal) });
     if (bool(container.dataset.lock) && ok) {
-      container.classList.add("is-locked");
       const input = $(container, ".quarto-exercise-blank-input");
-      input.disabled = true;
+      if (input) {
+        new Control(input, "blank", container).lockControl();
+      }
       if (checkButton) checkButton.disabled = true;
-      setCorrectText(container, ".quarto-exercise-blank-correct-text", input.value);
     }
   };
 
@@ -301,6 +418,13 @@ function initStandaloneBlank(container) {
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);
+  }
+  if (resetButton && !resetButton.dataset.initialized) {
+    resetButton.dataset.initialized = "true";
+    resetButton.addEventListener("click", () => {
+      resetBlank(container);
+      if (checkButton) checkButton.disabled = false;
+    });
   }
 }
 
@@ -334,57 +458,50 @@ function initChoose(container, onCheck, { instant = false } = {}) {
 
 function verifyChoose(container, { showFeedback = false, reveal = false } = {}) {
   const select = $(container, ".quarto-exercise-choose-select");
-  const feedback = $(container, ".quarto-exercise-choose-feedback");
-  const userValue = select.value;
-  const answer = container.dataset.answer || "";
-  const isCorrect = userValue
-    ? bool(container.dataset.ignoreCase)
-      ? userValue.toLowerCase() === answer.toLowerCase()
-      : userValue === answer
-    : false;
+  const control = new Control(select, "choose", container);
+  const ok = control.verify(reveal);
+  container.classList.toggle("is-correct", ok);
+  container.classList.toggle("is-incorrect", !ok && select.value !== "");
 
-  container.classList.toggle("is-correct", isCorrect);
-  select.classList.toggle("is-correct", isCorrect);
-  select.classList.toggle("is-incorrect", !isCorrect);
   if (reveal) {
     container.classList.add("is-locked");
   }
-  setCorrectText(container, ".quarto-exercise-choose-correct-text", reveal ? answer : "");
 
-  if (showFeedback && userValue) {
+  const feedback = $(container, ".quarto-exercise-choose-feedback");
+  if (showFeedback && select.value && feedback) {
     setFeedback(
       feedback,
-      isCorrect ? container.dataset.feedbackCorrect : container.dataset.feedbackIncorrect,
-      isCorrect ? "correct" : "incorrect"
+      ok ? container.dataset.feedbackCorrect : container.dataset.feedbackIncorrect,
+      ok ? "correct" : "incorrect"
     );
   } else {
     resetFeedback(feedback);
   }
 
-  return isCorrect;
+  return ok;
 }
 
 function resetChoose(container) {
+  container.classList.remove("is-correct", "is-incorrect", "is-locked");
   const select = $(container, ".quarto-exercise-choose-select");
-  container.classList.remove("is-correct", "is-locked");
-  select.disabled = false;
-  select.value = "";
-  select.classList.remove("is-correct", "is-incorrect");
-  setCorrectText(container, ".quarto-exercise-choose-correct-text", "");
+  if (select) {
+    const control = new Control(select, "choose", container);
+    control.reset();
+  }
   resetFeedback($(container, ".quarto-exercise-choose-feedback"));
-  adjustSelectWidth(select);
 }
 
 function initStandaloneChoose(container) {
   const checkButton = $(container, ".quarto-exercise-choose-check-btn");
+  const resetButton = $(container, ".quarto-exercise-choose-reset-btn");
   const check = () => {
     const ok = verifyChoose(container, { showFeedback: true, reveal: bool(container.dataset.reveal) });
     if (bool(container.dataset.lock) && ok) {
-      container.classList.add("is-locked");
       const select = $(container, ".quarto-exercise-choose-select");
-      select.disabled = true;
+      if (select) {
+        new Control(select, "choose", container).lockControl();
+      }
       if (checkButton) checkButton.disabled = true;
-      setCorrectText(container, ".quarto-exercise-choose-correct-text", select.value);
     }
   };
 
@@ -392,6 +509,14 @@ function initStandaloneChoose(container) {
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);
+  }
+  if (resetButton && !resetButton.dataset.initialized) {
+    resetButton.dataset.initialized = "true";
+    resetButton.addEventListener("click", () => {
+      resetChoose(container);
+      populateChoose(container);
+      if (checkButton) checkButton.disabled = false;
+    });
   }
 }
 
@@ -409,6 +534,7 @@ function initExercise(exercise) {
   const hintPanel = $(exercise, ".quarto-exercise-hint");
   const explanation = $(exercise, ".quarto-exercise-explanation");
   const status = $(exercise, ".quarto-exercise-status");
+
   const instant = bool(exercise.dataset.instant);
   const reveal = bool(exercise.dataset.reveal);
   const lock = bool(exercise.dataset.lock);
@@ -464,14 +590,14 @@ function initAnswers(exercise, answers, verify, instant) {
 function updateAnswerLabels(exercise) {
   $$(exercise, ".quarto-exercise-answer").forEach((answer, index) => {
     const label = $(answer, ".quarto-exercise-answer-label");
-    if (label) label.textContent = `${labelFor(index)}. `;
+    if (label) label.textContent = `${labelFor(index)}.`;
   });
 }
 
 function shuffleAnswers(exercise, answers) {
-  const choices = $(exercise, ".quarto-exercise-choices");
-  if (!choices || answers.length === 0) return;
-  shuffle([...answers]).forEach(answer => choices.appendChild(answer));
+  const container = $(exercise, ".quarto-exercise-choices");
+  if (!container) return;
+  shuffle(answers).forEach(answer => container.appendChild(answer));
   updateAnswerLabels(exercise);
 }
 
@@ -521,19 +647,34 @@ function verifyAnswers(exercise, answers, reveal) {
   return allCorrect;
 }
 
-function verifyExercise(exercise, parts) {
-  const answersOk = verifyAnswers(exercise, parts.answers, parts.reveal);
-  const blanksOk = parts.blanks.every(blank => verifyBlank(blank, { showFeedback: true, reveal: parts.reveal }));
-  const choosesOk = parts.chooses.every(choose => verifyChoose(choose, { showFeedback: true, reveal: parts.reveal }));
-  const codeClozes = parts.codeClozes || [];
-  const codeClozeOk = codeClozes.every(cc => verifyCodeCloze(cc, { showFeedback: true, reveal: parts.reveal }));
-  const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
+function verifyExercise(exercise, { answers, blanks, chooses, codeClozes, explanation, status, reveal, lock, checkButton, resetButton }) {
+  let allCorrect = true;
 
-  updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
-  updateStatus(parts.status, exercise, allCorrect);
+  const checkedCount = answers.filter(answer => $(answer, ".quarto-exercise-input").checked).length;
+  if (answers.length > 0 && checkedCount === 0) {
+    return false;
+  }
 
-  if (parts.lock && allCorrect) {
-    lockExercise(exercise, parts);
+  const answersOk = verifyAnswers(exercise, answers, reveal);
+  if (!answersOk) allCorrect = false;
+
+  blanks.forEach(blank => {
+    if (!verifyBlank(blank, { showFeedback: true, reveal })) allCorrect = false;
+  });
+
+  chooses.forEach(choose => {
+    if (!verifyChoose(choose, { showFeedback: true, reveal })) allCorrect = false;
+  });
+
+  (codeClozes || []).forEach(codeCloze => {
+    if (!verifyCodeCloze(codeCloze, { showFeedback: true, reveal })) allCorrect = false;
+  });
+
+  updateStatus(status, exercise, allCorrect);
+  updateExplanation(explanation, exercise.dataset.explanationPolicy, allCorrect);
+
+  if (lock && allCorrect) {
+    lockExercise(exercise, { answers, blanks, chooses, codeClozes, checkButton, resetButton });
   }
 
   return allCorrect;
@@ -560,31 +701,16 @@ function lockExercise(exercise, { answers, blanks, chooses, codeClozes, checkBut
     $(answer, ".quarto-exercise-input").disabled = true;
   });
   blanks.forEach(blank => {
-    if (blank.dataset.lock === "false") return;
-    blank.classList.add("is-locked");
     const input = $(blank, ".quarto-exercise-blank-input");
-    input.disabled = true;
-    const isCorrect = input.classList.contains("is-correct");
-    setCorrectText(blank, ".quarto-exercise-blank-correct-text", isCorrect ? input.value : firstAnswer(blank.dataset.answers));
+    if (input) new Control(input, "blank", blank).lockControl();
   });
   chooses.forEach(choose => {
-    if (choose.dataset.lock === "false") return;
-    choose.classList.add("is-locked");
     const select = $(choose, ".quarto-exercise-choose-select");
-    select.disabled = true;
-    const isCorrect = select.classList.contains("is-correct");
-    const answer = select.dataset.answer || "";
-    setCorrectText(choose, ".quarto-exercise-choose-correct-text", isCorrect ? select.value : answer);
+    if (select) new Control(select, "choose", choose).lockControl();
   });
   (codeClozes || []).forEach(codeCloze => {
-    (codeCloze._clozeControls || []).forEach(({ type, el }) => {
-      if (el.dataset.lock === "false") return;
-      if (type === "choose") {
-        revealCodeClozeChoose(el, el.value);
-      } else {
-        el.disabled = true;
-      }
-    });
+    const controls = codeCloze._clozeControls || [];
+    controls.forEach(ctrl => ctrl.lockControl());
   });
 }
 
@@ -595,25 +721,26 @@ function resetExercise(exercise, parts) {
   });
 
   parts.answers.forEach(answer => {
+    answer.classList.remove("is-correct", "is-incorrect", "is-selected");
     const input = $(answer, ".quarto-exercise-input");
-    input.disabled = false;
-    input.checked = false;
-    answer.classList.remove("is-selected", "is-correct", "is-incorrect");
+    if (input) {
+      input.disabled = false;
+      input.checked = false;
+    }
     setHidden($(answer, ".quarto-exercise-feedback"), true);
   });
 
   parts.blanks.forEach(resetBlank);
   parts.chooses.forEach(resetChoose);
   (parts.codeClozes || []).forEach(resetCodeCloze);
-  setHidden(parts.explanation, true);
-  setHidden(parts.hintPanel, true);
 
+  setHidden(parts.explanation, true);
   if (parts.status) {
     parts.status.textContent = "";
     parts.status.classList.remove("is-correct", "is-incorrect");
   }
 
-  if (bool(exercise.dataset.reshuffleOnReset)) {
+  if (bool(exercise.dataset.shuffle) && bool(exercise.dataset.reshuffleOnReset)) {
     shuffleAnswers(exercise, parts.answers);
   }
 }
@@ -695,8 +822,8 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
   const controls = [];
 
   for (const [token, info] of Object.entries(metadata)) {
+    const attrs = info.attrs || {};
     if (info.type === "blank") {
-      const attrs = info.attrs || {};
       const blankSpan = document.createElement("span");
       blankSpan.className = "quarto-exercise-code-blank-container";
 
@@ -706,10 +833,9 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
       input.setAttribute("aria-label", "Fill in the blank");
       input.dataset.answers = attrs.answer || attrs.answers || "";
       input.dataset.match = attrs.match || "exact";
-      input.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : (container.dataset.ignoreCase || "false");
+      input.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : dataValue(null, container, "ignoreCase", "false");
       input.dataset.trim = attrs.trim || "true";
       input.dataset.collapseSpace = attrs["collapse-space"] || "false";
-      input.dataset.lock = attrs.lock || "";
       input.addEventListener("input", () => {
         adjustCodeBlankWidthToText(input);
         if (instant && onCheck) onCheck();
@@ -720,19 +846,14 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
 
       const correctSpan = document.createElement("span");
       correctSpan.className = "quarto-exercise-code-blank-correct-text";
-      correctSpan.style.color = "var(--ex-correct)";
-      correctSpan.style.fontWeight = "bold";
-      correctSpan.style.fontFamily = "inherit";
-      correctSpan.style.marginLeft = "0.3em";
       correctSpan.hidden = true;
       blankSpan.appendChild(correctSpan);
 
       input._codeBlankCorrectSpan = correctSpan;
 
       replaceTokenWithElement(code, token, blankSpan);
-      controls.push({ type: "blank", el: input, attrs });
+      controls.push(new Control(input, "blank", blankSpan));
     } else if (info.type === "choose") {
-      const attrs = info.attrs || {};
       const select = document.createElement("select");
       select.className = "quarto-exercise-choose-select quarto-exercise-code-choose";
       select.appendChild(new Option("Choose...", ""));
@@ -741,8 +862,7 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
         select.appendChild(new Option(opt, opt));
       });
       select.dataset.answer = attrs.answer || "";
-      select.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : (container.dataset.ignoreCase || "false");
-      select.dataset.lock = attrs.lock || "";
+      select.dataset.ignoreCase = attrs["ignore-case"] !== undefined ? attrs["ignore-case"] : dataValue(null, container, "ignoreCase", "false");
       select.addEventListener("change", () => {
         adjustSelectWidth(select);
         if (instant && onCheck) onCheck();
@@ -750,7 +870,7 @@ function initCodeCloze(container, onCheck, { instant = false } = {}) {
       select.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
       adjustSelectWidth(select);
       replaceTokenWithElement(code, token, select);
-      controls.push({ type: "choose", el: select, attrs });
+      controls.push(new Control(select, "choose", container));
     }
   }
 
@@ -765,10 +885,6 @@ function revealCodeClozeChoose(select, text) {
   const span = document.createElement("span");
   span.className = "quarto-exercise-code-choose-correct";
   span.textContent = text;
-  span.style.color = "var(--ex-correct)";
-  span.style.fontWeight = "bold";
-  span.style.fontFamily = "var(--bs-font-monospace, monospace)";
-  span.style.fontSize = "inherit";
   if (select.parentNode) {
     select.parentNode.replaceChild(span, select);
   }
@@ -779,37 +895,8 @@ function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {
   const controls = container._clozeControls || [];
   let allCorrect = true;
 
-  controls.forEach(({ type, el, attrs }) => {
-    el.classList.remove("is-correct", "is-incorrect");
-    if (type === "blank") {
-      const ok = checkBlankMatch(
-        el.value,
-        el.dataset.answers,
-        el.dataset.match || "exact",
-        el.dataset.ignoreCase === "true",
-        el.dataset.trim !== "false",
-        el.dataset.collapseSpace === "true"
-      );
-      el.classList.toggle("is-correct", ok);
-      el.classList.toggle("is-incorrect", !ok);
-      if (reveal && !ok) {
-        if (el._codeBlankCorrectSpan) {
-          el._codeBlankCorrectSpan.textContent = firstAnswer(el.dataset.answers);
-          el._codeBlankCorrectSpan.hidden = false;
-        }
-      }
-      if (!ok) allCorrect = false;
-    } else if (type === "choose") {
-      const answer = el.dataset.answer || "";
-      const ignoreCase = el.dataset.ignoreCase === "true";
-      const ok = el.value !== "" && (ignoreCase ? el.value.toLowerCase() === answer.toLowerCase() : el.value === answer);
-      el.classList.toggle("is-correct", ok);
-      el.classList.toggle("is-incorrect", !ok && el.value !== "");
-      if (reveal) {
-        revealCodeClozeChoose(el, ok ? el.value : answer);
-      }
-      if (!ok) allCorrect = false;
-    }
+  controls.forEach(ctrl => {
+    if (!ctrl.verify(reveal)) allCorrect = false;
   });
 
   return allCorrect;
@@ -817,26 +904,8 @@ function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {
 
 function resetCodeCloze(container) {
   const controls = container._clozeControls || [];
-  controls.forEach(({ type, el, attrs }) => {
-    el.classList.remove("is-correct", "is-incorrect");
-    if (type === "blank") {
-      el.value = "";
-      if (el._codeBlankCorrectSpan) {
-        el._codeBlankCorrectSpan.textContent = "";
-        el._codeBlankCorrectSpan.hidden = true;
-      }
-      // Reset to default CSS width and restore underline
-      el.style.width = "";
-      el.style.borderBottom = "";
-    } else if (type === "choose") {
-      // If the select was replaced with a correct span, restore it
-      if (el._codeClozeCorrectSpan && el._codeClozeCorrectSpan.parentNode) {
-        el._codeClozeCorrectSpan.parentNode.replaceChild(el, el._codeClozeCorrectSpan);
-        el._codeClozeCorrectSpan = null;
-      }
-      el.value = "";
-      adjustSelectWidth(el);
-    }
+  controls.forEach(ctrl => {
+    ctrl.reset();
   });
 }
 
@@ -867,14 +936,7 @@ function initStandaloneCodeCloze(container) {
       if (checkButton) checkButton.disabled = true;
       if (resetButton) resetButton.disabled = true;
       const controls = container._clozeControls || [];
-      controls.forEach(({ type, el }) => {
-        if (el.dataset.lock === "false") return;
-        if (type === "choose") {
-          revealCodeClozeChoose(el, el.value);
-        } else {
-          el.disabled = true;
-        }
-      });
+      controls.forEach(ctrl => ctrl.lockControl());
     }
   };
 

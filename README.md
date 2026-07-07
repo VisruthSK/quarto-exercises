@@ -211,7 +211,9 @@ print({{blank answer="total"}})
 :::
 ````
 
-Standalone `.code-cloze` blocks get their own Check and Reset buttons.
+Standalone `.code-cloze` blocks get their own Check and Reset buttons. Inside an `.exercise`, the parent exercise controls behavior such as `instant`, `reset`, `reveal`, `lock`, and feedback text. Put those attributes on the `.exercise`, not on the nested code block.
+
+Inside `{{blank ...}}` and `{{choose ...}}` markers, use answer-checking attributes only: `answer`, `answers`, `match`, `ignore-case`, `trim`, `collapse-space`, `options`, and `shuffle` as appropriate. Put exercise behavior on the standalone `.code-cloze` block or on the parent `.exercise`.
 
 ## Authoring Notes
 

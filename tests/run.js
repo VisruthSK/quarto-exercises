@@ -271,7 +271,7 @@ async function runVisualMode(playwright, mode) {
     const answer = document.querySelector('[data-key="b"]');
     const status = document.querySelector('.quarto-exercise-status');
     const explanation = document.querySelector('.quarto-exercise-explanation');
-    const blankText = document.querySelector('.quarto-exercise-blank-correct-text');
+    const blankText = document.querySelector('#visual-ex .quarto-exercise-blank-correct-text');
     return {
       answerColor: getComputedStyle(answer).color,
       statusColor: getComputedStyle(status).color,
@@ -631,7 +631,7 @@ Comma regex: [\`Frodo, Sam\`]{.blank answer="^Frodo,\\s+Sam$" match="regex" feed
       async function checkBlank(index, value, expectedFeedback) {
         const blank = blanks.nth(index);
         await blank.locator('input').fill(value);
-        await blank.locator('button').click();
+        await blank.locator('.quarto-exercise-blank-check-btn').click();
         await expectFeedback(blank, expectedFeedback);
       }
 
@@ -696,7 +696,7 @@ Spaced option: [Mordor| Gondor |Rohan]{.choose answer="Mordor" feedback-correct=
       async function checkChoice(index, value, expectedFeedback) {
         const choice = choices.nth(index);
         await choice.locator('select').selectOption(value);
-        await choice.locator('button').click();
+        await choice.locator('.quarto-exercise-choose-check-btn').click();
         await page.waitForFunction(
           ([el, expected]) => el.querySelector('.quarto-exercise-choose-feedback').textContent === expected,
           [await choice.elementHandle(), expectedFeedback]
@@ -1516,6 +1516,7 @@ Shuffled choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
 
     assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="true"/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="true"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-ignore-case="true"/);
   });
 
   test('Exercise attributes override global metadata for one exercise', () => {
@@ -1809,8 +1810,8 @@ filters:
   - quarto-exercises
 ---
 
-\`\`\`{.code-cloze lang="python" #my-cloze .my-cloze-class instant=true reset=false feedback-correct="Nicely done" feedback-incorrect="Try again"}
-val = {{choose answer="x" options="x|y"}}
+\`\`\`{.code-cloze lang="python" #my-cloze .my-cloze-class instant=TRUE reset=FALSE feedback-correct="Nicely done" feedback-incorrect="Try again"}
+val = {{choose answer="x" options="x|y" ignore-case=TRUE}}
 \`\`\`
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'cloze-opts.qmd'), qmdContent);
@@ -1820,17 +1821,17 @@ val = {{choose answer="x" options="x|y"}}
     // Check custom class preservation
     assert.match(html, /class="[^"]*quarto-exercise-code-cloze-container[^"]* my-cloze-class[^"]*"/);
 
+    // instant=TRUE and reset=FALSE should completely omit Check and Reset buttons from the HTML
+    assert.doesNotMatch(html, /quarto-exercise-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
+
+    // uppercase ignore-case=TRUE must be normalized to lowercase in JSON metadata
+    assert.match(html, /&quot;ignore-case&quot;:&quot;true&quot;/);
+
     const browser = await playwright.chromium.launch();
     try {
       const page = await browser.newPage();
       await page.goto(`file://${path.join(TEMP_DIR, 'cloze-opts.html')}`, { waitUntil: 'load' });
-      
-      const checkBtn = page.locator('#my-cloze ~ .quarto-exercise-actions .quarto-exercise-check-btn');
-      const resetBtn = page.locator('#my-cloze ~ .quarto-exercise-actions .quarto-exercise-reset-btn');
-      
-      // instant=true hides checkBtn, reset=false hides resetBtn
-      await checkBtn.waitFor({ state: 'hidden', timeout: 5000 });
-      await resetBtn.waitFor({ state: 'hidden', timeout: 5000 });
 
       const select = page.locator('#my-cloze .quarto-exercise-code-choose');
       await select.selectOption('y'); // wrong option
@@ -1845,7 +1846,7 @@ val = {{choose answer="x" options="x|y"}}
     }
   });
 
-  test('lock=false override keeps correct inline control editable inside locked exercise', async () => {
+  test('Parent lock wins for inline controls inside locked exercise', async () => {
     const playwright = require('playwright');
     const qmdContent = `---
 title: "Lock Override"
@@ -1866,18 +1867,273 @@ filters:
       const page = await browser.newPage();
       await page.goto(`file://${path.join(TEMP_DIR, 'lock-override.html')}`, { waitUntil: 'load' });
 
+      await page.fill('#locked-blank .quarto-exercise-blank-input', 'ok');
+      await page.selectOption('#locked-choose .quarto-exercise-choose-select', 'yes');
       await page.locator('#lock-ex .quarto-exercise-check-btn').click();
 
       const blank = page.locator('#locked-blank .quarto-exercise-blank-input');
       const choose = page.locator('#locked-choose .quarto-exercise-choose-select');
 
-      // The exercise has lock=true, but individual controls have lock=false override.
-      // So they must not get disabled/locked!
-      assert.strictEqual(await blank.isDisabled(), false);
-      assert.strictEqual(await choose.isDisabled(), false);
+      assert.strictEqual(await page.locator('#lock-ex').evaluate(el => el.classList.contains('is-locked')), true);
+      assert.strictEqual(await blank.isDisabled(), true);
+      assert.strictEqual(await choose.isDisabled(), true);
     } finally {
       await browser.close();
     }
+  });
+
+  test('Grouped inline controls do not render standalone reset buttons and reset clears stale classes', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Grouped Inline Contract"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #grouped-inline reset=true}
+[blank]{.blank #grouped-blank answer="ok" reset=true}
+[choose]{.choose #grouped-choose answer="yes" options="yes|no" reset=true}
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-inline-contract.qmd'), qmdContent);
+    renderQuarto('grouped-inline-contract.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'grouped-inline-contract.html'), 'utf8');
+    assert.doesNotMatch(html, /quarto-exercise-blank-reset-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-choose-reset-btn/);
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'grouped-inline-contract.html')}`, { waitUntil: 'load' });
+      await page.fill('#grouped-blank .quarto-exercise-blank-input', 'wrong');
+      await page.selectOption('#grouped-choose .quarto-exercise-choose-select', 'no');
+      await page.click('#grouped-inline .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#grouped-blank').evaluate(el => el.classList.contains('is-incorrect')), true);
+      assert.strictEqual(await page.locator('#grouped-choose').evaluate(el => el.classList.contains('is-incorrect')), true);
+      await page.click('#grouped-inline .quarto-exercise-reset-btn');
+      assert.strictEqual(await page.locator('#grouped-blank').evaluate(el => el.classList.contains('is-incorrect')), false);
+      assert.strictEqual(await page.locator('#grouped-choose').evaluate(el => el.classList.contains('is-incorrect')), false);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Standalone inline instant/reset options render matching controls', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Standalone Inline Controls"
+filters:
+  - quarto-exercises
+---
+
+Instant blank: [\`right\`]{.blank #instant-blank-standalone answer="right" instant=true reset=true}.
+
+Reset choice: [yes|no]{.choose #reset-choose-standalone answer="yes" reset=true}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-inline-controls.qmd'), qmdContent);
+    renderQuarto('standalone-inline-controls.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'standalone-inline-controls.html'), 'utf8');
+
+    assert.doesNotMatch(html, /id="instant-blank-standalone"[^>]*>[\s\S]*?quarto-exercise-blank-check-btn/);
+    assert.match(html, /quarto-exercise-blank-reset-btn/);
+    assert.match(html, /quarto-exercise-choose-reset-btn/);
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'standalone-inline-controls.html')}`, { waitUntil: 'load' });
+
+      await page.fill('#instant-blank-standalone .quarto-exercise-blank-input', 'right');
+      assert.strictEqual(await page.locator('#instant-blank-standalone .quarto-exercise-blank-feedback').textContent(), 'Correct!');
+      await page.click('#instant-blank-standalone .quarto-exercise-blank-reset-btn');
+      assert.strictEqual(await page.locator('#instant-blank-standalone .quarto-exercise-blank-input').inputValue(), '');
+
+      await page.selectOption('#reset-choose-standalone .quarto-exercise-choose-select', 'yes');
+      await page.click('#reset-choose-standalone .quarto-exercise-choose-check-btn');
+      await page.click('#reset-choose-standalone .quarto-exercise-choose-reset-btn');
+      assert.strictEqual(await page.locator('#reset-choose-standalone .quarto-exercise-choose-select').inputValue(), '');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Boolean normalization is case-insensitive in rendered runtime data', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Boolean Runtime"
+filters:
+  - quarto-exercises
+---
+
+Trimmed blank: [\`x\`]{.blank #trim-uppercase answer="x y" trim=FALSE collapse-space=TRUE}.
+
+Case choice: [Alpha|Beta]{.choose #case-choice answer="alpha" ignore-case=TRUE}.
+
+\`\`\`{.code-cloze lang="r" #case-code}
+value <- {{choose answer="alpha" options="Alpha|Beta" ignore-case=TRUE}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'boolean-runtime.qmd'), qmdContent);
+    renderQuarto('boolean-runtime.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'boolean-runtime.html'), 'utf8');
+    assert.match(html, /<span class="quarto-exercise-blank-container"(?=[^>]*id="trim-uppercase")(?=[^>]*data-trim="false")(?=[^>]*data-collapse-space="true")/);
+
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${path.join(TEMP_DIR, 'boolean-runtime.html')}`, { waitUntil: 'load' });
+
+      await page.fill('#trim-uppercase .quarto-exercise-blank-input', 'x  y');
+      await page.click('#trim-uppercase .quarto-exercise-blank-check-btn');
+      assert.strictEqual(await page.locator('#trim-uppercase .quarto-exercise-blank-feedback').textContent(), 'Correct!');
+
+      await page.selectOption('#case-choice .quarto-exercise-choose-select', 'Alpha');
+      await page.click('#case-choice .quarto-exercise-choose-check-btn');
+      assert.strictEqual(await page.locator('#case-choice .quarto-exercise-choose-feedback').textContent(), 'Correct!');
+
+      await page.selectOption('#case-code .quarto-exercise-code-choose', 'Alpha');
+      await page.click('#case-code ~ .quarto-exercise-actions .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#case-code ~ .quarto-exercise-actions .quarto-exercise-status').textContent(), 'Correct!');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Code cloze inside answer blocks is stripped before runtime initialization', () => {
+    const qmdContent = `---
+title: "Code Cloze In Answer"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #answer-code-cloze}
+::: {.answer key="a" correct=true}
+\`\`\`{.code-cloze lang="r"}
+{{blank answer="sum"}}(x)
+\`\`\`
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'answer-code-cloze.qmd'), qmdContent);
+    const result = renderQuarto('answer-code-cloze.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    assert.match(stderrLog, /interactive control .code-cloze is not allowed inside .answer blocks/);
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'answer-code-cloze.html'), 'utf8');
+    assert.doesNotMatch(html, /quarto-exercise-code-cloze-container/);
+    assert.doesNotMatch(html, /data-cloze-metadata/);
+    assert.doesNotMatch(html, /quarto-exercise-code-blank/);
+    assert.doesNotMatch(html, /QEXCLOZEP/);
+  });
+
+  test('Interactive controls inside answer blocks do not leak control attributes', () => {
+    const qmdContent = `---
+title: "Answer Attr Leak"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #answer-attrs}
+::: {.answer key="a" correct=true}
+[blank]{.blank answer="x" answers="x|y" match="one-of" ignore-case=true}
+[choose]{.choose answer="yes" options="yes|no" shuffle=true}
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'answer-attrs.qmd'), qmdContent);
+    renderQuarto('answer-attrs.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'answer-attrs.html'), 'utf8');
+    const answerHtml = html.match(/<div[^>]*class="quarto-exercise-answer-content"[\s\S]*?<\/div>/)[0];
+    assert.doesNotMatch(answerHtml, /\s(answer|answers|options|match|shuffle|ignore-case)=/);
+    assert.doesNotMatch(answerHtml, /quarto-exercise-(blank|choose)-/);
+  });
+
+  test('Global ignore-case is used by Lua validation for inline and code choices', () => {
+    const qmdContent = `---
+title: "Global Ignore Validation"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  ignore-case: true
+---
+
+Inline choice: [Alpha|Beta]{.choose answer="alpha"}.
+
+\`\`\`{.code-cloze lang="r"}
+value <- {{choose answer="alpha" options="Alpha|Beta"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'global-ignore-validation.qmd'), qmdContent);
+    const result = renderQuarto('global-ignore-validation.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    assert.doesNotMatch(stderrLog, /answer 'alpha' is not in the options list/);
+  });
+
+  test('Standalone code cloze does not duplicate ids or leak behavior attrs onto inner code', () => {
+    const qmdContent = `---
+title: "Code Cloze IDs"
+filters:
+  - quarto-exercises
+---
+
+\`\`\`{.code-cloze lang="r" #unique-cloze instant=true reset=false feedback-correct="Yes" feedback-incorrect="No" ignore-case=true}
+{{blank answer="sum"}}(x)
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'code-cloze-ids.qmd'), qmdContent);
+    renderQuarto('code-cloze-ids.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'code-cloze-ids.html'), 'utf8');
+    assert.strictEqual(countMatches(html, /\sid="unique-cloze"/g), 1);
+    assert.match(html, /<div id="unique-cloze"(?=[^>]*data-instant="true")(?=[^>]*data-reset="false")/);
+    const sourceCode = html.match(/<div class="sourceCode"[\s\S]*?<\/pre><\/div>/)[0];
+    assert.doesNotMatch(sourceCode, /data-(instant|reset|feedback-correct|feedback-incorrect|ignore-case|cloze-metadata)=/);
+  });
+
+  test('Grouped code cloze warns for ignored block-level behavior attrs', () => {
+    const qmdContent = `---
+title: "Grouped Code Attr Warning"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #grouped-code-attrs}
+\`\`\`{.code-cloze lang="r" instant=true reset=false feedback-correct="Yes" lock=true reveal=true}
+{{blank answer="sum"}}(x)
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'grouped-code-attrs.qmd'), qmdContent);
+    const result = renderQuarto('grouped-code-attrs.qmd');
+    const stderrLog = result.stderr + result.stdout;
+    assert.match(stderrLog, /block-level behavior attributes are ignored inside .exercise/);
+  });
+
+  test('Invalid and duplicate answer keys do not render unsafe or duplicate ids', () => {
+    const qmdContent = `---
+title: "Safe Keys"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #safe-keys}
+::: {.answer key="a" correct=true}
+First
+:::
+::: {.answer key="a"}
+Duplicate
+:::
+::: {.answer key="a b"}
+Invalid
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'safe-keys.qmd'), qmdContent);
+    renderQuarto('safe-keys.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'safe-keys.html'), 'utf8');
+
+    assert.doesNotMatch(html, /id="safe-keys-a b/);
+    assert.strictEqual(countMatches(html, /id="safe-keys-a"/g), 1);
+    assert.strictEqual(countMatches(html, /value="a"/g), 1);
   });
 
   test('Code-cloze reveal blank displays adjacent correct-text span instead of mutating input value', async () => {
@@ -1917,4 +2173,3 @@ x = {{blank answer="correct_val"}}
     }
   });
 });
-
