@@ -1277,7 +1277,7 @@ function Meta(meta)
   if obfuscate then
     local key = os.getenv("QUARTO_EXERCISES_KEY")
     if not key or key == "" then
-      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' or set 'obfuscate-answers: false' in your settings.")
+      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' (e.g. generate one with 'openssl rand -hex 32') or set 'obfuscate-answers: false' in your settings.")
     end
     options["_key"] = key
   end

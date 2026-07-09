@@ -1602,7 +1602,7 @@ fellowship = {
     fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
     const failRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
     assert.strictEqual(failRes.success, false, "Should fail build if QUARTO_EXERCISES_KEY is missing");
-    assert.match(failRes.stderr + failRes.stdout, /QUARTO_EXERCISES_KEY/, "Should fail with clear actionable error mentioning key");
+    assert.match(failRes.stderr + failRes.stdout, /openssl rand -hex 32/, "Should fail with suggestion on how to generate key");
 
     // 2. Successful build when QUARTO_EXERCISES_KEY is set
     renderQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: 'local-test-key' });
