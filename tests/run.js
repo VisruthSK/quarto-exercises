@@ -14,6 +14,7 @@ const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 
 // Helper to prepare temp directory
 function setup() {
+  process.env.QUARTO_EXERCISES_KEY = 'local-test-key';
   if (fs.existsSync(TEMP_DIR)) {
     fs.rmSync(TEMP_DIR, { recursive: true, force: true });
   }
@@ -40,11 +41,22 @@ function copyFolderSync(from, to) {
 }
 
 // Helper to run quarto render and capture stdout/stderr
-function runQuarto(fileName, format = 'html') {
+function runQuarto(fileName, format = 'html', extraEnv = {}) {
   const filePath = path.join(TEMP_DIR, fileName);
+  const targetEnv = { ...extraEnv };
+  if (!fileName.startsWith('tdd-') && !extraEnv.hasOwnProperty('QUARTO_EXERCISES_KEY')) {
+    targetEnv.QUARTO_EXERCISES_DISABLE_OBFUSCATION = 'true';
+  }
+  const mergedEnv = { ...process.env, ...targetEnv };
+  for (const k in mergedEnv) {
+    if (mergedEnv[k] === undefined || mergedEnv[k] === '') {
+      delete mergedEnv[k];
+    }
+  }
   const res = spawnSync(`quarto render ${quote(filePath)} --to ${quote(format)}`, {
     encoding: 'utf8',
-    shell: true
+    shell: true,
+    env: mergedEnv
   });
   return {
     stdout: res.stdout || '',
@@ -54,8 +66,8 @@ function runQuarto(fileName, format = 'html') {
   };
 }
 
-function renderQuarto(fileName, format = 'html') {
-  const result = runQuarto(fileName, format);
+function renderQuarto(fileName, format = 'html', extraEnv = {}) {
+  const result = runQuarto(fileName, format, extraEnv);
   assert.strictEqual(result.success, true, result.stderr || result.stdout);
   return result;
 }
@@ -1240,7 +1252,8 @@ Saruman
       explanation: 'correct',
       'feedback-correct': 'Correct!',
       'feedback-incorrect': 'Not quite.',
-      'ignore-case': false
+      'ignore-case': false,
+      'obfuscate-answers': true
     });
   });
 
@@ -1526,5 +1539,186 @@ Local explanation.
         assert.ok(fs.statSync(shot).size > 1000, `${shot} should not be blank`);
       }
     }
+  });
+
+  test('TDD Obfuscation/Encryption Leak and Config Tests', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "TDD Leak Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #ex-mc-single}
+Select Sam.
+
+::: {.answer key="sam" correct=true}
+Samwise
+:::
+
+::: {.answer key="legolas"}
+Legolas
+:::
+:::
+
+::: {.exercise #ex-mc-multi}
+Select Frodo and Sam.
+
+::: {.answer key="frodo" correct=true}
+Frodo
+:::
+
+::: {.answer key="sam" correct=true}
+Sam
+:::
+
+::: {.answer key="legolas"}
+Legolas
+:::
+:::
+
+Standalone blank: [\`Gandalf\`]{.blank answer="Gandalf"}.
+
+Standalone blank multi: [\`Sam\`]{.blank answers="Samwise|Sam" match="one-of"}.
+
+Standalone regex blank: [\`1001\`]{.blank answer="^(0b)?1001$" match="regex"}.
+
+Standalone choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
+
+::: {.exercise #ex-cloze}
+\`\`\`{.code-cloze lang="python"}
+fellowship = {
+    "companion": {{blank answers='"Samwise"|"Sam"' match="one-of"}},
+    "first_book_title": {{blank answer="^(the\\\\s+)?fellowship$" match="regex"}},
+    "bearer": {{choose answer="Frodo" options="Frodo|Sam"}},
+}
+\`\`\`
+:::
+`;
+    // 1. Missing key fails build when obfuscate-answers is default (true)
+    fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
+    const failRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
+    assert.strictEqual(failRes.success, false, "Should fail build if QUARTO_EXERCISES_KEY is missing");
+    assert.match(failRes.stderr + failRes.stdout, /QUARTO_EXERCISES_KEY/, "Should fail with clear actionable error mentioning key");
+
+    // 2. Successful build when QUARTO_EXERCISES_KEY is set
+    renderQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: 'local-test-key' });
+
+    const htmlPath = path.join(TEMP_DIR, 'tdd-leak.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+
+    // Make sure we don't leak answer strings in serialized metadata or attributes
+    assert.doesNotMatch(html, /class="quarto-exercise-answer"[^>]*data-correct/);
+    assert.doesNotMatch(html, /class="quarto-exercise-choose-container"[^>]*data-answer=/);
+    assert.doesNotMatch(html, /class="quarto-exercise-blank-container"[^>]*data-answers=/);
+    assert.doesNotMatch(html, /"answers":/);
+    assert.doesNotMatch(html, /"correct":/);
+    assert.doesNotMatch(html, /\^\(0b\)\?1001\$/);
+    assert.doesNotMatch(html, /\^\(the\\s\+\)\?fellowship\$/);
+    
+    // 3. Verify grading behavior in browser
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+      page.on('pageerror', err => console.error('BROWSER ERROR:', err.message));
+      await page.goto(`file://${htmlPath}`, { waitUntil: 'load' });
+
+      // Test MCQ Single Selection
+      const legolasLabel = page.locator('#ex-mc-single .quarto-exercise-answer', { hasText: 'Legolas' });
+      await legolasLabel.click();
+      await page.click('#ex-mc-single .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#ex-mc-single .quarto-exercise-status').textContent(), 'Not quite.');
+
+      const samLabel = page.locator('#ex-mc-single .quarto-exercise-answer', { hasText: 'Samwise' });
+      await samLabel.click();
+      await page.click('#ex-mc-single .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#ex-mc-single .quarto-exercise-status').textContent(), 'Correct!');
+
+      // Test MCQ Multi Selection
+      const multiFrodo = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Frodo' });
+      const multiSam = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Sam' });
+      const multiLegolas = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Legolas' });
+
+      await multiFrodo.click();
+      await multiLegolas.click();
+      await page.click('#ex-mc-multi .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#ex-mc-multi .quarto-exercise-status').textContent(), 'Not quite.');
+
+      await page.click('#ex-mc-multi .quarto-exercise-reset-btn');
+      await multiFrodo.click();
+      await multiSam.click();
+      await page.click('#ex-mc-multi .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#ex-mc-multi .quarto-exercise-status').textContent(), 'Correct!');
+
+      // Standalone blank (Gandalf)
+      const blank1 = page.locator('.quarto-exercise-blank-container').nth(0);
+      await blank1.locator('input').fill('Wrong');
+      await blank1.locator('button').click();
+      assert.strictEqual(await blank1.evaluate(el => el.classList.contains('is-correct')), false);
+      await blank1.locator('input').fill('Gandalf');
+      await blank1.locator('button').click();
+      assert.strictEqual(await blank1.evaluate(el => el.classList.contains('is-correct')), true);
+
+      // Standalone blank multi (Samwise / Sam)
+      const blank2 = page.locator('.quarto-exercise-blank-container').nth(1);
+      await blank2.locator('input').fill('Samwise');
+      await blank2.locator('button').click();
+      assert.strictEqual(await blank2.evaluate(el => el.classList.contains('is-correct')), true);
+
+      // Standalone regex blank (^(0b)?1001$)
+      const blank3 = page.locator('.quarto-exercise-blank-container').nth(2);
+      await blank3.locator('input').fill('0b1001');
+      await blank3.locator('button').click();
+      assert.strictEqual(await blank3.evaluate(el => el.classList.contains('is-correct')), true);
+
+      // Standalone choose (Rivendell)
+      const choose1 = page.locator('.quarto-exercise-choose-container').nth(0);
+      await choose1.locator('select').selectOption('Edoras');
+      await choose1.locator('button').click();
+      assert.strictEqual(await choose1.evaluate(el => el.classList.contains('is-correct')), false);
+      await choose1.locator('select').selectOption('Rivendell');
+      await choose1.locator('button').click();
+      assert.strictEqual(await choose1.evaluate(el => el.classList.contains('is-correct')), true);
+
+      // Code Cloze
+      const clozeBlank1 = page.locator('#ex-cloze .quarto-exercise-code-blank').nth(0);
+      const clozeBlank2 = page.locator('#ex-cloze .quarto-exercise-code-blank').nth(1);
+      const clozeChoose = page.locator('#ex-cloze .quarto-exercise-code-choose');
+
+      await clozeBlank1.fill('"Sam"');
+      await clozeBlank2.fill('fellowship');
+      await clozeChoose.selectOption('Frodo');
+      await page.click('#ex-cloze .quarto-exercise-check-btn');
+      assert.strictEqual(await page.locator('#ex-cloze .quarto-exercise-status').textContent(), 'Correct!');
+    } finally {
+      await browser.close();
+    }
+
+    // 4. Explicit obfuscate-answers: false does not require key and preserves current plaintext behavior
+    const qmdPlaintext = `---
+title: "Plaintext Test"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  obfuscate-answers: false
+---
+
+::: {.exercise #ex-plain}
+Select Sam.
+
+::: {.answer key="sam" correct=true}
+Samwise
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'tdd-plain.qmd'), qmdPlaintext);
+    renderQuarto('tdd-plain.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
+    const plainHtml = fs.readFileSync(path.join(TEMP_DIR, 'tdd-plain.html'), 'utf8');
+    assert.match(plainHtml, /data-correct="true"/);
+    assert.match(plainHtml, /data-key="sam"/);
   });
 });

@@ -9,16 +9,44 @@ const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const $ = (root, selector) => root.querySelector(selector);
 const $$ = (root, selector) => Array.from(root.querySelectorAll(selector));
 
-function initExercises() {
-  $$(document, ".quarto-exercise").forEach(initExercise);
-  $$(document, ".quarto-exercise-blank-container")
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+
+async function decryptPayload(keyHex, encryptedHex) {
+  const rawBytes = hexToBytes(encryptedHex);
+  const iv = rawBytes.slice(0, 12);
+  const ciphertextWithTag = rawBytes.slice(12);
+  const keyBytes = hexToBytes(keyHex);
+  const cryptoKey = await window.crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv },
+    cryptoKey,
+    ciphertextWithTag
+  );
+  return new TextDecoder().decode(decrypted);
+}
+
+async function initExercises() {
+  await Promise.all($$(document, ".quarto-exercise").map(initExercise));
+  await Promise.all($$(document, ".quarto-exercise-blank-container")
     .filter(blank => !blank.closest(".quarto-exercise"))
-    .forEach(initStandaloneBlank);
-  $$(document, ".quarto-exercise-choose-container")
+    .map(initStandaloneBlank));
+  await Promise.all($$(document, ".quarto-exercise-choose-container")
     .filter(choose => !choose.closest(".quarto-exercise"))
-    .forEach(initStandaloneChoose);
-  $$(document, ".quarto-exercise-code-cloze-standalone")
-    .forEach(initStandaloneCodeCloze);
+    .map(initStandaloneChoose));
+  await Promise.all($$(document, ".quarto-exercise-code-cloze-standalone")
+    .map(initStandaloneCodeCloze));
 }
 
 function bool(value, fallback = false) {
@@ -233,22 +261,34 @@ function initBlank(container, onCheck) {
   });
 }
 
-function verifyBlank(container, { showFeedback = false } = {}) {
+function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
   const input = $(container, ".quarto-exercise-blank-input");
   const feedback = $(container, ".quarto-exercise-blank-feedback");
+
+  const isObfuscated = !!container._decryptedAttrs;
+  const attrs = isObfuscated ? container._decryptedAttrs : container.dataset;
+
   const isCorrect = checkBlankMatch(
     input.value,
-    container.dataset.answers,
-    container.dataset.match || "exact",
-    bool(container.dataset.ignoreCase),
-    container.dataset.trim !== "false",
-    bool(container.dataset.collapseSpace)
+    isObfuscated ? attrs.answers : container.dataset.answers,
+    isObfuscated ? attrs.match : (container.dataset.match || "exact"),
+    isObfuscated ? attrs.ignoreCase : bool(container.dataset.ignoreCase),
+    isObfuscated ? attrs.trim : (container.dataset.trim !== "false"),
+    isObfuscated ? attrs.collapseSpace : bool(container.dataset.collapseSpace)
   );
 
   container.classList.toggle("is-correct", isCorrect);
   input.classList.toggle("is-correct", isCorrect);
   input.classList.toggle("is-incorrect", !isCorrect);
-  setCorrectText(container, ".quarto-exercise-blank-correct-text", isCorrect ? input.value : "");
+
+  let correctText = "";
+  if (isCorrect) {
+    correctText = input.value;
+  } else if (reveal) {
+    const answersList = splitList(isObfuscated ? attrs.answers : container.dataset.answers);
+    correctText = answersList[0] || "";
+  }
+  setCorrectText(container, ".quarto-exercise-blank-correct-text", correctText);
 
   if (showFeedback) {
     setFeedback(
@@ -274,9 +314,18 @@ function resetBlank(container) {
   adjustInputWidth(input);
 }
 
-function initStandaloneBlank(container) {
+async function initStandaloneBlank(container) {
   const checkButton = $(container, ".quarto-exercise-blank-check-btn");
   const check = () => verifyBlank(container, { showFeedback: true });
+
+  if (container.dataset.pbk && container.dataset.pba) {
+    try {
+      const decryptedStr = await decryptPayload(container.dataset.pbk, container.dataset.pba);
+      container._decryptedAttrs = JSON.parse(decryptedStr);
+    } catch (e) {
+      console.error("Failed to decrypt blank:", e);
+    }
+  }
 
   initBlank(container, check);
   if (checkButton && !checkButton.dataset.initialized) {
@@ -313,13 +362,18 @@ function initChoose(container, onCheck, { instant = false } = {}) {
   });
 }
 
-function verifyChoose(container, { showFeedback = false } = {}) {
+function verifyChoose(container, { showFeedback = false, reveal = false } = {}) {
   const select = $(container, ".quarto-exercise-choose-select");
   const feedback = $(container, ".quarto-exercise-choose-feedback");
   const userValue = select.value;
-  const answer = container.dataset.answer || "";
+
+  const isObfuscated = !!container._decryptedAttrs;
+  const attrs = isObfuscated ? container._decryptedAttrs : container.dataset;
+  const answer = isObfuscated ? attrs.answer : (container.dataset.answer || "");
+  const ignoreCase = isObfuscated ? attrs.ignoreCase : (container.dataset.ignoreCase === "true");
+
   const isCorrect = userValue
-    ? bool(container.dataset.ignoreCase)
+    ? ignoreCase
       ? userValue.toLowerCase() === answer.toLowerCase()
       : userValue === answer
     : false;
@@ -327,7 +381,14 @@ function verifyChoose(container, { showFeedback = false } = {}) {
   container.classList.toggle("is-correct", isCorrect);
   select.classList.toggle("is-correct", isCorrect);
   select.classList.toggle("is-incorrect", !isCorrect);
-  setCorrectText(container, ".quarto-exercise-choose-correct-text", isCorrect ? userValue : "");
+
+  let correctText = "";
+  if (isCorrect) {
+    correctText = userValue;
+  } else if (reveal) {
+    correctText = answer;
+  }
+  setCorrectText(container, ".quarto-exercise-choose-correct-text", correctText);
 
   if (showFeedback && userValue) {
     setFeedback(
@@ -353,9 +414,18 @@ function resetChoose(container) {
   adjustSelectWidth(select);
 }
 
-function initStandaloneChoose(container) {
+async function initStandaloneChoose(container) {
   const checkButton = $(container, ".quarto-exercise-choose-check-btn");
   const check = () => verifyChoose(container, { showFeedback: true });
+
+  if (container.dataset.pbk && container.dataset.pba) {
+    try {
+      const decryptedStr = await decryptPayload(container.dataset.pbk, container.dataset.pba);
+      container._decryptedAttrs = JSON.parse(decryptedStr);
+    } catch (e) {
+      console.error("Failed to decrypt choose:", e);
+    }
+  }
 
   initChoose(container, check, { instant: !checkButton || bool(container.dataset.instant) });
   if (checkButton && !checkButton.dataset.initialized) {
@@ -364,9 +434,18 @@ function initStandaloneChoose(container) {
   }
 }
 
-function initExercise(exercise) {
+async function initExercise(exercise) {
   if (exercise.dataset.initialized) return;
   exercise.dataset.initialized = "true";
+
+  if (exercise.dataset.pbk && exercise.dataset.pba) {
+    try {
+      const decryptedStr = await decryptPayload(exercise.dataset.pbk, exercise.dataset.pba);
+      exercise._decryptedMetadata = JSON.parse(decryptedStr);
+    } catch (e) {
+      console.error("Failed to decrypt exercise:", e);
+    }
+  }
 
   const answers = $$(exercise, ".quarto-exercise-answer");
   const blanks = $$(exercise, ".quarto-exercise-blank-container");
@@ -446,13 +525,18 @@ function shuffleAnswers(exercise, answers) {
 function verifyAnswers(exercise, answers, reveal) {
   if (answers.length === 0) return true;
 
+  const isObfuscated = !!exercise._decryptedMetadata;
+  const correctTokens = isObfuscated ? exercise._decryptedMetadata.correct : [];
+
   const radio = exercise.dataset.type === "radio";
   let allCorrect = true;
 
   answers.forEach(answer => {
     const input = $(answer, ".quarto-exercise-input");
     const feedback = $(answer, ".quarto-exercise-feedback");
-    const correct = answer.dataset.correct === "true";
+    const correct = isObfuscated
+      ? correctTokens.includes(answer.dataset.key)
+      : answer.dataset.correct === "true";
     const selected = input.checked;
 
     answer.classList.remove("is-correct", "is-incorrect");
@@ -482,7 +566,11 @@ function verifyAnswers(exercise, answers, reveal) {
 
   if (reveal) {
     answers
-      .filter(answer => answer.dataset.correct === "true")
+      .filter(answer => {
+        return isObfuscated
+          ? correctTokens.includes(answer.dataset.key)
+          : answer.dataset.correct === "true";
+      })
       .forEach(answer => answer.classList.add("is-correct"));
   }
 
@@ -491,10 +579,10 @@ function verifyAnswers(exercise, answers, reveal) {
 
 function verifyExercise(exercise, parts) {
   const answersOk = verifyAnswers(exercise, parts.answers, parts.reveal);
-  const blanksOk = parts.blanks.every(blank => verifyBlank(blank, { showFeedback: true }));
-  const choosesOk = parts.chooses.every(choose => verifyChoose(choose, { showFeedback: true }));
+  const blanksOk = parts.blanks.every(blank => verifyBlank(blank, { showFeedback: true, reveal: parts.reveal }));
+  const choosesOk = parts.chooses.every(choose => verifyChoose(choose, { showFeedback: true, reveal: parts.reveal }));
   const codeClozes = parts.codeClozes || [];
-  const codeClozeOk = codeClozes.every(cc => verifyCodeCloze(cc, { showFeedback: true }));
+  const codeClozeOk = codeClozes.every(cc => verifyCodeCloze(cc, { showFeedback: true, reveal: parts.reveal }));
   const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
 
   updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
@@ -631,7 +719,7 @@ function replaceTokenWithElement(code, token, el) {
   parent.insertBefore(beforeNode, el);
 }
 
-function initCodeCloze(container, onCheck) {
+async function initCodeCloze(container, onCheck) {
   if (container.dataset.initialized) return;
   container.dataset.initialized = "true";
 
@@ -639,6 +727,21 @@ function initCodeCloze(container, onCheck) {
   if (!code) return;
 
   const metadata = parseClozeMetadata(container);
+  
+  if (container.dataset.pbk) {
+    const keyHex = container.dataset.pbk;
+    for (const [token, info] of Object.entries(metadata)) {
+      if (info.pba) {
+        try {
+          const decryptedStr = await decryptPayload(keyHex, info.pba);
+          info.attrs = JSON.parse(decryptedStr);
+        } catch (e) {
+          console.error("Failed to decrypt cloze token:", token, e);
+        }
+      }
+    }
+  }
+
   const controls = [];
 
   for (const [token, info] of Object.entries(metadata)) {
@@ -682,7 +785,7 @@ function initCodeCloze(container, onCheck) {
   container._clozeControls = controls;
 }
 
-function verifyCodeCloze(container, { showFeedback = false } = {}) {
+function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {}) {
   const controls = container._clozeControls || [];
   let allCorrect = true;
 
@@ -699,6 +802,12 @@ function verifyCodeCloze(container, { showFeedback = false } = {}) {
       );
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok);
+      if (reveal && !ok) {
+        const answersList = splitList(el.dataset.answers);
+        el.value = answersList[0] || "";
+        el.classList.add("is-correct");
+        adjustCodeBlankWidthToText(el);
+      }
       if (!ok) allCorrect = false;
     } else if (type === "choose") {
       const answer = el.dataset.answer || "";
@@ -706,10 +815,10 @@ function verifyCodeCloze(container, { showFeedback = false } = {}) {
       const ok = el.value !== "" && (ignoreCase ? el.value.toLowerCase() === answer.toLowerCase() : el.value === answer);
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok && el.value !== "");
-      if (ok) {
+      if (ok || reveal) {
         if (el._codeClozeCorrectSpan) return;
         // Replace select with the selected text so it looks like real code
-        const selectedText = el.value;
+        const selectedText = ok ? el.value : answer;
         const span = document.createElement("span");
         span.className = "quarto-exercise-code-choose-correct";
         span.textContent = selectedText;
@@ -751,7 +860,7 @@ function resetCodeCloze(container) {
   });
 }
 
-function initStandaloneCodeCloze(container) {
+async function initStandaloneCodeCloze(container) {
   const wrapper = container.closest(".quarto-exercise-code-cloze-wrapper") || container;
   const checkButton = wrapper.querySelector(".quarto-exercise-check-btn");
   const resetButton = wrapper.querySelector(".quarto-exercise-reset-btn");
@@ -765,7 +874,7 @@ function initStandaloneCodeCloze(container) {
     }
   };
 
-  initCodeCloze(container, check);
+  await initCodeCloze(container, check);
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);
