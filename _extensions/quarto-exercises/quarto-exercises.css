@@ -293,6 +293,11 @@ body.quarto-dark {
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
+  --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
+  --ex-button-primary-color: var(--bs-white, #fff);
+  --ex-button-secondary-bg: var(--bs-secondary-bg, var(--ex-control-bg));
+  --ex-button-secondary-color: var(--bs-body-color, inherit);
+  --ex-button-border: var(--bs-border-color, var(--ex-border-color));
 }
 
 .quarto-exercise-check-btn,
