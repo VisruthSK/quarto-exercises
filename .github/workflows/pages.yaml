@@ -27,6 +27,8 @@ jobs:
 
       - name: Render site
         run: quarto render
+        env:
+          QUARTO_EXERCISES_KEY: ${{ secrets.QUARTO_EXERCISES_KEY }}
 
       - name: Prepare Pages metadata
         run: |
