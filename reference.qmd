@@ -23,7 +23,79 @@ quarto-exercises:
   feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
   feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer
   ignore-case: false          # Ignore casing during text input validation
+  question-boxes: false       # Add a contained box around each exercise
+  option-columns: 1           # Lay out MCQ options in one or two columns
+  button-style: theme          # Use theme-aware Check, Reset, and Hint buttons
 ```
+
+---
+
+## Visual Style
+
+The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto's light and dark themes, Bootstrap themes, custom themes, and `theme: none`.
+
+```yaml
+quarto-exercises:
+  question-boxes: true
+  option-columns: 2
+  button-style: theme
+```
+
+### Question boxes
+
+Set `question-boxes: true` to place each `.exercise` in a subtle bordered box with padding and a theme-aware background. The default is `false`, so existing documents keep their current layout. Use `question-boxes="true"` or `question-boxes="false"` on an individual `.exercise` to override the document setting.
+
+```markdown
+::: {.exercise question-boxes="true"}
+Which answer is correct?
+
+::: {.answer correct=true}
+This one.
+:::
+
+::: {.answer}
+Not this one.
+:::
+:::
+```
+
+Only the exercise container is boxed. Standalone inline blanks and dropdowns are unchanged.
+
+### Two-column multiple choice
+
+Set `option-columns: 2` to use a simple two-column grid for multiple-choice options. It preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens the grid collapses to one column. The default is `1`.
+
+```markdown
+::: {.exercise option-columns="2"}
+Choose all that apply.
+
+::: {.answer correct=true}
+First answer
+:::
+
+::: {.answer}
+Second answer
+:::
+
+::: {.answer correct=true}
+Third answer
+:::
+
+::: {.answer}
+Fourth answer
+:::
+:::
+```
+
+`option-columns` accepts only `1` and `2`. An unsupported value produces an extension warning and falls back to one column.
+
+### Theme-aware buttons
+
+`button-style: theme` is the default. It makes Check the primary action and styles Reset and Hint as matching secondary actions. The extension first uses Quarto/Bootstrap CSS variables such as `--bs-primary`, `--bs-body-bg`, and `--bs-border-color`; when those variables are unavailable, it falls back to the extension's own colors and borders. Focus rings remain visible in either case.
+
+Set `button-style: plain` to keep the existing neutral button appearance. This option is document-wide.
+
+Authors can still override any extension class in their document stylesheet, including `.quarto-exercise-boxed`, `.quarto-exercise-options-cols-2`, `.quarto-exercise-check-btn`, `.quarto-exercise-reset-btn`, and `.quarto-exercise-hint-btn`.
 
 ---
 
