@@ -1,10 +1,11 @@
 import { expect, test } from 'playwright/test';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const exampleUrl = pathToFileURL(path.resolve('_site/example.html')).href;
-const screenshotMask = await readFile('tests/e2e/screenshot-mask.css', 'utf8');
+const screenshotMask = readFileSync('tests/e2e/screenshot-mask.css', 'utf8');
 
 test.beforeEach(async ({ page }) => {
   await page.goto(exampleUrl, { waitUntil: 'load' });
