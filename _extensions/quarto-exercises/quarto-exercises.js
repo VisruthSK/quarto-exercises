@@ -247,7 +247,8 @@ function initCheckControllers() {
   if (mode === "batch") {
     $$(document, ".check-batch").forEach(batch => initController("batch", batch, $$(batch, ".quarto-exercise")));
   } else if (mode === "page" && exercises.length) {
-    initController("page", document.body, exercises);
+    const content = document.querySelector("main#quarto-document-content, main.content, main") || document.body;
+    initController("page", content, exercises);
   }
 }
 

@@ -66,6 +66,7 @@ test('page-level checking preserves question options and reports a total score',
   await page.locator('[data-testid="page-blank"] .quarto-exercise-blank-input').fill('Gandalf');
   await page.getByRole('button', { name: 'Check Page' }).click();
   await expect(page.locator('.quarto-exercise-page-controls .quarto-exercise-status')).toHaveText('Correct! Score: 6 / 6.');
+  await expect(page.locator('main#quarto-document-content > .quarto-exercise-page-controls')).toHaveCount(1);
   await expect(page.locator('.quarto-exercise-check-btn')).toHaveCount(1);
   await expect(page.locator('.quarto-exercise-page-controls')).toHaveScreenshot('page-score-correct.png');
 });
