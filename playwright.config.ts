@@ -8,5 +8,11 @@ export default defineConfig({
     browserName: 'chromium',
     viewport: { width: 1100, height: 800 },
     screenshot: 'only-on-failure'
+  },
+  snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.05,
+    },
   }
 });
