@@ -1528,6 +1528,32 @@ Local explanation.
     assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
   });
 
+  test('Standalone blank, choose, and code-cloze accept points attribute', () => {
+    const qmdContent = `---
+title: "Standalone Points Test"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  obfuscate-answers: false
+---
+
+Blank: [Samwise]{.blank answer="Samwise" points=3}.
+
+Choose: [Rivendell|Edoras]{.choose answer="Rivendell" points=5}.
+
+\`\`\`{.code-cloze lang="python" points=10}
+x = {{blank answer="1"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-points.qmd'), qmdContent);
+    renderQuarto('standalone-points.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'standalone-points.html'), 'utf8');
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-points="3"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-points="5"/);
+    assert.match(html, /class="quarto-exercise-code-cloze-container[^>]*data-points="10"/);
+  });
+
   test('check-mode: page suppresses individual check and reset buttons in the HTML', () => {
     const qmdContent = `---
 title: "Page Checking Mode"
@@ -2007,7 +2033,7 @@ quarto-exercises:
   obfuscate-answers: false
 ---
 
-[Gandalf]{.blank answer="Gandalf" id="stand-blank"}.
+[Gandalf]{.blank answer="Gandalf" id="stand-blank" points=2}.
 
 ::: {.exercise #ex-multi points=4}
 MCQ:
@@ -2030,7 +2056,7 @@ x = {{blank answer="1"}}
 \`\`\`
 :::
 
-[Rivendell|Edoras]{.choose answer="Rivendell" id="stand-choose"}.
+[Rivendell|Edoras]{.choose answer="Rivendell" id="stand-choose" points=3}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'page-scoring-e2e.qmd'), qmdContent);
     renderQuarto('page-scoring-e2e.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
@@ -2061,11 +2087,11 @@ x = {{blank answer="1"}}
       // Click "Check Page"
       await page.click('.quarto-exercise-page-controls .quarto-exercise-check-btn');
 
-      // We expect: stand-blank is wrong (0/1), stand-choose is correct (1/1),
+      // We expect: stand-blank is wrong (0/2), stand-choose is correct (3/3),
       // ex-multi: MCQ correct (1 unit), choose correct (1 unit), blank empty/wrong (0 units), cloze blank empty/wrong (0 units).
       // So ex-multi score = 2 / 4 units correct = 2 points.
-      // Total score = 0 (stand-blank) + 2 (ex-multi) + 1 (stand-choose) = 3 points out of 6 possible.
-      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Not quite. Score: 3 / 6.');
+      // Total score = 0 (stand-blank) + 2 (ex-multi) + 3 (stand-choose) = 5 points out of 9 possible.
+      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Not quite. Score: 5 / 9.');
 
       // Now fill all correctly:
       await page.locator('#stand-blank input').fill('Gandalf');
@@ -2074,7 +2100,7 @@ x = {{blank answer="1"}}
 
       // Click "Check Page" again
       await page.click('.quarto-exercise-page-controls .quarto-exercise-check-btn');
-      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Correct! Score: 6 / 6.');
+      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Correct! Score: 9 / 9.');
     } finally {
       await browser.close();
     }

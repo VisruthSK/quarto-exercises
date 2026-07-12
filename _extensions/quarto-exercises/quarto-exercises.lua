@@ -50,7 +50,8 @@ local blank_attrs = {
   trim = true,
   ["collapse-space"] = true,
   ["feedback-correct"] = true,
-  ["feedback-incorrect"] = true
+  ["feedback-incorrect"] = true,
+  points = true
 }
 
 local choose_attrs = {
@@ -61,7 +62,8 @@ local choose_attrs = {
   ["ignore-case"] = true,
   shuffle = true,
   ["feedback-correct"] = true,
-  ["feedback-incorrect"] = true
+  ["feedback-incorrect"] = true,
+  points = true
 }
 
 local bool_attrs = {
@@ -984,6 +986,7 @@ local function process_code_cloze(el, parent_id)
   else
     container_attrs["id"] = id
     container_attrs["data-id"] = id
+    container_attrs["data-points"] = string_option(el.attributes, "points")
   end
 
   local container = pandoc.Div({ el }, container_attrs)
@@ -1048,6 +1051,9 @@ local function render_blank(el, id, parent_id)
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["data-feedback-incorrect"] = attr_or_empty(el.attributes, "feedback-incorrect")
   }
+  if parent_id == nil then
+    container_attrs["data-points"] = string_option(el.attributes, "points")
+  end
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])) == "true"
   local trim_val = (el.attributes.trim or "true") ~= "false"
@@ -1129,6 +1135,9 @@ local function render_choose(el, id, parent_id)
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   }
+  if parent_id == nil then
+    container_attrs["data-points"] = string_option(el.attributes, "points")
+  end
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
 
