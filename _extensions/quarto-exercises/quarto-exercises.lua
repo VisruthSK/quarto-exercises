@@ -991,7 +991,8 @@ local function process_code_cloze(el, parent_id)
 
   if parent_id == nil then
     local check_mode = options["check-mode"] or "exercise"
-    local suppress_controls = (check_mode == "page")
+    local in_batch = (el.attributes["data-in-batch"] == "true")
+    local suppress_controls = (check_mode == "page") or (check_mode == "batch" and in_batch)
     local actions_html = '<div class="quarto-exercise-actions">'
     if not suppress_controls then
       actions_html = actions_html ..
@@ -1074,7 +1075,8 @@ local function render_blank(el, id, parent_id)
   end
 
   local check_mode = options["check-mode"] or "exercise"
-  local suppress_controls = (check_mode == "page" and parent_id == nil)
+  local in_batch = (el.attributes["data-in-batch"] == "true")
+  local suppress_controls = (check_mode == "page" and parent_id == nil) or (check_mode == "batch" and in_batch and parent_id == nil)
   local button_html = suppress_controls and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
 
   local prefix = get_key_script()
@@ -1145,7 +1147,8 @@ local function render_choose(el, id, parent_id)
   end
 
   local check_mode = options["check-mode"] or "exercise"
-  local suppress_controls = (check_mode == "page" and parent_id == nil)
+  local in_batch = (el.attributes["data-in-batch"] == "true")
+  local suppress_controls = (check_mode == "page" and parent_id == nil) or (check_mode == "batch" and in_batch and parent_id == nil)
   local button_html = suppress_controls and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
 
   local prefix = get_key_script()
@@ -1308,6 +1311,18 @@ local function mark_batch_exercises(el)
         if sub_div.classes:includes("exercise") then
           sub_div.attributes["data-in-batch"] = "true"
           return sub_div
+        end
+      end,
+      Span = function(span)
+        if span.classes:includes("blank") or span.classes:includes("choose") then
+          span.attributes["data-in-batch"] = "true"
+          return span
+        end
+      end,
+      CodeBlock = function(code)
+        if code.classes:includes("code-cloze") then
+          code.attributes["data-in-batch"] = "true"
+          return code
         end
       end
     })

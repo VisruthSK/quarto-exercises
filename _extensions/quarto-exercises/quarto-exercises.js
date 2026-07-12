@@ -250,63 +250,22 @@ function initController(kind, root) {
   const status = $(actions, ".quarto-exercise-status");
 
   $(actions, ".quarto-exercise-check-btn").addEventListener("click", async () => {
-    const exerciseResults = await Promise.all(units.exercises.map(ex => verifyExercise(ex, exerciseParts(ex))));
-    
-    const blankResults = await Promise.all(units.blanks.map(async blank => {
-      const ok = await verifyBlank(blank, { showFeedback: true });
-      blank._earnedPoints = ok ? 1 : 0;
-      blank._possiblePoints = 1;
-      return ok;
-    }));
+    const results = await Promise.all([
+      ...units.exercises.map(ex => gradeUnit(ex, { showFeedback: true, reveal: bool(ex.dataset.reveal) })),
+      ...units.blanks.map(b => gradeUnit(b, { showFeedback: true })),
+      ...units.chooses.map(c => gradeUnit(c, { showFeedback: true })),
+      ...units.clozes.map(cc => gradeUnit(cc, { showFeedback: true }))
+    ]);
 
-    const chooseResults = await Promise.all(units.chooses.map(async choose => {
-      const ok = await verifyChoose(choose, { showFeedback: true });
-      choose._earnedPoints = ok ? 1 : 0;
-      choose._possiblePoints = 1;
-      return ok;
-    }));
+    const allCorrect = results.every(res => res.correct);
+    const totalEarned = results.reduce((sum, res) => sum + res.earned, 0);
+    const totalPossible = results.reduce((sum, res) => sum + res.possible, 0);
 
-    const clozeResults = await Promise.all(units.clozes.map(async cloze => {
-      const ok = await verifyCodeCloze(cloze, { showFeedback: true });
-      cloze._earnedPoints = ok ? 1 : 0;
-      cloze._possiblePoints = 1;
-      const act = cloze.nextElementSibling || cloze.closest(".quarto-exercise-code-cloze-wrapper")?.querySelector(".quarto-exercise-actions");
-      const stat = act ? $(act, ".quarto-exercise-status") : null;
-      if (stat) {
-        stat.textContent = ok ? "Correct!" : "Incorrect";
-        stat.classList.toggle("is-correct", ok);
-        stat.classList.toggle("is-incorrect", !act);
-      }
-      return ok;
-    }));
-
-    const allCorrect = [...exerciseResults, ...blankResults, ...chooseResults, ...clozeResults].every(Boolean);
-
-    let totalEarned = 0;
-    let totalPossible = 0;
-    
-    units.exercises.forEach(ex => {
-      totalEarned += ex._earnedPoints !== undefined ? ex._earnedPoints : 0;
-      totalPossible += ex._possiblePoints !== undefined ? ex._possiblePoints : 1;
-    });
-    units.blanks.forEach(b => {
-      totalEarned += b._earnedPoints !== undefined ? b._earnedPoints : 0;
-      totalPossible += b._possiblePoints !== undefined ? b._possiblePoints : 1;
-    });
-    units.chooses.forEach(c => {
-      totalEarned += c._earnedPoints !== undefined ? c._earnedPoints : 0;
-      totalPossible += c._possiblePoints !== undefined ? c._possiblePoints : 1;
-    });
-    units.clozes.forEach(c => {
-      totalEarned += c._earnedPoints !== undefined ? c._earnedPoints : 0;
-      totalPossible += c._possiblePoints !== undefined ? c._possiblePoints : 1;
-    });
-
-    totalEarned = Math.round(totalEarned * 100) / 100;
-    totalPossible = Math.round(totalPossible * 100) / 100;
+    const roundedEarned = Math.round(totalEarned * 100) / 100;
+    const roundedPossible = Math.round(totalPossible * 100) / 100;
 
     const showScore = window.quartoExercisesScore === true || units.exercises.some(ex => bool(ex.dataset.score));
-    status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${totalEarned} / ${totalPossible}.` : "");
+    status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${roundedEarned} / ${roundedPossible}.` : "");
     status.classList.toggle("is-correct", allCorrect);
     status.classList.toggle("is-incorrect", !allCorrect);
   });
@@ -920,57 +879,98 @@ function setAnswerState(answer, state) {
   if (target) target.textContent = state === "correct" ? "Correct." : state === "incorrect" ? "Incorrect." : "";
 }
 
+async function gradeUnit(unit, { showFeedback = true, reveal = false } = {}) {
+  if (unit.classList.contains("quarto-exercise")) {
+    const parts = exerciseParts(unit);
+    const hasMcq = parts.answers.length > 0;
+    const blanksCount = parts.blanks.length;
+    const choosesCount = parts.chooses.length;
+
+    // Verify MCQ
+    const answersOk = await verifyAnswers(unit, parts.answers, reveal);
+
+    // Verify blanks
+    let blanksOk = true;
+    let correctBlanks = 0;
+    for (const blank of parts.blanks) {
+      const ok = await verifyBlank(blank, { showFeedback, reveal });
+      if (ok) correctBlanks++;
+      else blanksOk = false;
+    }
+
+    // Verify chooses
+    let choosesOk = true;
+    let correctChooses = 0;
+    for (const choose of parts.chooses) {
+      const ok = await verifyChoose(choose, { showFeedback, reveal });
+      if (ok) correctChooses++;
+      else choosesOk = false;
+    }
+
+    // Verify code clozes
+    let codeClozeOk = true;
+    let correctClozes = 0;
+    let totalClozeUnits = 0;
+    for (const cc of parts.codeClozes) {
+      const ok = await verifyCodeCloze(cc, { showFeedback, reveal });
+      if (!ok) codeClozeOk = false;
+      correctClozes += cc._correctCount || 0;
+      totalClozeUnits += cc._totalCount || 0;
+    }
+
+    const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
+    const possible = Number(unit.dataset.points) || 1;
+    const N = (hasMcq ? 1 : 0) + blanksCount + choosesCount + totalClozeUnits;
+    const correctUnits = (answersOk && hasMcq ? 1 : 0) + correctBlanks + correctChooses + correctClozes;
+    const earned = N > 0 ? (possible / N) * correctUnits : 0;
+
+    unit._earnedPoints = earned;
+    unit._possiblePoints = possible;
+
+    updateExplanation(parts.explanation, unit.dataset.explanationPolicy, allCorrect);
+    updateStatus(parts.status, unit, allCorrect, earned, possible);
+
+    if (parts.lock && allCorrect) {
+      lockExercise(unit, parts);
+    }
+
+    return { earned, possible, correct: allCorrect };
+  } else if (unit.classList.contains("quarto-exercise-blank-container")) {
+    const ok = await verifyBlank(unit, { showFeedback, reveal });
+    const possible = Number(unit.dataset.points) || 1;
+    const earned = ok ? possible : 0;
+    unit._earnedPoints = earned;
+    unit._possiblePoints = possible;
+    return { earned, possible, correct: ok };
+  } else if (unit.classList.contains("quarto-exercise-choose-container")) {
+    const ok = await verifyChoose(unit, { showFeedback, reveal });
+    const possible = Number(unit.dataset.points) || 1;
+    const earned = ok ? possible : 0;
+    unit._earnedPoints = earned;
+    unit._possiblePoints = possible;
+    return { earned, possible, correct: ok };
+  } else if (unit.classList.contains("quarto-exercise-code-cloze-standalone")) {
+    const ok = await verifyCodeCloze(unit, { showFeedback, reveal });
+    const possible = Number(unit.dataset.points) || 1;
+    const earned = unit._totalCount > 0 ? (possible / unit._totalCount) * (unit._correctCount || 0) : (ok ? possible : 0);
+    unit._earnedPoints = earned;
+    unit._possiblePoints = possible;
+
+    const actions = unit.nextElementSibling || unit.closest(".quarto-exercise-code-cloze-wrapper")?.querySelector(".quarto-exercise-actions");
+    const stat = actions ? $(actions, ".quarto-exercise-status") : null;
+    if (stat) {
+      stat.textContent = ok ? "Correct!" : "Incorrect";
+      stat.classList.toggle("is-correct", ok);
+      stat.classList.toggle("is-incorrect", !ok);
+    }
+    return { earned, possible, correct: ok };
+  }
+  return { earned: 0, possible: 0, correct: false };
+}
+
 async function verifyExercise(exercise, parts) {
-  const hasMcq = parts.answers.length > 0;
-  const blanksCount = parts.blanks.length;
-  const choosesCount = parts.chooses.length;
-  const codeClozesCount = parts.codeClozes.length;
-  const N = (hasMcq ? 1 : 0) + blanksCount + choosesCount + codeClozesCount;
-
-  const answersOk = await verifyAnswers(exercise, parts.answers, parts.reveal);
-  
-  let blanksOk = true;
-  let correctBlanks = 0;
-  for (const blank of parts.blanks) {
-    const ok = await verifyBlank(blank, { showFeedback: true, reveal: parts.reveal });
-    if (ok) correctBlanks++;
-    else blanksOk = false;
-  }
-
-  let choosesOk = true;
-  let correctChooses = 0;
-  for (const choose of parts.chooses) {
-    const ok = await verifyChoose(choose, { showFeedback: true, reveal: parts.reveal });
-    if (ok) correctChooses++;
-    else choosesOk = false;
-  }
-
-  const codeClozes = parts.codeClozes || [];
-  let codeClozeOk = true;
-  let correctClozes = 0;
-  for (const cc of codeClozes) {
-    const ok = await verifyCodeCloze(cc, { showFeedback: true, reveal: parts.reveal });
-    if (ok) correctClozes++;
-    else codeClozeOk = false;
-  }
-
-  const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
-
-  const possible = Number(exercise.dataset.points) || 1;
-  let correctUnits = (answersOk && hasMcq ? 1 : 0) + correctBlanks + correctChooses + correctClozes;
-  const earned = N > 0 ? (possible / N) * correctUnits : 0;
-  
-  exercise._earnedPoints = earned;
-  exercise._possiblePoints = possible;
-
-  updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
-  updateStatus(parts.status, exercise, allCorrect, earned, possible);
-
-  if (parts.lock && allCorrect) {
-    lockExercise(exercise, parts);
-  }
-
-  return allCorrect;
+  const res = await gradeUnit(exercise, { showFeedback: true, reveal: parts.reveal });
+  return res.correct;
 }
 
 function updateExplanation(explanation, policy = "correct", allCorrect) {
@@ -1059,7 +1059,26 @@ function resolveExercise(exercise) {
 }
 
 window.QuartoExercises = {
-  init: initExercises
+  init: initExercises,
+  async checkExercise(exercise) {
+    const root = resolveExercise(exercise);
+    if (!root) return false;
+    const res = await gradeUnit(root, { showFeedback: true });
+    return res.correct;
+  },
+  resetExercise(exercise) {
+    const root = resolveExercise(exercise);
+    if (!root) return;
+    if (root.classList.contains("quarto-exercise")) {
+      resetExercise(root, exerciseParts(root));
+    } else if (root.classList.contains("quarto-exercise-blank-container")) {
+      resetBlank(root);
+    } else if (root.classList.contains("quarto-exercise-choose-container")) {
+      resetChoose(root);
+    } else if (root.classList.contains("quarto-exercise-code-cloze-standalone")) {
+      resetCodeCloze(root);
+    }
+  }
 };
 
 // ---- Code Cloze implementation ----
@@ -1167,6 +1186,7 @@ function initCodeCloze(container, onCheck) {
 async function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {}) {
   const controls = container._clozeControls || [];
   let allCorrect = true;
+  let correctCount = 0;
 
   for (const ctrl of controls) {
     const { type, el, attrs, token, signatures, regexPayload } = ctrl;
@@ -1189,6 +1209,9 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
     };
 
     const ok = await checkAnswer(controlObj, el.value);
+    if (ok) {
+      correctCount++;
+    }
 
     if (type === "blank") {
       el.classList.toggle("is-correct", ok);
@@ -1234,6 +1257,8 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
     }
   }
 
+  container._correctCount = correctCount;
+  container._totalCount = controls.length;
   return allCorrect;
 }
 

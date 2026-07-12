@@ -1592,6 +1592,62 @@ Yes
     assert.match(outPart, /quarto-exercise-check-btn/);
   });
 
+  test('check-mode: page with standalone controls suppresses all individual buttons in HTML', () => {
+    const qmdContent = `---
+title: "Page Checking Standalone"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-mode: page
+---
+
+The wizard is [Gandalf]{.blank answer="Gandalf"}.
+
+Select: [One|Two]{.choose answer="One"}.
+
+\`\`\`{.code-cloze lang="python"}
+x = {{blank answer="1"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'page-standalone.qmd'), qmdContent);
+    renderQuarto('page-standalone.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'page-standalone.html'), 'utf8');
+    assert.doesNotMatch(html, /quarto-exercise-blank-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-choose-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
+  });
+
+  test('check-mode: batch with standalone controls inside .check-batch suppresses their buttons', () => {
+    const qmdContent = `---
+title: "Batch Standalone"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-mode: batch
+---
+
+::: {.check-batch}
+The wizard is [Gandalf]{.blank answer="Gandalf"}.
+
+Select: [One|Two]{.choose answer="One"}.
+
+\`\`\`{.code-cloze lang="python"}
+x = {{blank answer="1"}}
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'batch-standalone.qmd'), qmdContent);
+    renderQuarto('batch-standalone.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-standalone.html'), 'utf8');
+    assert.doesNotMatch(html, /quarto-exercise-blank-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-choose-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
+  });
+
   test('Stylesheet exposes the expected light and dark CSS defaults', () => {
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
     assert.deepStrictEqual(parseCssVariables(css, ':root'), {
@@ -1937,5 +1993,90 @@ Samwise
     const plainHtml = fs.readFileSync(path.join(TEMP_DIR, 'tdd-plain.html'), 'utf8');
     assert.match(plainHtml, /data-correct="true"/);
     assert.match(plainHtml, /data-key="sam"/);
+  });
+
+  test('Canvas-like checking, document-level and scoring semantics E2E', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Scoring and Page checking test"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-mode: page
+  score: true
+  obfuscate-answers: false
+---
+
+[Gandalf]{.blank answer="Gandalf" id="stand-blank"}.
+
+::: {.exercise #ex-multi points=4}
+MCQ:
+
+::: {.answer correct=true}
+Frodo
+:::
+
+::: {.answer}
+Legolas
+:::
+
+Blank: [Samwise]{.blank answer="Samwise"}.
+
+Choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
+
+Code Cloze:
+\`\`\`{.code-cloze lang="python"}
+x = {{blank answer="1"}}
+\`\`\`
+:::
+
+[Rivendell|Edoras]{.choose answer="Rivendell" id="stand-choose"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'page-scoring-e2e.qmd'), qmdContent);
+    renderQuarto('page-scoring-e2e.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
+
+    const htmlPath = path.join(TEMP_DIR, 'page-scoring-e2e.html');
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${htmlPath}`, { waitUntil: 'load' });
+
+      const expectStatus = async (selector, text) => {
+        const loc = page.locator(selector);
+        await page.waitForFunction(
+          ([el, expected]) => el.textContent === expected,
+          [await loc.elementHandle(), text]
+        );
+        assert.strictEqual(await loc.textContent(), text);
+      };
+
+      // Perform partial grading check:
+      // ex-multi MCQ (Frodo) correct
+      await page.locator('#ex-multi .quarto-exercise-answer', { hasText: 'Frodo' }).click();
+      // ex-multi choose (Rivendell) correct
+      await page.locator('#ex-multi .quarto-exercise-choose-select').selectOption('Rivendell');
+      // stand-choose (Rivendell) correct
+      await page.locator('#stand-choose .quarto-exercise-choose-select').selectOption('Rivendell');
+
+      // Click "Check Page"
+      await page.click('.quarto-exercise-page-controls .quarto-exercise-check-btn');
+
+      // We expect: stand-blank is wrong (0/1), stand-choose is correct (1/1),
+      // ex-multi: MCQ correct (1 unit), choose correct (1 unit), blank empty/wrong (0 units), cloze blank empty/wrong (0 units).
+      // So ex-multi score = 2 / 4 units correct = 2 points.
+      // Total score = 0 (stand-blank) + 2 (ex-multi) + 1 (stand-choose) = 3 points out of 6 possible.
+      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Not quite. Score: 3 / 6.');
+
+      // Now fill all correctly:
+      await page.locator('#stand-blank input').fill('Gandalf');
+      await page.locator('#ex-multi .quarto-exercise-blank-container input').fill('Samwise');
+      await page.locator('#ex-multi .quarto-exercise-code-blank').fill('1');
+
+      // Click "Check Page" again
+      await page.click('.quarto-exercise-page-controls .quarto-exercise-check-btn');
+      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Correct! Score: 6 / 6.');
+    } finally {
+      await browser.close();
+    }
   });
 });

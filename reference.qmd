@@ -54,7 +54,7 @@ Second question.
 :::
 ```
 
-Set `check-mode: page` for one Check Page and Reset Page control after all exercises in the document. It checks every `.exercise` while preserving each question's own settings. Set `score: true` to show points after an individual, batch, or page check. Each exercise uses `points`, which defaults to `1`; incorrect exercises earn zero points.
+Set `check-mode: page` for one Check Page and Reset Page control after all exercises in the document. It checks every `.exercise` while preserving each question's own settings. Set `score: true` to show points after an individual, batch, or page check. Each exercise uses `points` (default `1`). In multi-question exercises, points are split evenly across its scoring units (each MCQ group, each inline blank, each inline choose, and each blank/choose in code clozes count as one scoring unit). Standalone blanks, chooses, and code clozes are worth `1` point unless they specify their own `points` attribute.
 
 The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
 
