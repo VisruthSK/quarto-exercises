@@ -1273,7 +1273,9 @@ Saruman
       'question-boxes': false,
       'option-columns': 1,
       'button-style': 'theme',
-      'check-mode': 'exercise'
+      'check-mode': 'exercise',
+      score: false,
+      points: 1
     });
   });
 

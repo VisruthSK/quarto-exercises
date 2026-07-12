@@ -23,5 +23,5 @@ filters:
 
 - [Example](example.qmd): a complete document showing the extension in use.
 - [Reference](reference.qmd): problem types, configuration, options, and authoring patterns.
+- [Full Page Check](full-page-check.qmd): one page-level Check and Reset control with scores.
 - [GitHub README](https://github.com/VisruthSK/quarto-exercises#readme): package documentation and more details.
-

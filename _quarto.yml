@@ -15,4 +15,5 @@ website:
         text: Example
       - href: reference.qmd
         text: Reference
-
+      - href: full-page-check.qmd
+        text: Full Page Check

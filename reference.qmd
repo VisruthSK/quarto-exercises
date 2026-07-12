@@ -26,7 +26,38 @@ quarto-exercises:
   question-boxes: false       # Add a contained box around each exercise
   option-columns: 1           # Lay out MCQ options in one or two columns
   button-style: theme          # Use theme-aware Check, Reset, and Hint buttons
+  check-mode: exercise         # exercise, batch, or page controls
+  score: false                 # Show earned and possible points after checking
+  points: 1                    # Default points for each exercise
 ```
+
+---
+
+## Batch, Page, and Score Checking
+
+`check-mode: exercise` is the default: every `.exercise` has its own Check and Reset controls. Use `check-mode: batch` with a `.check-batch` wrapper to give a group of exercises one control set, while each nested exercise keeps question-specific options such as `shuffle`, `reveal`, and `points`.
+
+```markdown
+---
+quarto-exercises:
+  check-mode: batch
+  score: true
+---
+
+::: {.check-batch}
+::: {.exercise shuffle=true points=2}
+First question.
+:::
+
+::: {.exercise reveal=false points=3}
+Second question.
+:::
+:::
+```
+
+Set `check-mode: page` for one Check Page and Reset Page control after all exercises in the document. It checks every `.exercise` while preserving each question's own settings. Set `score: true` to show points after an individual, batch, or page check. Each exercise uses `points`, which defaults to `1`; incorrect exercises earn zero points.
+
+The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
 
 ---
 

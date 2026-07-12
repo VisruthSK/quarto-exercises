@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const exampleUrl = pathToFileURL(path.resolve('_site/example.html')).href;
+const fullPageUrl = pathToFileURL(path.resolve('_site/full-page-check.html')).href;
 const screenshotMask = readFileSync('tests/e2e/screenshot-mask.css', 'utf8');
 
 test.beforeEach(async ({ page }) => {
@@ -55,4 +56,16 @@ test('inline blank, choose, and code cloze interactions work', async ({ page }) 
   await cloze.locator('input').fill('sum');
   await cloze.locator('..').getByRole('button', { name: 'Check' }).click();
   await expect(cloze.locator('..').locator('.quarto-exercise-status')).toHaveText('Correct!');
+});
+
+test('page-level checking preserves question options and reports a total score', async ({ page }) => {
+  await page.goto(fullPageUrl, { waitUntil: 'load' });
+  await page.locator('[data-testid="page-ring"]').getByText('Frodo Baggins').click();
+  await page.locator('[data-testid="page-fellowship"]').getByText('Frodo Baggins').click();
+  await page.locator('[data-testid="page-fellowship"]').getByText('Samwise Gamgee').click();
+  await page.locator('[data-testid="page-blank"] .quarto-exercise-blank-input').fill('Gandalf');
+  await page.getByRole('button', { name: 'Check Page' }).click();
+  await expect(page.locator('.quarto-exercise-page-controls .quarto-exercise-status')).toHaveText('Correct! Score: 6 / 6.');
+  await expect(page.locator('.quarto-exercise-check-btn')).toHaveCount(1);
+  await expect(page.locator('.quarto-exercise-page-controls')).toHaveScreenshot('page-score-correct.png');
 });

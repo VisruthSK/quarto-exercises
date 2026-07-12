@@ -232,7 +232,7 @@ function initController(kind, root, exercises) {
   const status = $(actions, ".quarto-exercise-status");
   $(actions, ".quarto-exercise-check-btn").addEventListener("click", async () => {
     const results = await Promise.all(exercises.map(exercise => verifyExercise(exercise, exerciseParts(exercise))));
-    updateControllerStatus(status, results.every(Boolean));
+    updateControllerStatus(status, results.every(Boolean), exercises, bool(exercises[0].dataset.score));
   });
   $(actions, ".quarto-exercise-reset-btn").addEventListener("click", () => {
     exercises.forEach(exercise => resetExercise(exercise, exerciseParts(exercise)));
@@ -838,14 +838,17 @@ function updateExplanation(explanation, policy = "correct", allCorrect) {
 
 function updateStatus(status, exercise, allCorrect) {
   if (!status) return;
-  status.textContent = allCorrect ? exercise.dataset.feedbackCorrect : exercise.dataset.feedbackIncorrect;
+  const score = bool(exercise.dataset.score) ? ` Score: ${allCorrect ? exercise.dataset.points : 0} / ${exercise.dataset.points}.` : "";
+  status.textContent = (allCorrect ? exercise.dataset.feedbackCorrect : exercise.dataset.feedbackIncorrect) + score;
   status.classList.toggle("is-correct", allCorrect);
   status.classList.toggle("is-incorrect", !allCorrect);
 }
 
-function updateControllerStatus(status, allCorrect) {
+function updateControllerStatus(status, allCorrect, exercises = [], showScore = false) {
   if (!status) return;
-  status.textContent = allCorrect ? "Correct!" : "Not quite.";
+  const earned = exercises.reduce((total, exercise) => total + (exercise.querySelector('.quarto-exercise-status')?.classList.contains('is-correct') ? Number(exercise.dataset.points) : 0), 0);
+  const possible = exercises.reduce((total, exercise) => total + Number(exercise.dataset.points || 0), 0);
+  status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${earned} / ${possible}.` : "");
   status.classList.toggle("is-correct", allCorrect);
   status.classList.toggle("is-incorrect", !allCorrect);
 }

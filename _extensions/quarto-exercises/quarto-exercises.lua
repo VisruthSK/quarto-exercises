@@ -14,7 +14,9 @@ local defaults = {
   ["question-boxes"] = false,
   ["option-columns"] = 1,
   ["button-style"] = "theme",
-  ["check-mode"] = "exercise"
+  ["check-mode"] = "exercise",
+  score = false,
+  points = 1
 }
 
 local options = {}
@@ -35,7 +37,8 @@ local exercise_attrs = {
   ["feedback-correct"] = true,
   ["feedback-incorrect"] = true,
   ["question-boxes"] = true,
-  ["option-columns"] = true
+  ["option-columns"] = true,
+  points = true
 }
 
 local blank_attrs = {
@@ -660,7 +663,9 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-explanation-policy"] = exercise_options.explanation,
     ["data-feedback-correct"] = exercise_options["feedback-correct"],
     ["data-feedback-incorrect"] = exercise_options["feedback-incorrect"],
-    ["data-check-mode"] = exercise_options["check-mode"]
+    ["data-check-mode"] = exercise_options["check-mode"],
+    ["data-score"] = exercise_options.score,
+    ["data-points"] = exercise_options.points
   }
   for key, value in pairs(exercise_options.attributes or {}) do
     if key:match("^data%-") and div_attrs[key] == nil then
@@ -1263,6 +1268,8 @@ function Div(el)
     ["option-columns"] = validate_option(tostring(string_option(el.attributes, "option-columns")), { ["1"] = true, ["2"] = true }, "1", id, "option-columns"),
     ["button-style"] = validate_option(tostring(options["button-style"]), { plain = true, theme = true }, "theme", id, "button-style"),
     ["check-mode"] = validate_option(tostring(options["check-mode"]), { exercise = true, batch = true, page = true }, "exercise", id, "check-mode"),
+    score = bool_option(el.attributes, "score"),
+    points = tonumber(el.attributes.points or options.points) or defaults.points,
     attributes = el.attributes
   })
 end

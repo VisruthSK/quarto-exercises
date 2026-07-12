@@ -1,0 +1,50 @@
+---
+title: "Full Page Check"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-mode: page
+  score: true
+  reveal: false
+  reset: true
+---
+
+This page uses one Check Page button. Each question keeps its own options and point value.
+
+## Ringbearer (2 points)
+
+::: {.exercise data-testid="page-ring" points=2 shuffle=true}
+Who carried the One Ring out of the Shire?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Boromir
+:::
+:::
+
+## Fellowship (3 points)
+
+::: {.exercise data-testid="page-fellowship" points=3 reveal=false}
+Select all hobbits in the Fellowship.
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer correct=true}
+Samwise Gamgee
+:::
+
+::: {.answer}
+Legolas Greenleaf
+:::
+:::
+
+## Inline answer (1 point)
+
+::: {.exercise data-testid="page-blank" points=1}
+The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
+:::
