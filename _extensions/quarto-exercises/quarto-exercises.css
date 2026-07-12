@@ -46,6 +46,21 @@ body.quarto-dark {
   color: inherit;
   box-sizing: border-box;
   background: var(--ex-bg);
+  --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
+  --ex-button-primary-color: var(--bs-white, #fff);
+  --ex-button-secondary-bg: var(--bs-secondary-bg, var(--ex-control-bg));
+  --ex-button-secondary-color: var(--bs-body-color, inherit);
+  --ex-button-border: var(--bs-border-color, var(--ex-border-color));
+  --ex-box-bg: var(--bs-body-bg, transparent);
+  --ex-box-border: var(--bs-border-color, var(--ex-border-color));
+  --ex-box-radius: var(--bs-border-radius, var(--ex-border-radius));
+}
+
+.quarto-exercise-boxed {
+  padding: 1rem;
+  border: 1px solid var(--ex-box-border);
+  border-radius: var(--ex-box-radius);
+  background: var(--ex-box-bg);
 }
 
 .quarto-exercise [hidden],
@@ -82,6 +97,18 @@ body.quarto-dark {
   padding: 0 0 0 1.25rem; /* Indented choices like a list */
   margin: 0.5rem 0;
   list-style: none;
+}
+
+.quarto-exercise-options-cols-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .quarto-exercise-options-cols-2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .quarto-exercise-answer {
@@ -209,6 +236,40 @@ body.quarto-dark {
   color: var(--ex-incorrect) !important;
 }
 
+.quarto-exercise-answer.is-correct::before,
+.quarto-exercise-answer.is-incorrect::before {
+  grid-column: 1;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.quarto-exercise-answer.is-correct::before {
+  content: "✓";
+  color: var(--ex-correct);
+}
+
+.quarto-exercise-answer.is-incorrect::before {
+  content: "×";
+  color: var(--ex-incorrect);
+}
+
+.quarto-exercise-answer.is-correct .quarto-exercise-control,
+.quarto-exercise-answer.is-incorrect .quarto-exercise-control {
+  display: none;
+}
+
+.quarto-exercise-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 /* Feedback Styling (Indented below the choice content, no margins, no padding) */
 .quarto-exercise-feedback {
   font-size: 0.88em;
@@ -253,6 +314,27 @@ body.quarto-dark {
 .quarto-exercise-hint-btn:hover,
 .quarto-exercise-blank-check-btn:hover {
   background-color: var(--ex-control-hover-bg);
+}
+
+.quarto-exercise-btn {
+  border-color: var(--ex-button-border);
+}
+
+.quarto-exercise-btn-primary {
+  background: var(--ex-button-primary-bg);
+  border-color: var(--ex-button-primary-bg);
+  color: var(--ex-button-primary-color);
+}
+
+.quarto-exercise-btn-secondary,
+.quarto-exercise-hint-btn.quarto-exercise-btn-secondary {
+  background: var(--ex-button-secondary-bg);
+  color: var(--ex-button-secondary-color);
+}
+
+.quarto-exercise-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ex-focus-ring);
 }
 
 /* Hint Panel - Blue left border highlight */
@@ -545,4 +627,3 @@ body.quarto-dark .quarto-exercise-explanation {
   border-color: var(--ex-incorrect);
   color: var(--ex-incorrect);
 }
-

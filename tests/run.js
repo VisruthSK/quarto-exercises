@@ -484,7 +484,7 @@ He is short and has hairy feet.
     assert.match(html, /legend class="visually-hidden"/);
 
     // 4. Hints are parsed and rendered correctly
-    assert.match(html, /class="quarto-exercise-hint-btn"/);
+    assert.match(html, /class="quarto-exercise-hint-btn(?:\s|")/);
     assert.match(html, /class="quarto-exercise-hint"/);
 
     // Answer content is block-level, not invalid paragraphs inside spans/labels.
@@ -1293,6 +1293,83 @@ Saruman
     assert.match(css, /quarto-exercise-answer\.is-correct::before/);
   });
 
+  test('Visual style options render scoped classes and validate columns', () => {
+    const qmdContent = `---
+title: "Visual options"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  question-boxes: true
+  option-columns: 2
+  button-style: theme
+---
+
+::: {.exercise #global}
+Global visual options.
+
+::: {.answer correct=true}
+One
+:::
+
+::: {.answer}
+Two
+:::
+
+::: {.hint}
+Helpful hint.
+:::
+:::
+
+::: {.exercise #local-off question-boxes="false" option-columns="1"}
+Local overrides.
+
+::: {.answer correct=true}
+One
+:::
+
+::: {.answer}
+Two
+:::
+:::
+
+::: {.exercise #local-on question-boxes="true" option-columns="2"}
+Local opt-in.
+
+::: {.answer correct=true}
+One
+:::
+
+::: {.answer}
+Two
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'visual-options.qmd'), qmdContent);
+    const result = renderQuarto('visual-options.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'visual-options.html'), 'utf8');
+    assert.match(html, /id="global"[^>]*class="quarto-exercise quarto-exercise-boxed"|class="quarto-exercise quarto-exercise-boxed"[^>]*id="global"/);
+    assert.match(html, /id="global"[\s\S]*?quarto-exercise-options-cols-2/);
+    assert.match(html, /class="quarto-exercise"[^>]*id="local-off"/);
+    assert.doesNotMatch(html, /class="quarto-exercise quarto-exercise-boxed"[^>]*id="local-off"/);
+    assert.match(html, /id="local-off"[\s\S]*?quarto-exercise-options-cols-1/);
+    assert.match(html, /id="local-on"[\s\S]*?quarto-exercise-options-cols-2/);
+    assert.match(html, /quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary/);
+    assert.match(html, /quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
+    assert.match(html, /quarto-exercise-hint-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
+    assert.doesNotMatch(result.stderr, /unsupported/);
+
+    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns: 2', 'option-columns: 3'));
+    const invalid = runQuarto('invalid-columns.qmd');
+    assert.strictEqual(invalid.success, true, invalid.stderr);
+    assert.match(invalid.stderr, /unsupported option-columns '3'/);
+
+    fs.writeFileSync(path.join(TEMP_DIR, 'plain-buttons.qmd'), qmdContent.replace('button-style: theme', 'button-style: plain'));
+    renderQuarto('plain-buttons.qmd');
+    const plain = fs.readFileSync(path.join(TEMP_DIR, 'plain-buttons.html'), 'utf8');
+    assert.doesNotMatch(plain, /quarto-exercise-btn-primary/);
+    assert.doesNotMatch(plain, /quarto-exercise-btn-secondary/);
+  });
+
   test('Default options render into exercise, blank, and choice controls', () => {
     const qmdContent = `---
 title: "Default Options"
@@ -1644,7 +1721,7 @@ Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
     fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
     const failRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
     assert.strictEqual(failRes.success, false, "Should fail build if QUARTO_EXERCISES_KEY is missing");
-    assert.match(failRes.stderr + failRes.stdout, /randomBytes/, "Should fail with suggestion on how to generate key");
+    assert.match(failRes.stderr + failRes.stdout, /openssl rand -hex 32/, "Should fail with suggestion on how to generate key");
 
     // 2. Successful build when QUARTO_EXERCISES_KEY is set
     const buildRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: testSymmetricKey });

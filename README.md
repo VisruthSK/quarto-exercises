@@ -153,10 +153,6 @@ The extension parses pipe-separated text as options. Spaces around `|` are part 
 Is this correct? [`yes/no`]{.choose options="yes/no|maybe|unknown" answer="yes/no"}.
 ```
 
-```markdown
-Choose the literal token: [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-```
-
 An `.exercise` can group blanks and choices under one Check and Reset control:
 
 ```markdown
@@ -242,6 +238,10 @@ quarto-exercises:
   feedback-correct: "Correct!"
   feedback-incorrect: "Not quite."
   ignore-case: false
+  question-boxes: false
+  option-columns: 1
+  button-style: theme
+  check-mode: exercise
 ```
 
 Per-exercise overrides:
@@ -262,6 +262,40 @@ Exercise attributes:
 - `reset`: show the Reset button
 - `explanation`: `correct`, `after-check`, or `never`
 - `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
+- `question-boxes`: add a subtle border and padding around each exercise
+- `option-columns`: `1` or `2` columns for multiple-choice options
+- `button-style`: `theme` uses Quarto/Bootstrap variables when available; `plain` keeps the basic controls
+- `check-mode`: `exercise`, `batch`, or `page` controls where Check and Reset buttons appear
+
+Correct and incorrect choices are indicated with a check or X as well as color. Put a `.feedback` Div inside an `.answer` to show option-specific feedback after the learner checks that option.
+
+```markdown
+::: {.exercise question-boxes="true" option-columns="2"}
+Which answer is correct?
+
+::: {.answer correct=true}
+The correct answer.
+
+::: {.feedback}
+Exactly right.
+:::
+:::
+:::
+```
+
+For one control set around several exercises, set `check-mode: batch` and wrap them in `.check-batch`. `check-mode: page` gives the page one Check Page and Reset Page control; each `.exercise` still keeps its own options such as `shuffle` and `reveal`.
+
+```markdown
+::: {.check-batch}
+::: {.exercise shuffle="true"}
+Question one.
+:::
+
+::: {.exercise reveal="false"}
+Question two.
+:::
+:::
+```
 
 ## Non-HTML Output
 
@@ -327,9 +361,42 @@ body.quarto-dark {
 }
 ```
 
+## Answer Obfuscation
+
+To prevent students from finding correct answers in the generated static HTML source code (via DOM attributes, hidden tags, or inspect elements), the extension supports **static source obfuscation**.
+
+### Configuration
+
+Add the following options to your metadata:
+
+```yaml
+quarto-exercises:
+  obfuscate-answers: true # defaults to true
+```
+
+When `obfuscate-answers` is enabled, you **must** supply a build-time environment variable containing a secret key:
+
+```bash
+export QUARTO_EXERCISES_KEY="your-secret-key"
+```
+
+If the key is missing or empty, the build will fail with a compilation error. To generate a secure random hex key:
+
+```bash
+openssl rand -hex 32
+```
+
+### Security & Limitations
+
+> [!WARNING]
+> This feature acts as **static source obfuscation**, not server-side secure grading.
+>
+> - **Client-side Decryption**: The derived key is shipped inside the HTML to support fully offline grading. A determined student with browser DevTools can inspect the runtime JS state or extract the key to decrypt the answers.
+> - **Regex Checks**: Regex patterns are also decrypted in the browser, making them weaker and easier to inspect at runtime than finite-answer checks.
+
 ## Limitations
 
-- The correct answers and feedback are stored in the HTML source.
+- The correct answers and feedback are stored in the HTML source (obfuscated by default).
 - Inline blanks or choices inside `.answer` blocks are not supported.
 - Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if `collapse-space=true`, repeated whitespace is also collapsed to one space.
 - Long text inputs are capped at `380px` and scroll horizontally.

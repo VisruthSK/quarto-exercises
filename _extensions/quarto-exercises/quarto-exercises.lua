@@ -409,7 +409,7 @@ end
 
 local function check_attrs(actual, valid, id)
   for key in pairs(actual) do
-    if not valid[key] and key ~= "data-processed" and key ~= "data-cloze-processed" then
+    if not valid[key] and not key:match("^data%-") then
       warn(id, "unsupported attribute '" .. key .. "'")
     end
   end
@@ -577,7 +577,7 @@ local function split_answer(block, id)
   return content, feedback
 end
 
-local function parse_exercise(el, id)
+local function parse_exercise(el, id, has_inline)
   local parsed = {
     stem = pandoc.List(),
     answers = {},
@@ -632,7 +632,7 @@ local function parse_exercise(el, id)
     end
   end
 
-  if #parsed.answers == 0 and not has_inline_interaction(parsed.stem) and el.attributes["data-has-code-cloze"] ~= "true" then
+  if #parsed.answers == 0 and not has_inline and not has_inline_interaction(parsed.stem) and el.attributes["data-has-code-cloze"] ~= "true" then
     warn(id, "has no .answer blocks or inline blanks/choices")
   elseif #parsed.answers > 0 and parsed.correct_count == 0 then
     warn(id, "has no correct answers")
@@ -662,6 +662,11 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-feedback-incorrect"] = exercise_options["feedback-incorrect"],
     ["data-check-mode"] = exercise_options["check-mode"]
   }
+  for key, value in pairs(exercise_options.attributes or {}) do
+    if key:match("^data%-") and div_attrs[key] == nil then
+      div_attrs[key] = value
+    end
+  end
 
   output:insert(raw_block("div", div_attrs))
 
@@ -719,7 +724,7 @@ local function render_html_exercise(data, id, exercise_options)
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-reset-btn' .. reset_button_class .. '">Reset</button>'))
   end
   if data.hint then
-    output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-hint-btn">Hint</button>'))
+    output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-hint-btn' .. reset_button_class .. '">Hint</button>'))
   end
   output:insert(pandoc.RawBlock("html", '<span class="quarto-exercise-status" aria-live="polite"></span></div>'))
 
@@ -851,8 +856,6 @@ local function process_code_cloze(el, parent_id)
   local static_answers = {}
   local count = 0
   local id = id_for(el, "cloze")
-  io.stderr:write("DEBUG process_code_cloze: id=" .. tostring(id) .. " parent_id=" .. tostring(parent_id) .. "\n")
-  io.stderr:flush()
 
   local pos = 1
   while true do
@@ -1003,8 +1006,8 @@ local function process_code_cloze(el, parent_id)
   if parent_id == nil then
     local actions = pandoc.RawBlock("html",
       '<div class="quarto-exercise-actions">' ..
-      '<button type="button" class="quarto-exercise-check-btn">Check</button>' ..
-      '<button type="button" class="quarto-exercise-reset-btn">Reset</button>' ..
+      '<button type="button" class="quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary">Check</button>' ..
+      '<button type="button" class="quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary">Reset</button>' ..
       '<span class="quarto-exercise-status" aria-live="polite"></span>' ..
       '</div>'
     )
@@ -1180,10 +1183,6 @@ function Meta(meta)
       obfuscate = false
     end
   end
-  io.stderr:write("DEBUG Meta: override = " .. tostring(override) .. " val = " .. tostring(val) .. " obfuscate = " .. tostring(obfuscate) .. "\n")
-  io.stderr:write("DEBUG PANDOC_SCRIPT_FILE = " .. tostring(PANDOC_SCRIPT_FILE) .. "\n")
-  io.stderr:write("DEBUG env key = " .. tostring(os.getenv("QUARTO_EXERCISES_KEY")) .. "\n")
-  io.stderr:flush()
   if obfuscate and options["obfuscate-answers"] ~= nil then
     local val = normalize_bool(options["obfuscate-answers"])
     if val == "false" or options["obfuscate-answers"] == false then
@@ -1195,7 +1194,7 @@ function Meta(meta)
   if obfuscate then
     local key = os.getenv("QUARTO_EXERCISES_KEY")
     if not key or key == "" then
-      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' (e.g. generate one with 'node -e \"console.log(require(\\\"crypto\\\").randomBytes(32).toString(\\\"hex\\\"))\"') or set 'obfuscate-answers: false' in your settings.")
+      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' (for example: 'openssl rand -hex 32') or set 'obfuscate-answers: false' in your settings.")
     end
     options["_key"] = key
   end
@@ -1221,6 +1220,7 @@ function Div(el)
   check_attrs(el.attributes, exercise_attrs, id)
   check_bools(el.attributes, id)
 
+  local has_inline = has_inline_interaction(el.content)
   local has_code_cloze = false
   el = el:walk({
     CodeBlock = function(code)
@@ -1244,7 +1244,7 @@ function Div(el)
     el.attributes["data-has-code-cloze"] = "true"
   end
 
-  local data = parse_exercise(el, id)
+  local data = parse_exercise(el, id, has_inline)
   if not html() then
     return render_static_exercise(data)
   end
@@ -1262,7 +1262,8 @@ function Div(el)
     ["question-boxes"] = bool_option(el.attributes, "question-boxes"),
     ["option-columns"] = validate_option(tostring(string_option(el.attributes, "option-columns")), { ["1"] = true, ["2"] = true }, "1", id, "option-columns"),
     ["button-style"] = validate_option(tostring(options["button-style"]), { plain = true, theme = true }, "theme", id, "button-style"),
-    ["check-mode"] = validate_option(tostring(options["check-mode"]), { exercise = true, batch = true, page = true }, "exercise", id, "check-mode")
+    ["check-mode"] = validate_option(tostring(options["check-mode"]), { exercise = true, batch = true, page = true }, "exercise", id, "check-mode"),
+    attributes = el.attributes
   })
 end
 

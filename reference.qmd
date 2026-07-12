@@ -197,16 +197,6 @@ The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedbac
 
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
 
----
-
-```markdown
-The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-```
-
-The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-
----
-
 ```markdown
 The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
 ```

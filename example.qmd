@@ -24,7 +24,7 @@ See the extension in action. If you want to learn more about how to write the qu
 
 ### Minimal Single-Choice
 
-::: {.exercise}
+::: {.exercise data-testid="mcq-single"}
 Who carried the One Ring out of the Shire?
 
 ::: {.answer correct=true}
@@ -38,7 +38,7 @@ Boromir
 
 ### Multiple-Correct with Custom Keys & Shuffling
 
-::: {.exercise shuffle=true}
+::: {.exercise shuffle=true data-testid="mcq-multiple"}
 Which members of the Fellowship are hobbits? Select all that apply.
 
 ::: {.answer correct=true key="frodo"}
@@ -64,7 +64,7 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 
 ### Per-Answer Feedback & Question Explanation
 
-::: {.exercise}
+::: {.exercise data-testid="mcq-feedback"}
 What is the name of the wizard who guides the Fellowship?
 
 ::: {.answer correct=true}
@@ -90,7 +90,7 @@ Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.
 
 ### Code Blocks in Choices
 
-::: {.exercise}
+::: {.exercise data-testid="mcq-code"}
 What does the following Python statement print?
 
 ```python
@@ -132,13 +132,11 @@ The full title of the first volume of Lord of the Rings is [`The Fellowship of t
 
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
 
-The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-
 ### Nested in a Parent Exercise
 
 Grouping inline choices and blanks under a parent `.exercise` block combines their Check and Reset controls:
 
-::: {.exercise}
+::: {.exercise data-testid="mixed-inline-exercise"}
 The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 
 ::: {.hint}

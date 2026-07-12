@@ -40,7 +40,8 @@ process.stdin.on('end', () => {
     const cipher = crypto.createCipheriv('aes-256-gcm', pageKey, iv);
     cipher.setAAD(Buffer.from(aad, 'utf8'));
     
-    const plaintext = JSON.stringify(spec);
+    const { key: _key, ...payloadSpec } = spec;
+    const plaintext = JSON.stringify(payloadSpec);
     let ciphertext = cipher.update(plaintext, 'utf8');
     ciphertext = Buffer.concat([ciphertext, cipher.final()]);
     const tag = cipher.getAuthTag(); // 16-byte GCM authentication tag

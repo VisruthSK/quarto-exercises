@@ -116,7 +116,8 @@ async function checkAnswer(control, submittedValue) {
       if (decryptedCache.has(container)) {
         decrypted = decryptedCache.get(container);
       } else {
-        const fullClozeMeta = await decryptPayload(exerciseId, container.dataset.id || container.id, pba);
+        const clozeId = container.dataset.parentId || container.dataset.id || container.id || exerciseId;
+        const fullClozeMeta = await decryptPayload(clozeId, container.dataset.id || container.id, pba);
         if (fullClozeMeta && fullClozeMeta.metadata) {
           decrypted = fullClozeMeta.metadata;
           decryptedCache.set(container, decrypted);
