@@ -11,7 +11,7 @@ filters:
   - quarto-exercises
 quarto-exercises:
   instant: false
-  reveal: true
+  reveal: false
   lock: false
   reset: true
   shuffle: false
