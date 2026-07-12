@@ -8,13 +8,16 @@ const { spawnSync } = require('child_process');
 const assert = require('assert');
 const test = require('node:test');
 const vm = require('vm');
+const crypto = require('crypto');
 
 const TEMP_DIR = path.join(__dirname, '.tmp', 'test-sandbox');
 const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 
+const testSymmetricKey = crypto.randomBytes(32).toString('hex');
+
 // Helper to prepare temp directory
 function setup() {
-  process.env.QUARTO_EXERCISES_KEY = 'local-test-key';
+  process.env.QUARTO_EXERCISES_KEY = testSymmetricKey;
   if (fs.existsSync(TEMP_DIR)) {
     fs.rmSync(TEMP_DIR, { recursive: true, force: true });
   }
@@ -44,16 +47,17 @@ function copyFolderSync(from, to) {
 function runQuarto(fileName, format = 'html', extraEnv = {}) {
   const filePath = path.join(TEMP_DIR, fileName);
   const targetEnv = { ...extraEnv };
-  if (!fileName.startsWith('tdd-') && !extraEnv.hasOwnProperty('QUARTO_EXERCISES_KEY')) {
-    targetEnv.QUARTO_EXERCISES_DISABLE_OBFUSCATION = 'true';
-  }
   const mergedEnv = { ...process.env, ...targetEnv };
   for (const k in mergedEnv) {
     if (mergedEnv[k] === undefined || mergedEnv[k] === '') {
       delete mergedEnv[k];
     }
   }
-  const res = spawnSync(`quarto render ${quote(filePath)} --to ${quote(format)}`, {
+  let cmd = `quarto render ${quote(filePath)} --to ${quote(format)}`;
+  if (!fileName.startsWith('tdd-')) {
+    cmd += ` -M "quarto-exercises.obfuscate-answers=false"`;
+  }
+  const res = spawnSync(cmd, {
     encoding: 'utf8',
     shell: true,
     env: mergedEnv
@@ -83,6 +87,7 @@ function parseLuaDefaults(lua) {
     const raw = match[3];
     if (raw === 'true') out[key] = true;
     else if (raw === 'false') out[key] = false;
+    else if (/^\d+$/.test(raw)) out[key] = Number(raw);
     else out[key] = raw.replace(/^"(.*)"$/, '$1');
   }
   return out;
@@ -723,11 +728,13 @@ book = {{blank answer="^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$" match="regex
 
       await blank.fill('Fellowship of the Ring');
       await check.click();
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await blank.elementHandle());
       assert.strictEqual(await blank.evaluate(el => el.classList.contains('is-correct')), true);
 
       await page.locator('.quarto-exercise-reset-btn').click();
       await blank.fill('The Fellowship of the Ring');
       await check.click();
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await blank.elementHandle());
       assert.strictEqual(await blank.evaluate(el => el.classList.contains('is-correct')), true);
     } finally {
       await browser.close();
@@ -769,8 +776,13 @@ fellowship = {
       await page.locator('.quarto-exercise-code-blank').nth(1).fill('Fellowship of the Ring');
       await page.locator('.quarto-exercise-check-btn').click();
 
-      assert.strictEqual(await page.locator('.quarto-exercise-code-blank').nth(1).evaluate(el => el.classList.contains('is-correct')), true);
-      assert.strictEqual(await page.locator('.quarto-exercise-status').textContent(), 'Correct!');
+      const lastBlank = page.locator('.quarto-exercise-code-blank').nth(1);
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await lastBlank.elementHandle());
+      assert.strictEqual(await lastBlank.evaluate(el => el.classList.contains('is-correct')), true);
+      
+      const statusLoc = page.locator('.quarto-exercise-status');
+      await page.waitForFunction(el => el.textContent === 'Correct!', await statusLoc.elementHandle());
+      assert.strictEqual(await statusLoc.textContent(), 'Correct!');
     } finally {
       await browser.close();
     }
@@ -1116,6 +1128,8 @@ print({{blank answer="total"}})
       await blank.press('Tab');
       await select.selectOption('max');
       await check.click();
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await blank.elementHandle());
+      await page.waitForFunction(el => el.classList.contains('is-incorrect'), await select.elementHandle());
       const incorrect = await getBlankState();
       assert.strictEqual(incorrect.correct, true, 'correct blank text should be marked correct');
       assert.strictEqual(
@@ -1145,7 +1159,9 @@ print({{blank answer="total"}})
       await check.click();
       await check.click();
       assert.deepStrictEqual(pageErrors, [], 'checking an already-correct code cloze should not throw');
-      assert.strictEqual(await page.locator('.quarto-exercise-status').textContent(), 'Correct!');
+      const statusLoc = page.locator('.quarto-exercise-status');
+      await page.waitForFunction(el => el.textContent === 'Correct!', await statusLoc.elementHandle());
+      assert.strictEqual(await statusLoc.textContent(), 'Correct!');
     } finally {
       await browser.close();
     }
@@ -1253,8 +1269,28 @@ Saruman
       'feedback-correct': 'Correct!',
       'feedback-incorrect': 'Not quite.',
       'ignore-case': false,
-      'obfuscate-answers': true
+      'obfuscate-answers': true,
+      'question-boxes': false,
+      'option-columns': 1,
+      'button-style': 'theme',
+      'check-mode': 'exercise'
     });
+  });
+
+  test('Visual, answer-state, and controller APIs stay present', () => {
+    const lua = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.lua'), 'utf8');
+    const js = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
+    const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
+    for (const option of ['question-boxes', 'option-columns', 'button-style', 'check-mode']) {
+      assert.match(lua, new RegExp(`\\["${option}"\\]`));
+    }
+    assert.match(lua, /quarto-exercise-answer-state/);
+    assert.match(lua, /aria-live="polite"/);
+    assert.match(js, /function initCheckControllers/);
+    assert.match(js, /function setAnswerState/);
+    assert.match(css, /quarto-exercise-boxed/);
+    assert.match(css, /quarto-exercise-options-cols-2/);
+    assert.match(css, /quarto-exercise-answer\.is-correct::before/);
   });
 
   test('Default options render into exercise, blank, and choice controls', () => {
@@ -1298,8 +1334,8 @@ Default choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.match(html, /data-explanation-policy="correct"/);
     assert.match(html, /data-feedback-correct="Correct!"/);
     assert.match(html, /data-feedback-incorrect="Not quite\."/);
-    assert.match(html, /class="quarto-exercise-check-btn"/);
-    assert.match(html, /class="quarto-exercise-reset-btn"/);
+    assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
+    assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
 
     assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="false"/);
     assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-trim="true"/);
@@ -1414,8 +1450,8 @@ Local explanation.
     assert.match(html, /data-explanation-policy="after-check"/);
     assert.match(html, /data-feedback-correct="Local correct"/);
     assert.match(html, /data-feedback-incorrect="Local wrong"/);
-    assert.match(html, /class="quarto-exercise-check-btn"/);
-    assert.match(html, /class="quarto-exercise-reset-btn"/);
+    assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
+    assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
   });
 
   test('Stylesheet exposes the expected light and dark CSS defaults', () => {
@@ -1542,6 +1578,7 @@ Local explanation.
   });
 
   test('TDD Obfuscation/Encryption Leak and Config Tests', async () => {
+    setup();
     const playwright = require('playwright');
     const qmdContent = `---
 title: "TDD Leak Test"
@@ -1597,20 +1634,30 @@ fellowship = {
 }
 \`\`\`
 :::
+
+::: {.exercise #ex-inline}
+Inline blank: [Frodo]{.blank answer="Frodo"}.
+Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
+:::
 `;
     // 1. Missing key fails build when obfuscate-answers is default (true)
     fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
     const failRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
     assert.strictEqual(failRes.success, false, "Should fail build if QUARTO_EXERCISES_KEY is missing");
-    assert.match(failRes.stderr + failRes.stdout, /openssl rand -hex 32/, "Should fail with suggestion on how to generate key");
+    assert.match(failRes.stderr + failRes.stdout, /randomBytes/, "Should fail with suggestion on how to generate key");
 
     // 2. Successful build when QUARTO_EXERCISES_KEY is set
-    renderQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: 'local-test-key' });
+    const buildRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: testSymmetricKey });
+    assert.strictEqual(buildRes.success, true, "Build should succeed");
+    
+    // Assert no data-processed or has no .answer block warnings are present
+    assert.doesNotMatch(buildRes.stderr + buildRes.stdout, /data-processed/);
+    assert.doesNotMatch(buildRes.stderr + buildRes.stdout, /has no \.answer blocks/);
 
     const htmlPath = path.join(TEMP_DIR, 'tdd-leak.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    // Make sure we don't leak answer strings in serialized metadata or attributes
+    // Make sure we don't leak answer strings or signatures/public keys in attributes/source
     assert.doesNotMatch(html, /class="quarto-exercise-answer"[^>]*data-correct/);
     assert.doesNotMatch(html, /class="quarto-exercise-choose-container"[^>]*data-answer=/);
     assert.doesNotMatch(html, /class="quarto-exercise-blank-container"[^>]*data-answers=/);
@@ -1618,7 +1665,14 @@ fellowship = {
     assert.doesNotMatch(html, /"correct":/);
     assert.doesNotMatch(html, /\^\(0b\)\?1001\$/);
     assert.doesNotMatch(html, /\^\(the\\s\+\)\?fellowship\$/);
+    assert.doesNotMatch(html, /data-pubk=/);
+    assert.doesNotMatch(html, /data-sigs=/);
     
+    // Verify that data-pba is present on obfuscated controls
+    assert.match(html, /data-pba=/);
+    // Verify page key is injected in page source
+    assert.match(html, /window\.quartoExercisesKey\s*=/);
+
     // 3. Verify grading behavior in browser
     const browser = await playwright.chromium.launch();
     try {
@@ -1627,16 +1681,33 @@ fellowship = {
       page.on('pageerror', err => console.error('BROWSER ERROR:', err.message));
       await page.goto(`file://${htmlPath}`, { waitUntil: 'load' });
 
+      const expectStatus = async (selector, text) => {
+        const loc = page.locator(selector);
+        await page.waitForFunction(
+          ([el, expected]) => el.textContent === expected,
+          [await loc.elementHandle(), text]
+        );
+        assert.strictEqual(await loc.textContent(), text);
+      };
+
+      const expectClass = async (loc, className, shouldHave = true) => {
+        await page.waitForFunction(
+          ([el, name, has]) => el.classList.contains(name) === has,
+          [await loc.elementHandle(), className, shouldHave]
+        );
+        assert.strictEqual(await loc.evaluate((el, name) => el.classList.contains(name), className), shouldHave);
+      };
+
       // Test MCQ Single Selection
       const legolasLabel = page.locator('#ex-mc-single .quarto-exercise-answer', { hasText: 'Legolas' });
       await legolasLabel.click();
       await page.click('#ex-mc-single .quarto-exercise-check-btn');
-      assert.strictEqual(await page.locator('#ex-mc-single .quarto-exercise-status').textContent(), 'Not quite.');
+      await expectStatus('#ex-mc-single .quarto-exercise-status', 'Not quite.');
 
       const samLabel = page.locator('#ex-mc-single .quarto-exercise-answer', { hasText: 'Samwise' });
       await samLabel.click();
       await page.click('#ex-mc-single .quarto-exercise-check-btn');
-      assert.strictEqual(await page.locator('#ex-mc-single .quarto-exercise-status').textContent(), 'Correct!');
+      await expectStatus('#ex-mc-single .quarto-exercise-status', 'Correct!');
 
       // Test MCQ Multi Selection
       const multiFrodo = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Frodo' });
@@ -1646,43 +1717,43 @@ fellowship = {
       await multiFrodo.click();
       await multiLegolas.click();
       await page.click('#ex-mc-multi .quarto-exercise-check-btn');
-      assert.strictEqual(await page.locator('#ex-mc-multi .quarto-exercise-status').textContent(), 'Not quite.');
+      await expectStatus('#ex-mc-multi .quarto-exercise-status', 'Not quite.');
 
       await page.click('#ex-mc-multi .quarto-exercise-reset-btn');
       await multiFrodo.click();
       await multiSam.click();
       await page.click('#ex-mc-multi .quarto-exercise-check-btn');
-      assert.strictEqual(await page.locator('#ex-mc-multi .quarto-exercise-status').textContent(), 'Correct!');
+      await expectStatus('#ex-mc-multi .quarto-exercise-status', 'Correct!');
 
       // Standalone blank (Gandalf)
       const blank1 = page.locator('.quarto-exercise-blank-container').nth(0);
       await blank1.locator('input').fill('Wrong');
       await blank1.locator('button').click();
-      assert.strictEqual(await blank1.evaluate(el => el.classList.contains('is-correct')), false);
+      await expectClass(blank1, 'is-correct', false);
       await blank1.locator('input').fill('Gandalf');
       await blank1.locator('button').click();
-      assert.strictEqual(await blank1.evaluate(el => el.classList.contains('is-correct')), true);
+      await expectClass(blank1, 'is-correct', true);
 
       // Standalone blank multi (Samwise / Sam)
       const blank2 = page.locator('.quarto-exercise-blank-container').nth(1);
       await blank2.locator('input').fill('Samwise');
       await blank2.locator('button').click();
-      assert.strictEqual(await blank2.evaluate(el => el.classList.contains('is-correct')), true);
+      await expectClass(blank2, 'is-correct', true);
 
       // Standalone regex blank (^(0b)?1001$)
       const blank3 = page.locator('.quarto-exercise-blank-container').nth(2);
       await blank3.locator('input').fill('0b1001');
       await blank3.locator('button').click();
-      assert.strictEqual(await blank3.evaluate(el => el.classList.contains('is-correct')), true);
+      await expectClass(blank3, 'is-correct', true);
 
       // Standalone choose (Rivendell)
       const choose1 = page.locator('.quarto-exercise-choose-container').nth(0);
       await choose1.locator('select').selectOption('Edoras');
       await choose1.locator('button').click();
-      assert.strictEqual(await choose1.evaluate(el => el.classList.contains('is-correct')), false);
+      await expectClass(choose1, 'is-correct', false);
       await choose1.locator('select').selectOption('Rivendell');
       await choose1.locator('button').click();
-      assert.strictEqual(await choose1.evaluate(el => el.classList.contains('is-correct')), true);
+      await expectClass(choose1, 'is-correct', true);
 
       // Code Cloze
       const clozeBlank1 = page.locator('#ex-cloze .quarto-exercise-code-blank').nth(0);
@@ -1693,7 +1764,16 @@ fellowship = {
       await clozeBlank2.fill('fellowship');
       await clozeChoose.selectOption('Frodo');
       await page.click('#ex-cloze .quarto-exercise-check-btn');
-      assert.strictEqual(await page.locator('#ex-cloze .quarto-exercise-status').textContent(), 'Correct!');
+      await expectStatus('#ex-cloze .quarto-exercise-status', 'Correct!');
+
+      // Inline controls inside .exercise
+      const inlineBlank = page.locator('#ex-inline .quarto-exercise-blank-container');
+      await inlineBlank.locator('input').fill('Frodo');
+      const inlineChoose = page.locator('#ex-inline .quarto-exercise-choose-container');
+      await inlineChoose.locator('select').selectOption('Frodo');
+      await page.click('#ex-inline .quarto-exercise-check-btn');
+      await expectClass(inlineBlank, 'is-correct', true);
+      await expectClass(inlineChoose, 'is-correct', true);
     } finally {
       await browser.close();
     }

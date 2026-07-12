@@ -10,7 +10,11 @@ local defaults = {
   ["feedback-correct"] = "Correct!",
   ["feedback-incorrect"] = "Not quite.",
   ["ignore-case"] = false,
-  ["obfuscate-answers"] = true
+  ["obfuscate-answers"] = true,
+  ["question-boxes"] = false,
+  ["option-columns"] = 1,
+  ["button-style"] = "theme",
+  ["check-mode"] = "exercise"
 }
 
 local options = {}
@@ -29,7 +33,9 @@ local exercise_attrs = {
   reset = true,
   explanation = true,
   ["feedback-correct"] = true,
-  ["feedback-incorrect"] = true
+  ["feedback-incorrect"] = true,
+  ["question-boxes"] = true,
+  ["option-columns"] = true
 }
 
 local blank_attrs = {
@@ -66,39 +72,16 @@ local bool_attrs = {
   correct = true,
   ["ignore-case"] = true,
   trim = true,
-  ["collapse-space"] = true
+  ["collapse-space"] = true,
+  ["question-boxes"] = true
 }
 
--- Cryptographic primitives for answer obfuscation (SHA-256, HMAC, AES-128-GCM)
+-- Cryptographic primitives for answer obfuscation (SHA-256 and simple XOR cipher)
 local sha256 = {}
-local sbox = {
-  0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
-  0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
-  0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
-  0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75,
-  0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84,
-  0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
-  0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8,
-  0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2,
-  0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
-  0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb,
-  0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
-  0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
-  0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
-  0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
-  0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
-  0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
-}
-
-local rcon = {
-  0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
-}
-
-local function rrotate(x, n)
+local rrotate = function(x, n)
   return ((x >> n) | (x << (32 - n))) & 0xffffffff
 end
-
-local function rshift(x, n)
+local rshift = function(x, n)
   return (x >> n) & 0xffffffff
 end
 
@@ -208,227 +191,85 @@ function sha256.sha256(msg)
   return words_to_str(h)
 end
 
-local function hmac_sha256(key, message)
-  if #key > 64 then key = sha256.sha256(key) end
-  if #key < 64 then key = key .. string.rep(string.char(0), 64 - #key) end
-  local ipad = {}
-  local opad = {}
-  for i = 1, 64 do
-    local k_byte = string.byte(key, i)
-    ipad[i] = string.char(k_byte ~ 0x36)
-    opad[i] = string.char(k_byte ~ 0x5c)
+local json_encode
+
+local function json_decode(str)
+  local res = {}
+  
+  local payload = str:match('"payload"%s*:%s*"([^"]+)"')
+  if payload then
+    res.payload = payload
   end
-  local inner = sha256.sha256(table.concat(ipad) .. message)
-  return sha256.sha256(table.concat(opad) .. inner)
-end
-
-local function sub_word(w)
-  return (sbox[((w >> 24) & 0xff) + 1] << 24) |
-         (sbox[((w >> 16) & 0xff) + 1] << 16) |
-         (sbox[((w >> 8) & 0xff) + 1] << 8) |
-         sbox[(w & 0xff) + 1]
-end
-
-local function rot_word(w)
-  return (((w << 8) & 0xffffffff) | (w >> 24)) & 0xffffffff
-end
-
-local function key_expansion(key_str)
-  local w = {}
-  for i = 0, 3 do
-    local b1, b2, b3, b4 = string.byte(key_str, i*4 + 1, i*4 + 4)
-    w[i] = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4
+  
+  local pageKey = str:match('"pageKey"%s*:%s*"([^"]+)"')
+  if pageKey then
+    res.pageKey = pageKey
   end
-  for i = 4, 43 do
-    local temp = w[i - 1]
-    if i % 4 == 0 then
-      temp = sub_word(rot_word(temp)) ~ (rcon[i // 4] << 24)
+
+  local pub_x = str:match('"x"%s*:%s*"([^"]+)"')
+  local pub_y = str:match('"y"%s*:%s*"([^"]+)"')
+  local pub_crv = str:match('"crv"%s*:%s*"([^"]+)"')
+  local pub_kty = str:match('"kty"%s*:%s*"([^"]+)"')
+  if pub_x then
+    res.publicKey = {
+      x = pub_x,
+      y = pub_y,
+      crv = pub_crv,
+      kty = pub_kty
+    }
+  end
+  
+  local regex_payload = str:match('"regexPayload"%s*:%s*"([^"]+)"')
+  if regex_payload then
+    res.regexPayload = regex_payload
+  end
+  
+  local sigs_str = str:match('"signatures"%s*:%s*%[(.-)%]')
+  if sigs_str then
+    local signatures = {}
+    for sig in sigs_str:gmatch('"([a-f0-9]+)"') do
+      signatures[#signatures + 1] = sig
     end
-    w[i] = w[i - 4] ~ temp
+    res.signatures = signatures
   end
-  return w
-end
-
-local function galois_mul2(b)
-  local h = b & 0x80
-  local res = (b << 1) & 0xff
-  if h ~= 0 then res = res ~ 0x1b end
+  
   return res
 end
 
-local function aes_encrypt_block(block_str, round_keys)
-  local state = {}
-  for i = 0, 15 do state[i] = string.byte(block_str, i + 1) end
-  local function add_round_key(r)
-    local kw1 = round_keys[r * 4]
-    local kw2 = round_keys[r * 4 + 1]
-    local kw3 = round_keys[r * 4 + 2]
-    local kw4 = round_keys[r * 4 + 3]
-    local k_bytes = {
-      (kw1 >> 24) & 0xff, (kw1 >> 16) & 0xff, (kw1 >> 8) & 0xff, kw1 & 0xff,
-      (kw2 >> 24) & 0xff, (kw2 >> 16) & 0xff, (kw2 >> 8) & 0xff, kw2 & 0xff,
-      (kw3 >> 24) & 0xff, (kw3 >> 16) & 0xff, (kw3 >> 8) & 0xff, kw3 & 0xff,
-      (kw4 >> 24) & 0xff, (kw4 >> 16) & 0xff, (kw4 >> 8) & 0xff, kw4 & 0xff
-    }
-    for i = 0, 15 do state[i] = state[i] ~ k_bytes[i + 1] end
+local doc_id = "default-doc"
+
+local key_script_emitted = false
+local function get_key_script()
+  if not options["obfuscate-answers"] or key_script_emitted then
+    return ""
   end
-  add_round_key(0)
-  for r = 1, 9 do
-    for i = 0, 15 do state[i] = sbox[state[i] + 1] end
-    state[0], state[4], state[8], state[12] = state[0], state[4], state[8], state[12]
-    state[1], state[5], state[9], state[13] = state[5], state[9], state[13], state[1]
-    state[2], state[6], state[10], state[14] = state[10], state[14], state[2], state[6]
-    state[3], state[7], state[11], state[15] = state[15], state[3], state[7], state[11]
-    local temp = {}
-    for col = 0, 3 do
-      local i0 = col * 4
-      local s0, s1, s2, s3 = state[i0], state[i0+1], state[i0+2], state[i0+3]
-      temp[i0]   = galois_mul2(s0) ~ (galois_mul2(s1) ~ s1) ~ s2 ~ s3
-      temp[i0+1] = s0 ~ galois_mul2(s1) ~ (galois_mul2(s2) ~ s2) ~ s3
-      temp[i0+2] = s0 ~ s1 ~ galois_mul2(s2) ~ (galois_mul2(s3) ~ s3)
-      temp[i0+3] = (galois_mul2(s0) ~ s0) ~ s1 ~ s2 ~ galois_mul2(s3)
-    end
-    for i = 0, 15 do state[i] = temp[i] end
-    add_round_key(r)
+  local key = options["_page_key"]
+  if not key then
+    return ""
   end
-  for i = 0, 15 do state[i] = sbox[state[i] + 1] end
-  state[0], state[4], state[8], state[12] = state[0], state[4], state[8], state[12]
-  state[1], state[5], state[9], state[13] = state[5], state[9], state[13], state[1]
-  state[2], state[6], state[10], state[14] = state[10], state[14], state[2], state[6]
-  state[3], state[7], state[11], state[15] = state[15], state[3], state[7], state[11]
-  add_round_key(10)
-  local out_bytes = {}
-  for i = 0, 15 do out_bytes[i + 1] = string.char(state[i]) end
-  return table.concat(out_bytes)
+  key_script_emitted = true
+  return '<script type="text/javascript">/* protects against static source inspection, not runtime inspection */ window.quartoExercisesKey = "' .. key .. '"; window.quartoExercisesDocId = "' .. doc_id .. '";</script>'
 end
 
-local function gf_mul(X, Y)
-  local Z = {0, 0, 0, 0}
-  local V = {Y[1], Y[2], Y[3], Y[4]}
-  local R = {0xe1000000, 0, 0, 0}
-  for i = 0, 127 do
-    local word_idx = (i >> 5) + 1
-    local bit_idx = 31 - (i & 31)
-    if (X[word_idx] & (1 << bit_idx)) ~= 0 then
-      Z[1] = Z[1] ~ V[1]
-      Z[2] = Z[2] ~ V[2]
-      Z[3] = Z[3] ~ V[3]
-      Z[4] = Z[4] ~ V[4]
-    end
-    local carry = (V[4] & 1) ~= 0
-    V[4] = (V[4] >> 1) | ((V[3] & 1) << 31)
-    V[3] = (V[3] >> 1) | ((V[2] & 1) << 31)
-    V[2] = (V[2] >> 1) | ((V[1] & 1) << 31)
-    V[1] = V[1] >> 1
-    if carry then V[1] = V[1] ~ R[1] end
+local function protectAnswer(spec)
+  spec.documentId = doc_id
+  spec.key = options["_key"]
+  local json_input = json_encode(spec)
+  local filter_dir = PANDOC_SCRIPT_FILE:match("(.*[/\\])") or ""
+  local helper_path = filter_dir .. "crypto-helper.mjs"
+  local ok, output = pcall(pandoc.pipe, "node", { helper_path }, json_input)
+  if not ok then
+    error("quarto-exercises error: Failed to run crypto-helper.mjs. Make sure Node.js is installed and QUARTO_EXERCISES_KEY is set.")
   end
-  return Z
-end
-
-local function ghash(H, AAD, C)
-  local padded_aad = AAD .. string.rep(string.char(0), (16 - (#AAD % 16)) % 16)
-  local padded_c = C .. string.rep(string.char(0), (16 - (#C % 16)) % 16)
-  local len_aad_bits = #AAD * 8
-  local len_c_bits = #C * 8
-  local len_block = string.char(
-    (len_aad_bits >> 56) & 0xff, (len_aad_bits >> 48) & 0xff, (len_aad_bits >> 40) & 0xff, (len_aad_bits >> 32) & 0xff,
-    (len_aad_bits >> 24) & 0xff, (len_aad_bits >> 16) & 0xff, (len_aad_bits >> 8) & 0xff, len_aad_bits & 0xff,
-    (len_c_bits >> 56) & 0xff, (len_c_bits >> 48) & 0xff, (len_c_bits >> 40) & 0xff, (len_c_bits >> 32) & 0xff,
-    (len_c_bits >> 24) & 0xff, (len_c_bits >> 16) & 0xff, (len_c_bits >> 8) & 0xff, len_c_bits & 0xff
-  )
-  local data = padded_aad .. padded_c .. len_block
-  local Y = {0, 0, 0, 0}
-  local H_words = {
-    (H[1] << 24) | (H[2] << 16) | (H[3] << 8) | H[4],
-    (H[5] << 24) | (H[6] << 16) | (H[7] << 8) | H[8],
-    (H[9] << 24) | (H[10] << 16) | (H[11] << 8) | H[12],
-    (H[13] << 24) | (H[14] << 16) | (H[15] << 8) | H[16]
-  }
-  for i = 1, #data, 16 do
-    local b1, b2, b3, b4 = string.byte(data, i, i + 3)
-    local b5, b6, b7, b8 = string.byte(data, i + 4, i + 7)
-    local b9, b10, b11, b12 = string.byte(data, i + 8, i + 11)
-    local b13, b14, b15, b16 = string.byte(data, i + 12, i + 15)
-    local X = {
-      (b1 << 24) | (b2 << 16) | (b3 << 8) | b4,
-      (b5 << 24) | (b6 << 16) | (b7 << 8) | b8,
-      (b9 << 24) | (b10 << 16) | (b11 << 8) | b12,
-      (b13 << 24) | (b14 << 16) | (b15 << 8) | b16
-    }
-    Y[1] = Y[1] ~ X[1]
-    Y[2] = Y[2] ~ X[2]
-    Y[3] = Y[3] ~ X[3]
-    Y[4] = Y[4] ~ X[4]
-    Y = gf_mul(Y, H_words)
+  local res = json_decode(output)
+  if not res or not res.payload then
+    error("quarto-exercises error: Failed to encrypt payload. Node stdout was: " .. tostring(output))
   end
-  local out_bytes = {}
-  for word_idx = 1, 4 do
-    local w = Y[word_idx]
-    out_bytes[#out_bytes + 1] = string.char((w >> 24) & 0xff, (w >> 16) & 0xff, (w >> 8) & 0xff, w & 0xff)
+  if res and res.pageKey then
+    options["_page_key"] = res.pageKey
   end
-  return table.concat(out_bytes)
+  return res
 end
-
-local function aes_gcm_encrypt(plaintext, key, iv, aad)
-  local round_keys = key_expansion(key)
-  local zero_block = string.rep(string.char(0), 16)
-  local H_str = aes_encrypt_block(zero_block, round_keys)
-  local H = {}
-  for i = 1, 16 do H[i] = string.byte(H_str, i) end
-  
-  local C_parts = {}
-  local num_blocks = math.ceil(#plaintext / 16)
-  for i = 1, num_blocks do
-    local counter = i + 1
-    local counter_str = string.char((counter >> 24) & 0xff, (counter >> 16) & 0xff, (counter >> 8) & 0xff, counter & 0xff)
-    local J_i = iv .. counter_str
-    local keystream = aes_encrypt_block(J_i, round_keys)
-    local start_idx = (i - 1) * 16 + 1
-    local end_idx = math.min(i * 16, #plaintext)
-    local p_block = string.sub(plaintext, start_idx, end_idx)
-    local c_block_bytes = {}
-    for j = 1, #p_block do
-      c_block_bytes[j] = string.char(string.byte(p_block, j) ~ string.byte(keystream, j))
-    end
-    C_parts[#C_parts + 1] = table.concat(c_block_bytes)
-  end
-  local C = table.concat(C_parts)
-  local S = ghash(H, aad, C)
-  local J0 = iv .. string.char(0, 0, 0, 1)
-  local encrypted_J0 = aes_encrypt_block(J0, round_keys)
-  local tag_bytes = {}
-  for i = 1, 16 do tag_bytes[i] = string.char(string.byte(S, i) ~ string.byte(encrypted_J0, i)) end
-  return C, table.concat(tag_bytes)
-end
-
-local function hex_to_bytes(hex)
-  local bytes = {}
-  for i = 1, #hex, 2 do bytes[#bytes + 1] = string.char(tonumber(string.sub(hex, i, i + 1), 16)) end
-  return table.concat(bytes)
-end
-
-local function bytes_to_hex(bytes)
-  local hex = {}
-  for i = 1, #bytes do hex[#hex + 1] = string.format("%02x", string.byte(bytes, i)) end
-  return table.concat(hex)
-end
-
-local function encrypt_string(plaintext, key_hex)
-  local key = hex_to_bytes(key_hex)
-  local iv_hash = hmac_sha256(key, plaintext)
-  local iv = string.sub(iv_hash, 1, 12)
-  local C, tag = aes_gcm_encrypt(plaintext, key, iv, "")
-  return bytes_to_hex(iv .. C .. tag)
-end
-
-local function derive_key(id)
-  local master_key = options["_key"]
-  if not master_key or master_key == "" then return nil end
-  local derived = hmac_sha256(master_key, id)
-  return bytes_to_hex(derived):sub(1, 32)
-end
-
-local json_encode
 
 local counter = 0
 local alphabet = {}
@@ -568,7 +409,7 @@ end
 
 local function check_attrs(actual, valid, id)
   for key in pairs(actual) do
-    if not valid[key] then
+    if not valid[key] and key ~= "data-processed" and key ~= "data-cloze-processed" then
       warn(id, "unsupported attribute '" .. key .. "'")
     end
   end
@@ -609,6 +450,14 @@ local function validate_explanation(value, id)
     return defaults.explanation
   end
   return value
+end
+
+local function validate_option(value, allowed, default, id, name)
+  if allowed[value] then
+    return value
+  end
+  warn(id, "unsupported " .. name .. " '" .. tostring(value) .. "'")
+  return default
 end
 
 local function split_values(value, delimiter)
@@ -667,7 +516,9 @@ local function has_inline_interaction(blocks)
     else
       pandoc.walk_block(block, {
         Span = function(span)
-          if span.classes:includes("blank") or span.classes:includes("choose") then
+          if span.classes:includes("blank") or span.classes:includes("choose") or
+             span.classes:includes("quarto-exercise-blank-container") or
+             span.classes:includes("quarto-exercise-choose-container") then
             found = true
           end
         end,
@@ -676,7 +527,23 @@ local function has_inline_interaction(blocks)
             found = true
           end
           local cls = div.attributes and div.attributes["class"] or ""
-          if type(cls) == "string" and cls:find("quarto-exercise-code-cloze-container", 1, true) then
+          if type(cls) == "string" and (cls:find("quarto-exercise-code-cloze-container", 1, true) or
+             cls:find("quarto-exercise-blank-container", 1, true) or
+             cls:find("quarto-exercise-choose-container", 1, true)) then
+            found = true
+          end
+        end,
+        RawInline = function(raw)
+          if raw.format == "html" and (raw.text:find("quarto-exercise-blank-container", 1, true) or
+             raw.text:find("quarto-exercise-choose-container", 1, true) or
+             raw.text:find("quarto-exercise-code-cloze-container", 1, true)) then
+            found = true
+          end
+        end,
+        RawBlock = function(raw)
+          if raw.format == "html" and (raw.text:find("quarto-exercise-blank-container", 1, true) or
+             raw.text:find("quarto-exercise-choose-container", 1, true) or
+             raw.text:find("quarto-exercise-code-cloze-container", 1, true)) then
             found = true
           end
         end
@@ -776,24 +643,11 @@ end
 
 local function render_html_exercise(data, id, exercise_options)
   local output = pandoc.List()
+  output:insert(pandoc.RawBlock("html", get_key_script()))
   local input_type = data.correct_count > 1 and "checkbox" or "radio"
 
-  local key_obf = derive_key(id)
-  local metadata = { correct = {}, keys = {} }
-  local encrypted_meta = ""
-  if options["obfuscate-answers"] then
-    for _, answer in ipairs(data.answers) do
-      local token = bytes_to_hex(hmac_sha256(hex_to_bytes(key_obf), answer.key)):sub(1, 32)
-      metadata.keys[token] = answer.key
-      if answer.correct then
-        table.insert(metadata.correct, token)
-      end
-    end
-    encrypted_meta = encrypt_string(json_encode(metadata), key_obf)
-  end
-
   local div_attrs = {
-    class = "quarto-exercise",
+    class = "quarto-exercise" .. (exercise_options["question-boxes"] and " quarto-exercise-boxed" or ""),
     id = id,
     ["data-id"] = id,
     ["data-type"] = input_type,
@@ -805,12 +659,9 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-reshuffle-on-reset"] = exercise_options["reshuffle-on-reset"],
     ["data-explanation-policy"] = exercise_options.explanation,
     ["data-feedback-correct"] = exercise_options["feedback-correct"],
-    ["data-feedback-incorrect"] = exercise_options["feedback-incorrect"]
+    ["data-feedback-incorrect"] = exercise_options["feedback-incorrect"],
+    ["data-check-mode"] = exercise_options["check-mode"]
   }
-  if options["obfuscate-answers"] then
-    div_attrs["data-pbk"] = key_obf
-    div_attrs["data-pba"] = encrypted_meta
-  end
 
   output:insert(raw_block("div", div_attrs))
 
@@ -819,17 +670,24 @@ local function render_html_exercise(data, id, exercise_options)
   end
 
   if #data.answers > 0 then
-    output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">'))
+    output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-options-cols-' .. exercise_options["option-columns"] .. '">'))
     for _, answer in ipairs(data.answers) do
       local answer_key = answer.key
       local data_correct_attr = ' data-correct="' .. tostring(answer.correct) .. '"'
+      local pba_attr = ""
       if options["obfuscate-answers"] then
-        answer_key = bytes_to_hex(hmac_sha256(hex_to_bytes(key_obf), answer.key)):sub(1, 32)
         data_correct_attr = ''
+        local res = protectAnswer({
+          id = id,
+          controlId = answer_key,
+          kind = "mc",
+          correct = answer.correct
+        })
+        pba_attr = ' data-pba="' .. res.payload .. '"'
       end
       local input_id = id .. "-" .. answer_key
       output:insert(pandoc.RawBlock("html",
-        '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '"' .. data_correct_attr .. '>' ..
+        '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '"' .. data_correct_attr .. pba_attr .. '>' ..
         '<div class="quarto-exercise-control">' ..
         '<input id="' .. html_escape(input_id) .. '" type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer_key) .. '" class="quarto-exercise-input" />' ..
         '<label for="' .. html_escape(input_id) .. '" class="quarto-exercise-answer-label"></label>' ..
@@ -838,7 +696,7 @@ local function render_html_exercise(data, id, exercise_options)
       for _, block in ipairs(answer.content) do
         output:insert(block)
       end
-      output:insert(pandoc.RawBlock("html", "</div>"))
+      output:insert(pandoc.RawBlock("html", '</div><span class="quarto-exercise-answer-state quarto-exercise-sr-only"></span>'))
       if answer.feedback then
         output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-feedback" aria-live="polite" hidden>'))
         for _, block in ipairs(answer.feedback.content) do
@@ -852,11 +710,13 @@ local function render_html_exercise(data, id, exercise_options)
   end
 
   output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-actions">'))
+  local button_class = exercise_options["button-style"] == "theme" and " quarto-exercise-btn quarto-exercise-btn-primary" or ""
+  local reset_button_class = exercise_options["button-style"] == "theme" and " quarto-exercise-btn quarto-exercise-btn-secondary" or ""
   if not exercise_options.instant then
-    output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-check-btn">Check</button>'))
+    output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-check-btn' .. button_class .. '">Check</button>'))
   end
   if exercise_options.reset then
-    output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-reset-btn">Reset</button>'))
+    output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-reset-btn' .. reset_button_class .. '">Reset</button>'))
   end
   if data.hint then
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-hint-btn">Hint</button>'))
@@ -985,11 +845,14 @@ local function make_token(text, idx)
 end
 
 local function process_code_cloze(el, parent_id)
+  el.attributes["data-cloze-processed"] = nil
   local text = el.text
   local metadata = {}
   local static_answers = {}
   local count = 0
   local id = id_for(el, "cloze")
+  io.stderr:write("DEBUG process_code_cloze: id=" .. tostring(id) .. " parent_id=" .. tostring(parent_id) .. "\n")
+  io.stderr:flush()
 
   local pos = 1
   while true do
@@ -1091,37 +954,51 @@ local function process_code_cloze(el, parent_id)
   end
   el.classes:insert("quarto-exercise-code-cloze-code")
   el.attributes["lang"] = nil
-  local key_obf = derive_key(parent_id or id)
+  local pba_payload = nil
   if options["obfuscate-answers"] then
-    for token, info in pairs(metadata) do
-      local encrypted_attrs = encrypt_string(json_encode(info.attrs), key_obf)
-      info.pba = encrypted_attrs
-      info.attrs = nil
-    end
+    local res = protectAnswer({
+      id = parent_id or id,
+      controlId = id,
+      kind = "cloze",
+      metadata = metadata
+    })
+    pba_payload = res.payload
   end
 
-  local meta_json = json_encode(metadata)
   local classes = { "quarto-exercise-code-cloze-container" }
   if parent_id == nil then
     classes[#classes + 1] = "quarto-exercise-code-cloze-standalone"
   end
 
   local container_attrs = {
-    class = table.concat(classes, " "),
-    ["data-cloze-metadata"] = meta_json
+    class = table.concat(classes, " ")
   }
-  if options["obfuscate-answers"] then
-    container_attrs["data-pbk"] = key_obf
+  local display_metadata = {}
+  for token, info in pairs(metadata) do
+    local attrs = {}
+    for key, value in pairs(info.attrs) do
+      if key ~= "answer" and key ~= "answers" and key ~= "match" and
+         key ~= "ignore-case" and key ~= "trim" and key ~= "collapse-space" then
+        attrs[key] = value
+      end
+    end
+    display_metadata[token] = { type = info.type, attrs = attrs }
   end
+  if pba_payload then
+    container_attrs["data-pba"] = pba_payload
+  end
+  container_attrs["data-cloze-metadata"] = json_encode(options["obfuscate-answers"] and display_metadata or metadata)
 
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
+    container_attrs["data-id"] = id
   else
     container_attrs["id"] = id
     container_attrs["data-id"] = id
   end
 
   local container = pandoc.Div({ el }, container_attrs)
+  local prefix_html = get_key_script()
 
   if parent_id == nil then
     local actions = pandoc.RawBlock("html",
@@ -1131,13 +1008,23 @@ local function process_code_cloze(el, parent_id)
       '<span class="quarto-exercise-status" aria-live="polite"></span>' ..
       '</div>'
     )
-    return pandoc.Div({ container, actions }, { class = "quarto-exercise-code-cloze-wrapper" })
+    local wrapper = pandoc.Div({ container, actions }, { class = "quarto-exercise-code-cloze-wrapper" })
+    if prefix_html ~= "" then
+      return pandoc.List({ pandoc.RawBlock("html", prefix_html), wrapper })
+    else
+      return wrapper
+    end
   else
-    return container
+    if prefix_html ~= "" then
+      return pandoc.List({ pandoc.RawBlock("html", prefix_html), container })
+    else
+      return container
+    end
   end
 end
 
-local function render_blank(el, id)
+local function render_blank(el, id, parent_id)
+  el.attributes["data-processed"] = nil
   check_attrs(el.attributes, blank_attrs, id)
   check_bools(el.attributes, id)
 
@@ -1160,32 +1047,41 @@ local function render_blank(el, id)
     return options["show-answers"] and pandoc.Underline({ pandoc.Str(answer) }) or pandoc.Str("________")
   end
 
-  local key_obf = derive_key(id)
   local container_attrs = {
+    id = id,
     class = "quarto-exercise-blank-container",
     ["data-feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["data-feedback-incorrect"] = attr_or_empty(el.attributes, "feedback-incorrect")
   }
 
+  local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])) == "true"
+  local trim_val = (el.attributes.trim or "true") ~= "false"
+  local collapse_space_val = (el.attributes["collapse-space"] or "false") == "true"
+
   if options["obfuscate-answers"] then
-    local metadata = {
-      answers = answer,
+    local ans_list = split_values(answer, "|")
+    local res = protectAnswer({
+      id = parent_id or "default",
+      controlId = id,
+      kind = "blank",
       match = match,
-      ignoreCase = (normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])) == "true",
-      trim = (el.attributes.trim or "true") ~= "false",
-      collapseSpace = (el.attributes["collapse-space"] or "false") == "true"
-    }
-    container_attrs["data-pbk"] = key_obf
-    container_attrs["data-pba"] = encrypt_string(json_encode(metadata), key_obf)
+      answers = ans_list,
+      ignoreCase = ignore_case_val,
+      trim = trim_val,
+      collapseSpace = collapse_space_val
+    })
+    container_attrs["data-pba"] = res.payload
   else
     container_attrs["data-answers"] = answer
     container_attrs["data-match"] = match
-    container_attrs["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])
-    container_attrs["data-trim"] = el.attributes.trim or "true"
-    container_attrs["data-collapse-space"] = el.attributes["collapse-space"] or "false"
+    container_attrs["data-ignore-case"] = tostring(ignore_case_val)
+    container_attrs["data-trim"] = tostring(trim_val)
+    container_attrs["data-collapse-space"] = tostring(collapse_space_val)
   end
 
+  local prefix = get_key_script()
   return pandoc.RawInline("html",
+    prefix ..
     raw_inline("span", container_attrs) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..
@@ -1194,7 +1090,8 @@ local function render_blank(el, id)
   )
 end
 
-local function render_choose(el, id)
+local function render_choose(el, id, parent_id)
+  el.attributes["data-processed"] = nil
   check_attrs(el.attributes, choose_attrs, id)
   check_bools(el.attributes, id)
 
@@ -1224,8 +1121,8 @@ local function render_choose(el, id)
     return options["show-answers"] and pandoc.Underline({ pandoc.Str(answer) }) or pandoc.Str("________")
   end
 
-  local key_obf = derive_key(id)
   local container_attrs = {
+    id = id,
     class = "quarto-exercise-choose-container",
     ["data-options"] = join_values(values, "|"),
     ["data-shuffle"] = normalize_bool(el.attributes.shuffle) or tostring(options.shuffle),
@@ -1233,19 +1130,25 @@ local function render_choose(el, id)
     ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   }
 
+  local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
+
   if options["obfuscate-answers"] then
-    local metadata = {
+    local res = protectAnswer({
+      id = parent_id or "default",
+      controlId = id,
+      kind = "choose",
       answer = answer,
-      ignoreCase = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
-    }
-    container_attrs["data-pbk"] = key_obf
-    container_attrs["data-pba"] = encrypt_string(json_encode(metadata), key_obf)
+      ignoreCase = ignore_case_val
+    })
+    container_attrs["data-pba"] = res.payload
   else
     container_attrs["data-answer"] = answer
-    container_attrs["data-ignore-case"] = normalize_bool(el.attributes["ignore-case"]) or "false"
+    container_attrs["data-ignore-case"] = tostring(ignore_case_val)
   end
 
+  local prefix = get_key_script()
   return pandoc.RawInline("html",
+    prefix ..
     raw_inline("span", container_attrs) ..
     '<select class="quarto-exercise-choose-select"><option value="">Choose...</option></select>' ..
     '<span class="quarto-exercise-choose-correct-text" hidden></span>' ..
@@ -1255,6 +1158,12 @@ local function render_choose(el, id)
 end
 
 function Meta(meta)
+  if PANDOC_STATE and PANDOC_STATE.input_files and PANDOC_STATE.input_files[1] then
+    doc_id = PANDOC_STATE.input_files[1]:gsub("\\", "/")
+  elseif meta.title then
+    doc_id = pandoc.utils.stringify(meta.title):gsub("\\", "/")
+  end
+
   local config = as_value(meta["quarto-exercises"])
   if type(config) == "table" then
     for key, value in pairs(config) do
@@ -1263,21 +1172,30 @@ function Meta(meta)
   end
 
   local obfuscate = true
-  if options["obfuscate-answers"] ~= nil then
+  local override = meta["quarto-exercises.obfuscate-answers"]
+  local val = nil
+  if override ~= nil then
+    val = normalize_bool(as_value(override))
+    if val == "false" then
+      obfuscate = false
+    end
+  end
+  io.stderr:write("DEBUG Meta: override = " .. tostring(override) .. " val = " .. tostring(val) .. " obfuscate = " .. tostring(obfuscate) .. "\n")
+  io.stderr:write("DEBUG PANDOC_SCRIPT_FILE = " .. tostring(PANDOC_SCRIPT_FILE) .. "\n")
+  io.stderr:write("DEBUG env key = " .. tostring(os.getenv("QUARTO_EXERCISES_KEY")) .. "\n")
+  io.stderr:flush()
+  if obfuscate and options["obfuscate-answers"] ~= nil then
     local val = normalize_bool(options["obfuscate-answers"])
     if val == "false" or options["obfuscate-answers"] == false then
       obfuscate = false
     end
-  end
-  if os.getenv("QUARTO_EXERCISES_DISABLE_OBFUSCATION") == "true" then
-    obfuscate = false
   end
   options["obfuscate-answers"] = obfuscate
 
   if obfuscate then
     local key = os.getenv("QUARTO_EXERCISES_KEY")
     if not key or key == "" then
-      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' (e.g. generate one with 'openssl rand -hex 32') or set 'obfuscate-answers: false' in your settings.")
+      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' (e.g. generate one with 'node -e \"console.log(require(\\\"crypto\\\").randomBytes(32).toString(\\\"hex\\\"))\"') or set 'obfuscate-answers: false' in your settings.")
     end
     options["_key"] = key
   end
@@ -1311,6 +1229,15 @@ function Div(el)
         code.attributes["data-cloze-processed"] = "true"
         return process_code_cloze(code, id)
       end
+    end,
+    Span = function(span)
+      if span.classes:includes("blank") then
+        span.attributes["data-processed"] = "true"
+        return render_blank(span, id_for(span, "blank"), id)
+      elseif span.classes:includes("choose") then
+        span.attributes["data-processed"] = "true"
+        return render_choose(span, id_for(span, "choose"), id)
+      end
     end
   })
   if has_code_cloze then
@@ -1331,7 +1258,11 @@ function Div(el)
     ["reshuffle-on-reset"] = bool_option(el.attributes, "reshuffle-on-reset"),
     explanation = validate_explanation(string_option(el.attributes, "explanation"), id),
     ["feedback-correct"] = string_option(el.attributes, "feedback-correct"),
-    ["feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
+    ["feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
+    ["question-boxes"] = bool_option(el.attributes, "question-boxes"),
+    ["option-columns"] = validate_option(tostring(string_option(el.attributes, "option-columns")), { ["1"] = true, ["2"] = true }, "1", id, "option-columns"),
+    ["button-style"] = validate_option(tostring(options["button-style"]), { plain = true, theme = true }, "theme", id, "button-style"),
+    ["check-mode"] = validate_option(tostring(options["check-mode"]), { exercise = true, batch = true, page = true }, "exercise", id, "check-mode")
   })
 end
 
@@ -1347,11 +1278,14 @@ function CodeBlock(el)
 end
 
 function Span(el)
+  if el.attributes["data-processed"] == "true" then
+    return nil
+  end
   if el.classes:includes("blank") then
-    return render_blank(el, id_for(el, "blank"))
+    return render_blank(el, id_for(el, "blank"), nil)
   end
   if el.classes:includes("choose") then
-    return render_choose(el, id_for(el, "choose"))
+    return render_choose(el, id_for(el, "choose"), nil)
   end
   return nil
 end

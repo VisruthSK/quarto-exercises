@@ -9,44 +9,245 @@ const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const $ = (root, selector) => root.querySelector(selector);
 const $$ = (root, selector) => Array.from(root.querySelectorAll(selector));
 
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-  }
-  return bytes;
-}
+let aesGcmKey = null;
+const decryptedCache = new WeakMap();
 
-async function decryptPayload(keyHex, encryptedHex) {
-  const rawBytes = hexToBytes(encryptedHex);
-  const iv = rawBytes.slice(0, 12);
-  const ciphertextWithTag = rawBytes.slice(12);
-  const keyBytes = hexToBytes(keyHex);
-  const cryptoKey = await window.crypto.subtle.importKey(
+async function getAesGcmKey() {
+  if (aesGcmKey) return aesGcmKey;
+  const keyStr = window.quartoExercisesKey;
+  if (!keyStr) return null;
+  const keyBytes = hexToBytes(keyStr);
+  aesGcmKey = await window.crypto.subtle.importKey(
     "raw",
     keyBytes,
     { name: "AES-GCM" },
     false,
     ["decrypt"]
   );
-  const decrypted = await window.crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv },
-    cryptoKey,
-    ciphertextWithTag
-  );
-  return new TextDecoder().decode(decrypted);
+  return aesGcmKey;
 }
 
-async function initExercises() {
-  await Promise.all($$(document, ".quarto-exercise").map(initExercise));
-  await Promise.all($$(document, ".quarto-exercise-blank-container")
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+async function decryptPayload(exerciseId, controlId, payloadStr) {
+  // protects against static source inspection, not runtime inspection
+  const key = await getAesGcmKey();
+  if (!key) return null;
+
+  try {
+    const iv = hexToBytes(payloadStr.slice(0, 24));
+    const tag = hexToBytes(payloadStr.slice(-32));
+    const ciphertext = hexToBytes(payloadStr.slice(24, -32));
+
+    const combined = new Uint8Array(ciphertext.length + tag.length);
+    combined.set(ciphertext);
+    combined.set(tag, ciphertext.length);
+
+    const docId = window.quartoExercisesDocId || 'default-doc';
+    const aad = `${docId}:${exerciseId}:${controlId}`;
+
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv,
+        additionalData: new TextEncoder().encode(aad),
+        tagLength: 128
+      },
+      key,
+      combined
+    );
+    const plaintext = new TextDecoder().decode(decryptedBuffer);
+    return JSON.parse(plaintext);
+  } catch (e) {
+    console.error("Decryption failed:", e);
+    return null;
+  }
+}
+
+async function checkAnswer(control, submittedValue) {
+  const container = control.closest(".quarto-exercise-blank-container") ||
+                    control.closest(".quarto-exercise-choose-container") ||
+                    control.closest(".quarto-exercise-code-cloze-container") ||
+                    control.closest(".quarto-exercise");
+  if (!container) return false;
+
+  let exerciseId = "default";
+  const parentEx = container.closest(".quarto-exercise");
+  if (parentEx) {
+    exerciseId = parentEx.dataset.id || "default";
+  } else if (container.dataset.parentId) {
+    exerciseId = container.dataset.parentId;
+  }
+
+  // MCQ answer check
+  if (control.classList && control.classList.contains("quarto-exercise-answer")) {
+    if (control.dataset.correct !== undefined) {
+      return control.dataset.correct === "true";
+    }
+
+    if (decryptedCache.has(control)) {
+      return decryptedCache.get(control).correct === true;
+    }
+
+    const pba = control.dataset.pba;
+    if (!pba) return false;
+
+    const key = control.dataset.key;
+    const decrypted = await decryptPayload(exerciseId, key, pba);
+    if (decrypted) {
+      decryptedCache.set(control, decrypted);
+      return decrypted.correct === true;
+    }
+    return false;
+  }
+
+  // Get GCM payload for blanks/chooses or clozes
+  let decrypted = null;
+  const pba = container._payload || container.dataset.pba || container.getAttribute("data-pba");
+  if (pba) {
+    if (container.classList.contains("quarto-exercise-code-cloze-container")) {
+      // Code cloze: decrypts the entire metadata map
+      if (decryptedCache.has(container)) {
+        decrypted = decryptedCache.get(container);
+      } else {
+        const fullClozeMeta = await decryptPayload(exerciseId, container.dataset.id || container.id, pba);
+        if (fullClozeMeta && fullClozeMeta.metadata) {
+          decrypted = fullClozeMeta.metadata;
+          decryptedCache.set(container, decrypted);
+        }
+      }
+      // Get the spec for this specific token
+      if (decrypted && decrypted[control._controlId]) {
+        decrypted = decrypted[control._controlId].attrs;
+      } else {
+        decrypted = null;
+      }
+    } else {
+      // Standalone blank or choose
+      if (decryptedCache.has(container)) {
+        decrypted = decryptedCache.get(container);
+      } else {
+        decrypted = await decryptPayload(exerciseId, container.id, pba);
+        if (decrypted) {
+          decryptedCache.set(container, decrypted);
+        }
+      }
+    }
+  }
+
+  if (decrypted) {
+    // Obfuscated GCM path
+    if (control._kind === "blank") {
+      const matchMode = decrypted.match || "exact";
+      const answersList = decrypted.answers || decrypted.answer || [];
+      const ignoreCase = decrypted.ignoreCase || decrypted["ignore-case"] === "true";
+      const trimMode = decrypted.trim !== "false" && decrypted.trim !== false;
+      const collapseSpace = decrypted.collapseSpace || decrypted["collapse-space"] === "true";
+      return checkBlankMatch(
+        submittedValue,
+        answersList,
+        matchMode,
+        ignoreCase,
+        trimMode,
+        collapseSpace
+      );
+    }
+    if (control._kind === "choose") {
+      const expected = decrypted.answer || "";
+      let normalized = submittedValue;
+      const ignoreCase = decrypted.ignoreCase || decrypted["ignore-case"] === "true";
+      if (ignoreCase) {
+        return normalized.trim().toLowerCase() === expected.trim().toLowerCase();
+      }
+      return normalized.trim() === expected.trim();
+    }
+  } else {
+    // Non-obfuscated fallback matching (legacy / plaintext mode)
+    if (control._kind === "blank" && control._answers) {
+      return checkBlankMatch(
+        submittedValue,
+        control._answers,
+        control._attrs.match || "exact",
+        control._attrs.ignoreCase,
+        control._attrs.trim !== false,
+        control._attrs.collapseSpace
+      );
+    }
+
+    if (control._kind === "choose" && control._answer) {
+      let normalized = submittedValue;
+      let expected = control._answer;
+      if (control._attrs.ignoreCase) {
+        return normalized.trim().toLowerCase() === expected.trim().toLowerCase();
+      }
+      return normalized.trim() === expected.trim();
+    }
+  }
+
+  return false;
+}
+
+function initExercises() {
+  $$(document, ".quarto-exercise").forEach(initExercise);
+  initCheckControllers();
+  $$(document, ".quarto-exercise-blank-container")
     .filter(blank => !blank.closest(".quarto-exercise"))
-    .map(initStandaloneBlank));
-  await Promise.all($$(document, ".quarto-exercise-choose-container")
+    .forEach(initStandaloneBlank);
+  $$(document, ".quarto-exercise-choose-container")
     .filter(choose => !choose.closest(".quarto-exercise"))
-    .map(initStandaloneChoose));
-  await Promise.all($$(document, ".quarto-exercise-code-cloze-standalone")
-    .map(initStandaloneCodeCloze));
+    .forEach(initStandaloneChoose);
+  $$(document, ".quarto-exercise-code-cloze-standalone")
+    .forEach(initStandaloneCodeCloze);
+}
+
+function controllerActions(kind) {
+  const actions = document.createElement("div");
+  actions.className = `quarto-exercise-actions quarto-exercise-${kind}-controls`;
+  actions.dataset.checkController = kind;
+  actions.innerHTML =
+    `<button type="button" class="quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary">${kind === "page" ? "Check Page" : "Check"}</button>` +
+    `<button type="button" class="quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary">${kind === "page" ? "Reset Page" : "Reset"}</button>` +
+    '<span class="quarto-exercise-status" role="status"></span>';
+  return actions;
+}
+
+function removeExerciseControls(exercise) {
+  $$(exercise, ".quarto-exercise-actions > .quarto-exercise-check-btn, .quarto-exercise-actions > .quarto-exercise-reset-btn")
+    .forEach(button => button.remove());
+}
+
+function initController(kind, root, exercises) {
+  if (!exercises.length || root.dataset.controllerInitialized) return;
+  root.dataset.controllerInitialized = "true";
+  exercises.forEach(removeExerciseControls);
+  const actions = controllerActions(kind);
+  root.appendChild(actions);
+  const status = $(actions, ".quarto-exercise-status");
+  $(actions, ".quarto-exercise-check-btn").addEventListener("click", async () => {
+    const results = await Promise.all(exercises.map(exercise => verifyExercise(exercise, exerciseParts(exercise))));
+    updateControllerStatus(status, results.every(Boolean));
+  });
+  $(actions, ".quarto-exercise-reset-btn").addEventListener("click", () => {
+    exercises.forEach(exercise => resetExercise(exercise, exerciseParts(exercise)));
+    status.textContent = "";
+    status.classList.remove("is-correct", "is-incorrect");
+  });
+}
+
+function initCheckControllers() {
+  const exercises = $$(document, ".quarto-exercise");
+  const mode = exercises[0]?.dataset.checkMode || "exercise";
+  if (mode === "batch") {
+    $$(document, ".check-batch").forEach(batch => initController("batch", batch, $$(batch, ".quarto-exercise")));
+  } else if (mode === "page" && exercises.length) {
+    initController("page", document.body, exercises);
+  }
 }
 
 function bool(value, fallback = false) {
@@ -137,16 +338,19 @@ function checkBlankMatch(value, answersStr, matchMode, ignoreCase, trimMode, col
   const compare = text => (ignoreCase ? text.toLowerCase() : text);
   const userValue = compare(normalize(value));
 
+  const answersArr = Array.isArray(answersStr) ? answersStr : splitList(answersStr || "");
+
   if (matchMode === "regex") {
+    const pattern = answersArr[0] || "";
     try {
-      return new RegExp(normalize(answersStr || ""), ignoreCase ? "i" : "").test(normalize(value));
+      return new RegExp(normalize(pattern), ignoreCase ? "i" : "").test(normalize(value));
     } catch (error) {
-      console.warn("Invalid regex in blank:", answersStr, error);
+      console.warn("Invalid regex in blank:", pattern, error);
       return false;
     }
   }
 
-  const answers = splitList(answersStr).map(answer => compare(normalize(answer)));
+  const answers = answersArr.map(answer => compare(normalize(answer)));
   return answers.some(answer => answer === userValue);
 }
 
@@ -169,8 +373,6 @@ function adjustInputWidth(input) {
   measurer.remove();
 }
 
-// Pre-size a code-blank to its answer text so the blank gives a visual hint
-// of the expected length. Falls back to adjustInputWidth as the user types.
 function adjustCodeBlankWidth(input, hintText) {
   if (!input) return;
   if (input.value) { adjustInputWidth(input); return; }
@@ -185,19 +387,16 @@ function adjustCodeBlankWidth(input, hintText) {
   });
   measurer.textContent = text;
   document.body.appendChild(measurer);
-  // Add a tiny buffer for the text cursor only
   input.style.width = `${Math.min(Math.max(measurer.getBoundingClientRect().width + 4, 8), 380)}px`;
   measurer.remove();
 }
 
-// Resize code blank to fit the entered text (used on blur, not on hint)
 function adjustCodeBlankWidthToText(input) {
   if (!input) return;
-  if (!input.value) { 
-    input.style.width = ""; 
-    // Restore underline when empty
+  if (!input.value) {
+    input.style.width = "";
     input.style.borderBottom = "";
-    return; 
+    return;
   }
   const measurer = document.createElement("span");
   const style = window.getComputedStyle(input);
@@ -214,10 +413,7 @@ function adjustCodeBlankWidthToText(input) {
   });
   measurer.textContent = input.value;
   document.body.appendChild(measurer);
-  // Minimal 1px buffer for cursor, capped to prevent long entries from
-  // expanding the code block indefinitely.
   input.style.width = `${Math.min(Math.max(measurer.getBoundingClientRect().width + 1, 0), 380)}px`;
-  // Remove underline once text is entered
   input.style.borderBottom = "none";
   measurer.remove();
 }
@@ -235,13 +431,13 @@ function adjustSelectWidth(select) {
   });
   measurer.textContent = selectedText;
   document.body.appendChild(measurer);
-  
+
   const textWidth = measurer.getBoundingClientRect().width;
   const paddingLeft = parseFloat(style.paddingLeft) || 0;
   const paddingRight = parseFloat(style.paddingRight) || 0;
   const borderLeft = parseFloat(style.borderLeftWidth) || 0;
   const borderRight = parseFloat(style.borderRightWidth) || 0;
-  
+
   select.style.width = `${textWidth + paddingLeft + paddingRight + borderLeft + borderRight + 6}px`;
   measurer.remove();
 }
@@ -251,8 +447,21 @@ function initBlank(container, onCheck) {
   if (!input || input.dataset.initialized) return;
 
   input.dataset.initialized = "true";
+
+  if (container.dataset.sigs) {
+    try {
+      container._signatures = JSON.parse(container.dataset.sigs);
+    } catch(e){}
+    container.removeAttribute("data-sigs");
+  }
+  if (container.dataset.pba) {
+    container._payload = container.dataset.pba;
+    container.removeAttribute("data-pba");
+  }
+
   adjustInputWidth(input);
   input.addEventListener("input", () => adjustInputWidth(input));
+  input.addEventListener("blur", () => adjustInputWidth(input));
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -261,21 +470,26 @@ function initBlank(container, onCheck) {
   });
 }
 
-function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
+async function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
   const input = $(container, ".quarto-exercise-blank-input");
   const feedback = $(container, ".quarto-exercise-blank-feedback");
 
-  const isObfuscated = !!container._decryptedAttrs;
-  const attrs = isObfuscated ? container._decryptedAttrs : container.dataset;
+  const control = {
+    closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
+    _controlId: container.dataset.id || container.id || "default-blank",
+    _kind: "blank",
+    _signatures: container._signatures,
+    _regexPayload: container._regexPayload,
+    _answers: container.dataset.answers,
+    _attrs: {
+      match: container.dataset.match || "exact",
+      ignoreCase: container.dataset.ignoreCase === "true",
+      trim: container.dataset.trim !== "false",
+      collapseSpace: container.dataset.collapseSpace === "true"
+    }
+  };
 
-  const isCorrect = checkBlankMatch(
-    input.value,
-    isObfuscated ? attrs.answers : container.dataset.answers,
-    isObfuscated ? attrs.match : (container.dataset.match || "exact"),
-    isObfuscated ? attrs.ignoreCase : bool(container.dataset.ignoreCase),
-    isObfuscated ? attrs.trim : (container.dataset.trim !== "false"),
-    isObfuscated ? attrs.collapseSpace : bool(container.dataset.collapseSpace)
-  );
+  const isCorrect = await checkAnswer(control, input.value);
 
   container.classList.toggle("is-correct", isCorrect);
   input.classList.toggle("is-correct", isCorrect);
@@ -285,7 +499,14 @@ function verifyBlank(container, { showFeedback = false, reveal = false } = {}) {
   if (isCorrect) {
     correctText = input.value;
   } else if (reveal) {
-    const answersList = splitList(isObfuscated ? attrs.answers : container.dataset.answers);
+    let answersList = [];
+    const decrypted = decryptedCache.get(container);
+    if (decrypted) {
+      const rawAns = decrypted.answers || decrypted.answer || [];
+      answersList = Array.isArray(rawAns) ? rawAns : splitList(rawAns);
+    } else {
+      answersList = splitList(container.dataset.answers || "");
+    }
     correctText = answersList[0] || "";
   }
   setCorrectText(container, ".quarto-exercise-blank-correct-text", correctText);
@@ -314,18 +535,9 @@ function resetBlank(container) {
   adjustInputWidth(input);
 }
 
-async function initStandaloneBlank(container) {
+function initStandaloneBlank(container) {
   const checkButton = $(container, ".quarto-exercise-blank-check-btn");
-  const check = () => verifyBlank(container, { showFeedback: true });
-
-  if (container.dataset.pbk && container.dataset.pba) {
-    try {
-      const decryptedStr = await decryptPayload(container.dataset.pbk, container.dataset.pba);
-      container._decryptedAttrs = JSON.parse(decryptedStr);
-    } catch (e) {
-      console.error("Failed to decrypt blank:", e);
-    }
-  }
+  const check = async () => await verifyBlank(container, { showFeedback: true });
 
   initBlank(container, check);
   if (checkButton && !checkButton.dataset.initialized) {
@@ -347,6 +559,14 @@ function initChoose(container, onCheck, { instant = false } = {}) {
   if (!select || select.dataset.initialized) return;
 
   select.dataset.initialized = "true";
+
+  if (container.dataset.sigs) {
+    try {
+      container._signatures = JSON.parse(container.dataset.sigs);
+    } catch(e){}
+    container.removeAttribute("data-sigs");
+  }
+
   populateChoose(container);
   adjustSelectWidth(select);
 
@@ -362,21 +582,22 @@ function initChoose(container, onCheck, { instant = false } = {}) {
   });
 }
 
-function verifyChoose(container, { showFeedback = false, reveal = false } = {}) {
+async function verifyChoose(container, { showFeedback = false, reveal = false } = {}) {
   const select = $(container, ".quarto-exercise-choose-select");
   const feedback = $(container, ".quarto-exercise-choose-feedback");
-  const userValue = select.value;
 
-  const isObfuscated = !!container._decryptedAttrs;
-  const attrs = isObfuscated ? container._decryptedAttrs : container.dataset;
-  const answer = isObfuscated ? attrs.answer : (container.dataset.answer || "");
-  const ignoreCase = isObfuscated ? attrs.ignoreCase : (container.dataset.ignoreCase === "true");
+  const control = {
+    closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
+    _controlId: container.dataset.id || container.id || "default-choose",
+    _kind: "choose",
+    _signatures: container._signatures,
+    _answer: container.dataset.answer,
+    _attrs: {
+      ignoreCase: container.dataset.ignoreCase === "true"
+    }
+  };
 
-  const isCorrect = userValue
-    ? ignoreCase
-      ? userValue.toLowerCase() === answer.toLowerCase()
-      : userValue === answer
-    : false;
+  const isCorrect = await checkAnswer(control, select.value);
 
   container.classList.toggle("is-correct", isCorrect);
   select.classList.toggle("is-correct", isCorrect);
@@ -384,13 +605,20 @@ function verifyChoose(container, { showFeedback = false, reveal = false } = {}) 
 
   let correctText = "";
   if (isCorrect) {
-    correctText = userValue;
+    correctText = select.value;
   } else if (reveal) {
-    correctText = answer;
+    let expected = "";
+    const decrypted = decryptedCache.get(container);
+    if (decrypted) {
+      expected = decrypted.answer || "";
+    } else {
+      expected = container.dataset.answer || "";
+    }
+    correctText = expected;
   }
   setCorrectText(container, ".quarto-exercise-choose-correct-text", correctText);
 
-  if (showFeedback && userValue) {
+  if (showFeedback) {
     setFeedback(
       feedback,
       isCorrect ? container.dataset.feedbackCorrect : container.dataset.feedbackIncorrect,
@@ -407,45 +635,33 @@ function resetChoose(container) {
   const select = $(container, ".quarto-exercise-choose-select");
   container.classList.remove("is-correct");
   select.disabled = false;
-  select.value = "";
+  select.selectedIndex = 0;
   select.classList.remove("is-correct", "is-incorrect");
   setCorrectText(container, ".quarto-exercise-choose-correct-text", "");
   resetFeedback($(container, ".quarto-exercise-choose-feedback"));
   adjustSelectWidth(select);
+  const correctSpan = $(container, ".quarto-exercise-code-choose-correct");
+  if (correctSpan) {
+    correctSpan.remove();
+    select.style.display = "";
+    select._codeClozeCorrectSpan = null;
+  }
 }
 
-async function initStandaloneChoose(container) {
+function initStandaloneChoose(container) {
   const checkButton = $(container, ".quarto-exercise-choose-check-btn");
-  const check = () => verifyChoose(container, { showFeedback: true });
+  const check = async () => await verifyChoose(container, { showFeedback: true });
 
-  if (container.dataset.pbk && container.dataset.pba) {
-    try {
-      const decryptedStr = await decryptPayload(container.dataset.pbk, container.dataset.pba);
-      container._decryptedAttrs = JSON.parse(decryptedStr);
-    } catch (e) {
-      console.error("Failed to decrypt choose:", e);
-    }
-  }
-
-  initChoose(container, check, { instant: !checkButton || bool(container.dataset.instant) });
+  initChoose(container, check);
   if (checkButton && !checkButton.dataset.initialized) {
     checkButton.dataset.initialized = "true";
     checkButton.addEventListener("click", check);
   }
 }
 
-async function initExercise(exercise) {
+function initExercise(exercise) {
   if (exercise.dataset.initialized) return;
   exercise.dataset.initialized = "true";
-
-  if (exercise.dataset.pbk && exercise.dataset.pba) {
-    try {
-      const decryptedStr = await decryptPayload(exercise.dataset.pbk, exercise.dataset.pba);
-      exercise._decryptedMetadata = JSON.parse(decryptedStr);
-    } catch (e) {
-      console.error("Failed to decrypt exercise:", e);
-    }
-  }
 
   const answers = $$(exercise, ".quarto-exercise-answer");
   const blanks = $$(exercise, ".quarto-exercise-blank-container");
@@ -461,7 +677,7 @@ async function initExercise(exercise) {
   const reveal = bool(exercise.dataset.reveal);
   const lock = bool(exercise.dataset.lock);
 
-  const verify = () => verifyExercise(exercise, { answers, blanks, chooses, codeClozes, explanation, status, reveal, lock, checkButton, resetButton });
+  const verify = async () => await verifyExercise(exercise, { answers, blanks, chooses, codeClozes, explanation, status, reveal, lock, checkButton, resetButton });
 
   initAnswers(exercise, answers, verify, instant);
   blanks.forEach(blank => initBlank(blank, verify));
@@ -522,67 +738,86 @@ function shuffleAnswers(exercise, answers) {
   updateAnswerLabels(exercise);
 }
 
-function verifyAnswers(exercise, answers, reveal) {
+async function verifyAnswers(exercise, answers, reveal) {
   if (answers.length === 0) return true;
-
-  const isObfuscated = !!exercise._decryptedMetadata;
-  const correctTokens = isObfuscated ? exercise._decryptedMetadata.correct : [];
 
   const radio = exercise.dataset.type === "radio";
   let allCorrect = true;
 
-  answers.forEach(answer => {
+  for (const answer of answers) {
     const input = $(answer, ".quarto-exercise-input");
     const feedback = $(answer, ".quarto-exercise-feedback");
-    const correct = isObfuscated
-      ? correctTokens.includes(answer.dataset.key)
-      : answer.dataset.correct === "true";
+    const correct = await checkAnswer(answer, "true");
     const selected = input.checked;
 
     answer.classList.remove("is-correct", "is-incorrect");
+    setAnswerState(answer, null);
     setHidden(feedback, true);
 
     if (radio) {
       if (selected) {
         answer.classList.add(correct ? "is-correct" : "is-incorrect");
+        setAnswerState(answer, correct ? "correct" : "incorrect");
         setHidden(feedback, false);
         allCorrect = correct;
       }
     } else if (selected && correct) {
       answer.classList.add("is-correct");
+      setAnswerState(answer, "correct");
       setHidden(feedback, false);
     } else if (selected && !correct) {
       answer.classList.add("is-incorrect");
+      setAnswerState(answer, "incorrect");
       setHidden(feedback, false);
       allCorrect = false;
     } else if (!selected && correct) {
       allCorrect = false;
     }
-  });
+  }
 
   if (radio && !answers.some(answer => $(answer, ".quarto-exercise-input").checked)) {
     allCorrect = false;
   }
 
   if (reveal) {
-    answers
-      .filter(answer => {
-        return isObfuscated
-          ? correctTokens.includes(answer.dataset.key)
-          : answer.dataset.correct === "true";
-      })
-      .forEach(answer => answer.classList.add("is-correct"));
+    for (const answer of answers) {
+      const correct = await checkAnswer(answer, "true");
+      if (correct) {
+        answer.classList.add("is-correct");
+      }
+    }
   }
 
   return allCorrect;
 }
 
-function verifyExercise(exercise, parts) {
-  const answersOk = verifyAnswers(exercise, parts.answers, parts.reveal);
-  const blanksOk = parts.blanks.every(blank => verifyBlank(blank, { showFeedback: true, reveal: parts.reveal }));
-  const choosesOk = parts.chooses.every(choose => verifyChoose(choose, { showFeedback: true, reveal: parts.reveal }));
+function setAnswerState(answer, state) {
+  const target = $(answer, ".quarto-exercise-answer-state");
+  if (target) target.textContent = state === "correct" ? "Correct." : state === "incorrect" ? "Incorrect." : "";
+}
+
+async function verifyExercise(exercise, parts) {
+  const answersOk = await verifyAnswers(exercise, parts.answers, parts.reveal);
+  
+  let blanksOk = true;
+  for (const blank of parts.blanks) {
+    const ok = await verifyBlank(blank, { showFeedback: true, reveal: parts.reveal });
+    if (!ok) blanksOk = false;
+  }
+
+  let choosesOk = true;
+  for (const choose of parts.chooses) {
+    const ok = await verifyChoose(choose, { showFeedback: true, reveal: parts.reveal });
+    if (!ok) choosesOk = false;
+  }
+
   const codeClozes = parts.codeClozes || [];
-  const codeClozeOk = codeClozes.every(cc => verifyCodeCloze(cc, { showFeedback: true, reveal: parts.reveal }));
+  let codeClozeOk = true;
+  for (const cc of codeClozes) {
+    const ok = await verifyCodeCloze(cc, { showFeedback: true, reveal: parts.reveal });
+    if (!ok) codeClozeOk = false;
+  }
+
   const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
 
   updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
@@ -603,6 +838,13 @@ function updateExplanation(explanation, policy = "correct", allCorrect) {
 function updateStatus(status, exercise, allCorrect) {
   if (!status) return;
   status.textContent = allCorrect ? exercise.dataset.feedbackCorrect : exercise.dataset.feedbackIncorrect;
+  status.classList.toggle("is-correct", allCorrect);
+  status.classList.toggle("is-incorrect", !allCorrect);
+}
+
+function updateControllerStatus(status, allCorrect) {
+  if (!status) return;
+  status.textContent = allCorrect ? "Correct!" : "Not quite.";
   status.classList.toggle("is-correct", allCorrect);
   status.classList.toggle("is-incorrect", !allCorrect);
 }
@@ -631,9 +873,12 @@ function resetExercise(exercise, parts) {
 
   parts.answers.forEach(answer => {
     const input = $(answer, ".quarto-exercise-input");
-    input.disabled = false;
-    input.checked = false;
+    if (input) {
+      input.disabled = false;
+      input.checked = false;
+    }
     answer.classList.remove("is-selected", "is-correct", "is-incorrect");
+    setAnswerState(answer, null);
     setHidden($(answer, ".quarto-exercise-feedback"), true);
   });
 
@@ -675,9 +920,9 @@ function resolveExercise(exercise) {
 
 window.QuartoExercises = {
   init: initExercises,
-  checkExercise(exercise) {
+  async checkExercise(exercise) {
     const root = resolveExercise(exercise);
-    return root ? verifyExercise(root, exerciseParts(root)) : false;
+    return root ? await verifyExercise(root, exerciseParts(root)) : false;
   },
   resetExercise(exercise) {
     const root = resolveExercise(exercise);
@@ -696,30 +941,32 @@ function parseClozeMetadata(container) {
   }
 }
 
-function findTokenTextNode(code, token) {
-  const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.textContent.includes(token)) return node;
+function replaceTokenWithElement(codeNode, token, el) {
+  let textNode = null;
+  const walker = document.createTreeWalker(codeNode, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    if (walker.currentNode.textContent.includes(token)) {
+      textNode = walker.currentNode;
+      break;
+    }
   }
-  return null;
-}
-
-function replaceTokenWithElement(code, token, el) {
-  const textNode = findTokenTextNode(code, token);
   if (!textNode) return;
-  const idx = textNode.textContent.indexOf(token);
-  const before = textNode.textContent.slice(0, idx);
-  const after = textNode.textContent.slice(idx + token.length);
+
+  const text = textNode.textContent;
+  const idx = text.indexOf(token);
+  const beforeText = text.substring(0, idx);
+  const afterText = text.substring(idx + token.length);
+
   const parent = textNode.parentNode;
-  const beforeNode = document.createTextNode(before);
-  const afterNode = document.createTextNode(after);
+  const beforeNode = document.createTextNode(beforeText);
+  const afterNode = document.createTextNode(afterText);
+
   parent.replaceChild(afterNode, textNode);
   parent.insertBefore(el, afterNode);
   parent.insertBefore(beforeNode, el);
 }
 
-async function initCodeCloze(container, onCheck) {
+function initCodeCloze(container, onCheck) {
   if (container.dataset.initialized) return;
   container.dataset.initialized = "true";
 
@@ -727,21 +974,6 @@ async function initCodeCloze(container, onCheck) {
   if (!code) return;
 
   const metadata = parseClozeMetadata(container);
-  
-  if (container.dataset.pbk) {
-    const keyHex = container.dataset.pbk;
-    for (const [token, info] of Object.entries(metadata)) {
-      if (info.pba) {
-        try {
-          const decryptedStr = await decryptPayload(keyHex, info.pba);
-          info.attrs = JSON.parse(decryptedStr);
-        } catch (e) {
-          console.error("Failed to decrypt cloze token:", token, e);
-        }
-      }
-    }
-  }
-
   const controls = [];
 
   for (const [token, info] of Object.entries(metadata)) {
@@ -751,19 +983,18 @@ async function initCodeCloze(container, onCheck) {
       input.type = "text";
       input.className = "quarto-exercise-blank-input quarto-exercise-code-blank";
       input.setAttribute("aria-label", "Fill in the blank");
-      input.dataset.answers = attrs.answer || attrs.answers || "";
-      input.dataset.match = attrs.match || "exact";
-      input.dataset.ignoreCase = attrs["ignore-case"] || "false";
-      input.dataset.trim = attrs.trim || "true";
-      input.dataset.collapseSpace = attrs["collapse-space"] || "false";
       input.addEventListener("input", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("blur", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
-      // Size is deferred until after the element is in the DOM so
-      // getComputedStyle returns real font metrics.
       replaceTokenWithElement(code, token, input);
-      // No initial sizing to hint text - uses CSS default width
-      controls.push({ type: "blank", el: input, attrs });
+      controls.push({
+        type: "blank",
+        el: input,
+        attrs,
+        token,
+        signatures: info.signatures,
+        regexPayload: info.pba
+      });
     } else if (info.type === "choose") {
       const attrs = info.attrs || {};
       const select = document.createElement("select");
@@ -772,119 +1003,146 @@ async function initCodeCloze(container, onCheck) {
       splitList(attrs.options).forEach(opt => {
         select.appendChild(new Option(opt, opt));
       });
-      select.dataset.answer = attrs.answer || "";
-      select.dataset.ignoreCase = attrs["ignore-case"] || "false";
       select.addEventListener("change", () => adjustSelectWidth(select));
       select.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
       adjustSelectWidth(select);
       replaceTokenWithElement(code, token, select);
-      controls.push({ type: "choose", el: select, attrs });
+      controls.push({
+        type: "choose",
+        el: select,
+        attrs,
+        token,
+        signatures: info.signatures
+      });
     }
   }
 
   container._clozeControls = controls;
 }
 
-function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {}) {
+async function verifyCodeCloze(container, { showFeedback = false, reveal = false } = {}) {
   const controls = container._clozeControls || [];
   let allCorrect = true;
 
-  controls.forEach(({ type, el, attrs }) => {
+  for (const ctrl of controls) {
+    const { type, el, attrs, token, signatures, regexPayload } = ctrl;
     el.classList.remove("is-correct", "is-incorrect");
+
+    const controlObj = {
+      closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
+      _controlId: token,
+      _kind: type,
+      _signatures: signatures,
+      _regexPayload: regexPayload,
+      _answers: attrs.answer || attrs.answers || "",
+      _answer: attrs.answer || "",
+      _attrs: {
+        match: attrs.match || "exact",
+        ignoreCase: attrs["ignore-case"] === "true",
+        trim: attrs.trim !== "false",
+        collapseSpace: attrs["collapse-space"] === "true"
+      }
+    };
+
+    const ok = await checkAnswer(controlObj, el.value);
+
     if (type === "blank") {
-      const ok = checkBlankMatch(
-        el.value,
-        el.dataset.answers,
-        el.dataset.match || "exact",
-        el.dataset.ignoreCase === "true",
-        el.dataset.trim !== "false",
-        el.dataset.collapseSpace === "true"
-      );
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok);
       if (reveal && !ok) {
-        const answersList = splitList(el.dataset.answers);
-        el.value = answersList[0] || "";
-        el.classList.add("is-correct");
-        adjustCodeBlankWidthToText(el);
+        let answersList = [];
+        let rawAns = attrs.answer || attrs.answers || "";
+        const decrypted = decryptedCache.get(container);
+        if (decrypted && decrypted[token]) {
+          const spec = decrypted[token].attrs;
+          rawAns = spec.answer || spec.answers || "";
+        }
+        answersList = Array.isArray(rawAns) ? rawAns : splitList(rawAns);
+        if (answersList[0]) {
+          el.value = answersList[0];
+          el.classList.add("is-correct");
+          adjustCodeBlankWidthToText(el);
+        }
       }
       if (!ok) allCorrect = false;
     } else if (type === "choose") {
-      const answer = el.dataset.answer || "";
-      const ignoreCase = el.dataset.ignoreCase === "true";
-      const ok = el.value !== "" && (ignoreCase ? el.value.toLowerCase() === answer.toLowerCase() : el.value === answer);
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok && el.value !== "");
       if (ok || reveal) {
-        if (el._codeClozeCorrectSpan) return;
-        // Replace select with the selected text so it looks like real code
-        const selectedText = ok ? el.value : answer;
-        const span = document.createElement("span");
-        span.className = "quarto-exercise-code-choose-correct";
-        span.textContent = selectedText;
-        span.style.color = "var(--ex-correct)";
-        span.style.fontWeight = "bold";
-        span.style.fontFamily = "var(--bs-font-monospace, monospace)";
-        span.style.fontSize = "inherit";
-        if (el.parentNode) {
-          el.parentNode.replaceChild(span, el);
+        if (el._codeClozeCorrectSpan) continue;
+        let answer = attrs.answer || "";
+        const decrypted = decryptedCache.get(container);
+        if (decrypted && decrypted[token]) {
+          const spec = decrypted[token].attrs;
+          answer = spec.answer || "";
         }
-        // Store reference to select for reset
-        el._codeClozeCorrectSpan = span;
+        const selectedText = ok ? el.value : answer;
+        if (selectedText) {
+          const span = document.createElement("span");
+          span.className = "quarto-exercise-code-choose-correct";
+          span.textContent = selectedText;
+          el.style.display = "none";
+          el.parentNode.insertBefore(span, el.nextSibling);
+          el._codeClozeCorrectSpan = span;
+        }
       }
       if (!ok) allCorrect = false;
     }
-  });
+  }
 
   return allCorrect;
 }
 
 function resetCodeCloze(container) {
   const controls = container._clozeControls || [];
-  controls.forEach(({ type, el, attrs }) => {
+  controls.forEach(({ type, el }) => {
     el.classList.remove("is-correct", "is-incorrect");
+    el.disabled = false;
     if (type === "blank") {
       el.value = "";
-      // Reset to default CSS width and restore underline
       el.style.width = "";
       el.style.borderBottom = "";
     } else if (type === "choose") {
-      // If the select was replaced with a correct span, restore it
-      if (el._codeClozeCorrectSpan && el._codeClozeCorrectSpan.parentNode) {
-        el._codeClozeCorrectSpan.parentNode.replaceChild(el, el._codeClozeCorrectSpan);
+      el.selectedIndex = 0;
+      adjustSelectWidth(el);
+      const span = el._codeClozeCorrectSpan;
+      if (span) {
+        span.remove();
+        el.style.display = "";
         el._codeClozeCorrectSpan = null;
       }
-      el.value = "";
-      adjustSelectWidth(el);
     }
   });
 }
 
-async function initStandaloneCodeCloze(container) {
-  const wrapper = container.closest(".quarto-exercise-code-cloze-wrapper") || container;
-  const checkButton = wrapper.querySelector(".quarto-exercise-check-btn");
-  const resetButton = wrapper.querySelector(".quarto-exercise-reset-btn");
-  const status = wrapper.querySelector(".quarto-exercise-status");
-
-  const check = () => {
-    const ok = verifyCodeCloze(container, { showFeedback: true });
+function initStandaloneCodeCloze(container) {
+  const actions = container.nextElementSibling;
+  const checkBtn = actions && actions.classList.contains("quarto-exercise-actions") ? $(actions, ".quarto-exercise-check-btn") : null;
+  const resetBtn = actions && actions.classList.contains("quarto-exercise-actions") ? $(actions, ".quarto-exercise-reset-btn") : null;
+  
+  const check = async () => {
+    const ok = await verifyCodeCloze(container, { showFeedback: true });
+    const status = actions ? $(actions, ".quarto-exercise-status") : null;
     if (status) {
-      status.textContent = ok ? "Correct!" : "Not quite.";
-      status.className = "quarto-exercise-status " + (ok ? "is-correct" : "is-incorrect");
+      status.textContent = ok ? "Correct!" : "Incorrect";
+      status.classList.toggle("is-correct", ok);
+      status.classList.toggle("is-incorrect", !ok);
     }
   };
 
-  await initCodeCloze(container, check);
-  if (checkButton && !checkButton.dataset.initialized) {
-    checkButton.dataset.initialized = "true";
-    checkButton.addEventListener("click", check);
+  initCodeCloze(container, check);
+
+  if (checkBtn) {
+    checkBtn.addEventListener("click", check);
   }
-  if (resetButton) {
-    if (resetButton.dataset.initialized) return;
-    resetButton.dataset.initialized = "true";
-    resetButton.addEventListener("click", () => {
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
       resetCodeCloze(container);
-      if (status) { status.textContent = ""; status.className = "quarto-exercise-status"; }
+      const status = actions ? $(actions, ".quarto-exercise-status") : null;
+      if (status) {
+        status.textContent = "";
+        status.classList.remove("is-correct", "is-incorrect");
+      }
     });
   }
 }
