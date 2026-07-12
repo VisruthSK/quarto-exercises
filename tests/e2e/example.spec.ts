@@ -4,9 +4,11 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const exampleUrl = pathToFileURL(path.resolve('_site/example.html')).href;
+const screenshotMask = await readFile('tests/e2e/screenshot-mask.css', 'utf8');
 
 test.beforeEach(async ({ page }) => {
   await page.goto(exampleUrl, { waitUntil: 'load' });
+  await page.addStyleTag({ content: screenshotMask });
 });
 
 test('protected example source contains no answer metadata or internal sentinels', async () => {
