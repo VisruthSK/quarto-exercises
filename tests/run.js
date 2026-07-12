@@ -830,8 +830,6 @@ No answer blocks.
 title: "Fallback Test"
 filters:
   - quarto-exercises
-quarto-exercises:
-  show-answers: true
 ---
 
 ::: {.exercise}
@@ -854,21 +852,19 @@ The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
     const mdPath = path.join(TEMP_DIR, 'fallback.md');
     const md = fs.readFileSync(mdPath, 'utf8');
 
-    // Should render list letters and answer keys
+    // Should render list letters
     assert.match(md, /A\.\s+Frodo/);
     assert.match(md, /B\.\s+Legolas/);
-    assert.match(md, /Answer:\s+A/);
-    assert.match(md, /Gandalf/);
+    assert.doesNotMatch(md, /Answer:/);
+    assert.doesNotMatch(md, /Gandalf/);
     assert.doesNotMatch(md, /<div>/);
   });
 
-  test('Code cloze fallback renders placeholders and answer keys in non-HTML output', () => {
+  test('Code cloze fallback renders placeholders in non-HTML output', () => {
     const qmdContent = `---
 title: "Code Cloze Fallback Test"
 filters:
   - quarto-exercises
-quarto-exercises:
-  show-answers: true
 ---
 
 \`\`\`{.code-cloze lang="r"}
@@ -882,7 +878,7 @@ total <- {{blank answer="sum"}}(x)
     const md = fs.readFileSync(path.join(TEMP_DIR, 'code-cloze-fallback.md'), 'utf8');
     assert.match(md, /x <- ________\(1, 2, 3\)/);
     assert.match(md, /total <- ________\(x\)/);
-    assert.match(md, /Answer:\s*1\. c,\s*2\. sum/);
+    assert.doesNotMatch(md, /Answer:/);
     assert.doesNotMatch(md, /\{\{choose/);
     assert.doesNotMatch(md, /\{\{blank/);
   });
@@ -1264,7 +1260,6 @@ Saruman
       reset: true,
       shuffle: false,
       'reshuffle-on-reset': false,
-      'show-answers': false,
       explanation: 'correct',
       'feedback-correct': 'Correct!',
       'feedback-incorrect': 'Not quite.',
@@ -1533,6 +1528,70 @@ Local explanation.
     assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
   });
 
+  test('check-mode: page suppresses individual check and reset buttons in the HTML', () => {
+    const qmdContent = `---
+title: "Page Checking Mode"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-mode: page
+---
+
+::: {.exercise #ex1}
+Question 1.
+::: {.answer correct=true}
+Yes
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'page-mode.qmd'), qmdContent);
+    renderQuarto('page-mode.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'page-mode.html'), 'utf8');
+    assert.doesNotMatch(html, /class="quarto-exercise-check-btn"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
+  });
+
+  test('check-mode: batch suppresses individual buttons inside .check-batch in the HTML', () => {
+    const qmdContent = `---
+title: "Batch Checking Mode"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-mode: batch
+---
+
+::: {.check-batch}
+::: {.exercise #ex-in-batch}
+Inside batch.
+
+::: {.answer correct=true}
+Yes
+:::
+:::
+:::
+
+::: {.exercise #ex-out-batch}
+Outside batch.
+
+::: {.answer correct=true}
+Yes
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'batch-mode.qmd'), qmdContent);
+    renderQuarto('batch-mode.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-mode.html'), 'utf8');
+    // The exercise inside the batch should not have check/reset buttons
+    const batchPart = html.match(/class="quarto-exercise"[^>]*id="ex-in-batch"[\s\S]*?class="quarto-exercise"[^>]*id="ex-out-batch"/)[0];
+    assert.doesNotMatch(batchPart, /quarto-exercise-check-btn/);
+
+    // The exercise outside the batch should still have check/reset buttons
+    const outPart = html.match(/class="quarto-exercise"[^>]*id="ex-out-batch"[\s\S]*$/)[0];
+    assert.match(outPart, /quarto-exercise-check-btn/);
+  });
+
   test('Stylesheet exposes the expected light and dark CSS defaults', () => {
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
     assert.deepStrictEqual(parseCssVariables(css, ':root'), {
@@ -1657,7 +1716,6 @@ Local explanation.
   });
 
   test('TDD Obfuscation/Encryption Leak and Config Tests', async () => {
-    setup();
     const playwright = require('playwright');
     const qmdContent = `---
 title: "TDD Leak Test"

@@ -223,32 +223,148 @@ function removeExerciseControls(exercise) {
     .forEach(button => button.remove());
 }
 
-function initController(kind, root, exercises) {
-  if (!exercises.length || root.dataset.controllerInitialized) return;
+function findCheckableUnits(root) {
+  const exercises = $$(root, ".quarto-exercise");
+  const blanks = $$(root, ".quarto-exercise-blank-container").filter(el => !el.closest(".quarto-exercise"));
+  const chooses = $$(root, ".quarto-exercise-choose-container").filter(el => !el.closest(".quarto-exercise"));
+  const clozes = $$(root, ".quarto-exercise-code-cloze-standalone").filter(el => !el.closest(".quarto-exercise"));
+  return { exercises, blanks, chooses, clozes };
+}
+
+function initController(kind, root) {
+  if (root.dataset.controllerInitialized) return;
   root.dataset.controllerInitialized = "true";
-  exercises.forEach(removeExerciseControls);
+
+  const units = findCheckableUnits(root);
+  units.exercises.forEach(removeExerciseControls);
+  units.blanks.forEach(el => $(el.parentNode, ".quarto-exercise-blank-check-btn")?.remove());
+  units.chooses.forEach(el => $(el.parentNode, ".quarto-exercise-choose-check-btn")?.remove());
+  units.clozes.forEach(el => {
+    const actions = el.nextElementSibling || el.closest(".quarto-exercise-code-cloze-wrapper")?.querySelector(".quarto-exercise-actions");
+    $(actions, ".quarto-exercise-check-btn")?.remove();
+    $(actions, ".quarto-exercise-reset-btn")?.remove();
+  });
+
   const actions = controllerActions(kind);
   root.appendChild(actions);
   const status = $(actions, ".quarto-exercise-status");
+
   $(actions, ".quarto-exercise-check-btn").addEventListener("click", async () => {
-    const results = await Promise.all(exercises.map(exercise => verifyExercise(exercise, exerciseParts(exercise))));
-    updateControllerStatus(status, results.every(Boolean), exercises, bool(exercises[0].dataset.score));
+    const exerciseResults = await Promise.all(units.exercises.map(ex => verifyExercise(ex, exerciseParts(ex))));
+    
+    const blankResults = await Promise.all(units.blanks.map(async blank => {
+      const ok = await verifyBlank(blank, { showFeedback: true });
+      blank._earnedPoints = ok ? 1 : 0;
+      blank._possiblePoints = 1;
+      return ok;
+    }));
+
+    const chooseResults = await Promise.all(units.chooses.map(async choose => {
+      const ok = await verifyChoose(choose, { showFeedback: true });
+      choose._earnedPoints = ok ? 1 : 0;
+      choose._possiblePoints = 1;
+      return ok;
+    }));
+
+    const clozeResults = await Promise.all(units.clozes.map(async cloze => {
+      const ok = await verifyCodeCloze(cloze, { showFeedback: true });
+      cloze._earnedPoints = ok ? 1 : 0;
+      cloze._possiblePoints = 1;
+      const act = cloze.nextElementSibling || cloze.closest(".quarto-exercise-code-cloze-wrapper")?.querySelector(".quarto-exercise-actions");
+      const stat = act ? $(act, ".quarto-exercise-status") : null;
+      if (stat) {
+        stat.textContent = ok ? "Correct!" : "Incorrect";
+        stat.classList.toggle("is-correct", ok);
+        stat.classList.toggle("is-incorrect", !act);
+      }
+      return ok;
+    }));
+
+    const allCorrect = [...exerciseResults, ...blankResults, ...chooseResults, ...clozeResults].every(Boolean);
+
+    let totalEarned = 0;
+    let totalPossible = 0;
+    
+    units.exercises.forEach(ex => {
+      totalEarned += ex._earnedPoints !== undefined ? ex._earnedPoints : 0;
+      totalPossible += ex._possiblePoints !== undefined ? ex._possiblePoints : 1;
+    });
+    units.blanks.forEach(b => {
+      totalEarned += b._earnedPoints !== undefined ? b._earnedPoints : 0;
+      totalPossible += b._possiblePoints !== undefined ? b._possiblePoints : 1;
+    });
+    units.chooses.forEach(c => {
+      totalEarned += c._earnedPoints !== undefined ? c._earnedPoints : 0;
+      totalPossible += c._possiblePoints !== undefined ? c._possiblePoints : 1;
+    });
+    units.clozes.forEach(c => {
+      totalEarned += c._earnedPoints !== undefined ? c._earnedPoints : 0;
+      totalPossible += c._possiblePoints !== undefined ? c._possiblePoints : 1;
+    });
+
+    totalEarned = Math.round(totalEarned * 100) / 100;
+    totalPossible = Math.round(totalPossible * 100) / 100;
+
+    const showScore = window.quartoExercisesScore === true || units.exercises.some(ex => bool(ex.dataset.score));
+    status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${totalEarned} / ${totalPossible}.` : "");
+    status.classList.toggle("is-correct", allCorrect);
+    status.classList.toggle("is-incorrect", !allCorrect);
   });
+
   $(actions, ".quarto-exercise-reset-btn").addEventListener("click", () => {
-    exercises.forEach(exercise => resetExercise(exercise, exerciseParts(exercise)));
+    units.exercises.forEach(ex => resetExercise(ex, exerciseParts(ex)));
+
+    units.blanks.forEach(b => {
+      const input = $(b, ".quarto-exercise-blank-input");
+      if (input) {
+        input.value = "";
+        input.classList.remove("is-correct", "is-incorrect");
+        adjustInputWidth(input);
+      }
+      setCorrectText(b, ".quarto-exercise-blank-correct-text", "");
+      resetFeedback($(b, ".quarto-exercise-blank-feedback"));
+      b._earnedPoints = 0;
+    });
+
+    units.chooses.forEach(c => {
+      const select = $(c, ".quarto-exercise-choose-select");
+      if (select) {
+        select.value = "";
+        select.classList.remove("is-correct", "is-incorrect");
+        adjustSelectWidth(select);
+      }
+      resetFeedback($(c, ".quarto-exercise-choose-feedback"));
+      c._earnedPoints = 0;
+    });
+
+    units.clozes.forEach(c => {
+      resetCodeCloze(c);
+      const act = c.nextElementSibling || c.closest(".quarto-exercise-code-cloze-wrapper")?.querySelector(".quarto-exercise-actions");
+      const stat = act ? $(act, ".quarto-exercise-status") : null;
+      if (stat) {
+        stat.textContent = "";
+        stat.classList.remove("is-correct", "is-incorrect");
+      }
+      c._earnedPoints = 0;
+    });
+
     status.textContent = "";
     status.classList.remove("is-correct", "is-incorrect");
   });
 }
 
 function initCheckControllers() {
-  const exercises = $$(document, ".quarto-exercise");
-  const mode = exercises[0]?.dataset.checkMode || "exercise";
+  const mode = window.quartoExercisesCheckMode || "exercise";
   if (mode === "batch") {
-    $$(document, ".check-batch").forEach(batch => initController("batch", batch, $$(batch, ".quarto-exercise")));
-  } else if (mode === "page" && exercises.length) {
+    $$(document, ".check-batch").forEach(batch => {
+      initController("batch", batch);
+    });
+  } else if (mode === "page") {
     const content = document.querySelector("main#quarto-document-content, main.content, main") || document.body;
-    initController("page", content, exercises);
+    const units = findCheckableUnits(content);
+    if (units.exercises.length > 0 || units.blanks.length > 0 || units.chooses.length > 0 || units.clozes.length > 0) {
+      initController("page", content);
+    }
   }
 }
 
@@ -467,7 +583,10 @@ function initBlank(container, onCheck) {
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") {
       event.preventDefault();
-      onCheck();
+      const mode = window.quartoExercisesCheckMode || "exercise";
+      if (mode === "exercise") {
+        onCheck();
+      }
     }
   });
 }
@@ -579,7 +698,10 @@ function initChoose(container, onCheck, { instant = false } = {}) {
   select.addEventListener("keydown", event => {
     if (event.key === "Enter") {
       event.preventDefault();
-      onCheck();
+      const mode = window.quartoExercisesCheckMode || "exercise";
+      if (mode === "exercise") {
+        onCheck();
+      }
     }
   });
 }
@@ -799,31 +921,50 @@ function setAnswerState(answer, state) {
 }
 
 async function verifyExercise(exercise, parts) {
+  const hasMcq = parts.answers.length > 0;
+  const blanksCount = parts.blanks.length;
+  const choosesCount = parts.chooses.length;
+  const codeClozesCount = parts.codeClozes.length;
+  const N = (hasMcq ? 1 : 0) + blanksCount + choosesCount + codeClozesCount;
+
   const answersOk = await verifyAnswers(exercise, parts.answers, parts.reveal);
   
   let blanksOk = true;
+  let correctBlanks = 0;
   for (const blank of parts.blanks) {
     const ok = await verifyBlank(blank, { showFeedback: true, reveal: parts.reveal });
-    if (!ok) blanksOk = false;
+    if (ok) correctBlanks++;
+    else blanksOk = false;
   }
 
   let choosesOk = true;
+  let correctChooses = 0;
   for (const choose of parts.chooses) {
     const ok = await verifyChoose(choose, { showFeedback: true, reveal: parts.reveal });
-    if (!ok) choosesOk = false;
+    if (ok) correctChooses++;
+    else choosesOk = false;
   }
 
   const codeClozes = parts.codeClozes || [];
   let codeClozeOk = true;
+  let correctClozes = 0;
   for (const cc of codeClozes) {
     const ok = await verifyCodeCloze(cc, { showFeedback: true, reveal: parts.reveal });
-    if (!ok) codeClozeOk = false;
+    if (ok) correctClozes++;
+    else codeClozeOk = false;
   }
 
   const allCorrect = answersOk && blanksOk && choosesOk && codeClozeOk;
 
+  const possible = Number(exercise.dataset.points) || 1;
+  let correctUnits = (answersOk && hasMcq ? 1 : 0) + correctBlanks + correctChooses + correctClozes;
+  const earned = N > 0 ? (possible / N) * correctUnits : 0;
+  
+  exercise._earnedPoints = earned;
+  exercise._possiblePoints = possible;
+
   updateExplanation(parts.explanation, exercise.dataset.explanationPolicy, allCorrect);
-  updateStatus(parts.status, exercise, allCorrect);
+  updateStatus(parts.status, exercise, allCorrect, earned, possible);
 
   if (parts.lock && allCorrect) {
     lockExercise(exercise, parts);
@@ -837,19 +978,13 @@ function updateExplanation(explanation, policy = "correct", allCorrect) {
   explanation.hidden = policy === "never" || (policy === "correct" && !allCorrect);
 }
 
-function updateStatus(status, exercise, allCorrect) {
+function updateStatus(status, exercise, allCorrect, earned = null, possible = null) {
   if (!status) return;
-  const score = bool(exercise.dataset.score) ? ` Score: ${allCorrect ? exercise.dataset.points : 0} / ${exercise.dataset.points}.` : "";
+  const pts = possible !== null ? possible : (Number(exercise.dataset.points) || 1);
+  const earn = earned !== null ? earned : (allCorrect ? pts : 0);
+  const roundedEarn = Math.round(earn * 100) / 100;
+  const score = bool(exercise.dataset.score) ? ` Score: ${roundedEarn} / ${pts}.` : "";
   status.textContent = (allCorrect ? exercise.dataset.feedbackCorrect : exercise.dataset.feedbackIncorrect) + score;
-  status.classList.toggle("is-correct", allCorrect);
-  status.classList.toggle("is-incorrect", !allCorrect);
-}
-
-function updateControllerStatus(status, allCorrect, exercises = [], showScore = false) {
-  if (!status) return;
-  const earned = exercises.reduce((total, exercise) => total + (exercise.querySelector('.quarto-exercise-status')?.classList.contains('is-correct') ? Number(exercise.dataset.points) : 0), 0);
-  const possible = exercises.reduce((total, exercise) => total + Number(exercise.dataset.points || 0), 0);
-  status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${earned} / ${possible}.` : "");
   status.classList.toggle("is-correct", allCorrect);
   status.classList.toggle("is-incorrect", !allCorrect);
 }
@@ -924,15 +1059,7 @@ function resolveExercise(exercise) {
 }
 
 window.QuartoExercises = {
-  init: initExercises,
-  async checkExercise(exercise) {
-    const root = resolveExercise(exercise);
-    return root ? await verifyExercise(root, exerciseParts(root)) : false;
-  },
-  resetExercise(exercise) {
-    const root = resolveExercise(exercise);
-    if (root) resetExercise(root, exerciseParts(root));
-  }
+  init: initExercises
 };
 
 // ---- Code Cloze implementation ----
@@ -990,7 +1117,13 @@ function initCodeCloze(container, onCheck) {
       input.setAttribute("aria-label", "Fill in the blank");
       input.addEventListener("input", () => adjustCodeBlankWidthToText(input));
       input.addEventListener("blur", () => adjustCodeBlankWidthToText(input));
-      input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const mode = window.quartoExercisesCheckMode || "exercise";
+          if (mode === "exercise" && onCheck) onCheck();
+        }
+      });
       replaceTokenWithElement(code, token, input);
       controls.push({
         type: "blank",
@@ -1009,7 +1142,13 @@ function initCodeCloze(container, onCheck) {
         select.appendChild(new Option(opt, opt));
       });
       select.addEventListener("change", () => adjustSelectWidth(select));
-      select.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (onCheck) onCheck(); } });
+      select.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const mode = window.quartoExercisesCheckMode || "exercise";
+          if (mode === "exercise" && onCheck) onCheck();
+        }
+      });
       adjustSelectWidth(select);
       replaceTokenWithElement(code, token, select);
       controls.push({

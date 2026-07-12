@@ -18,7 +18,6 @@ quarto-exercises:
   reset: true                 # Show a Reset button to clear student inputs
   shuffle: false              # Randomize the display order of choices
   reshuffle-on-reset: false   # Randomize option order again when clicking Reset
-  show-answers: false         # Print answers inline or below questions (mostly for print/PDF)
   explanation: correct        # When to reveal explanations: correct, after-check, or never
   feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
   feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer

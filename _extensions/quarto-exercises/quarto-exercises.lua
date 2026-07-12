@@ -5,7 +5,6 @@ local defaults = {
   reset = true,
   shuffle = false,
   ["reshuffle-on-reset"] = false,
-  ["show-answers"] = false,
   explanation = "correct",
   ["feedback-correct"] = "Correct!",
   ["feedback-incorrect"] = "Not quite.",
@@ -243,15 +242,18 @@ local doc_id = "default-doc"
 
 local key_script_emitted = false
 local function get_key_script()
-  if not options["obfuscate-answers"] or key_script_emitted then
+  if key_script_emitted then
     return ""
   end
   local key = options["_page_key"]
-  if not key then
+  if options["obfuscate-answers"] and not key then
     return ""
   end
   key_script_emitted = true
-  return '<script type="text/javascript">/* protects against static source inspection, not runtime inspection */ window.quartoExercisesKey = "' .. key .. '"; window.quartoExercisesDocId = "' .. doc_id .. '";</script>'
+  local key_val = key or ""
+  local check_mode = options["check-mode"] or "exercise"
+  local score_val = tostring(options["score"] == true)
+  return '<script type="text/javascript">/* protects against static source inspection, not runtime inspection */ window.quartoExercisesKey = "' .. key_val .. '"; window.quartoExercisesDocId = "' .. doc_id .. '"; window.quartoExercisesCheckMode = "' .. check_mode .. '"; window.quartoExercisesScore = ' .. score_val .. ';</script>'
 end
 
 local function protectAnswer(spec)
@@ -577,6 +579,10 @@ local function split_answer(block, id)
     warn(id, "answer block has no content")
   end
 
+  if not feedback and block.attributes.feedback then
+    feedback = pandoc.Div({ pandoc.Para({ block.attributes.feedback }) }, { class = "feedback" })
+  end
+
   return content, feedback
 end
 
@@ -722,10 +728,10 @@ local function render_html_exercise(data, id, exercise_options)
   output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-actions">'))
   local button_class = exercise_options["button-style"] == "theme" and " quarto-exercise-btn quarto-exercise-btn-primary" or ""
   local reset_button_class = exercise_options["button-style"] == "theme" and " quarto-exercise-btn quarto-exercise-btn-secondary" or ""
-  if not exercise_options.instant then
+  if not exercise_options.instant and not exercise_options.suppress_controls then
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-check-btn' .. button_class .. '">Check</button>'))
   end
-  if exercise_options.reset then
+  if exercise_options.reset and not exercise_options.suppress_controls then
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-reset-btn' .. reset_button_class .. '">Reset</button>'))
   end
   if data.hint then
@@ -785,21 +791,6 @@ local function render_static_exercise(data)
       items[#items + 1] = item
     end
     output:insert(pandoc.BulletList(items))
-  end
-
-  if options["show-answers"] then
-    local correct = {}
-    for index, answer in ipairs(data.answers) do
-      if answer.correct then
-        correct[#correct + 1] = alpha_key(index)
-      end
-    end
-    if #correct > 0 then
-      output:insert(pandoc.Para({ pandoc.Strong({ pandoc.Str("Answer: " .. table.concat(correct, ", ")) }) }))
-    end
-    if data.explanation then
-      output:insert(data.explanation)
-    end
   end
 
   return output
@@ -937,17 +928,7 @@ local function process_code_cloze(el, parent_id)
   end
 
   if not html() then
-    local new_code = pandoc.CodeBlock(static_text, el.attr)
-    if options["show-answers"] and #static_answers > 0 then
-      local ans_list = {}
-      for idx, ans in ipairs(static_answers) do
-        ans_list[#ans_list + 1] = tostring(idx) .. ". " .. ans
-      end
-      local ans_para = pandoc.Para({ pandoc.Strong({ pandoc.Str("Answer: " .. table.concat(ans_list, ", ")) }) })
-      return pandoc.List({ new_code, ans_para })
-    else
-      return new_code
-    end
+    return pandoc.CodeBlock(static_text, el.attr)
   end
 
   el.text = html_text
@@ -1009,13 +990,18 @@ local function process_code_cloze(el, parent_id)
   local prefix_html = get_key_script()
 
   if parent_id == nil then
-    local actions = pandoc.RawBlock("html",
-      '<div class="quarto-exercise-actions">' ..
-      '<button type="button" class="quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary">Check</button>' ..
-      '<button type="button" class="quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary">Reset</button>' ..
+    local check_mode = options["check-mode"] or "exercise"
+    local suppress_controls = (check_mode == "page")
+    local actions_html = '<div class="quarto-exercise-actions">'
+    if not suppress_controls then
+      actions_html = actions_html ..
+        '<button type="button" class="quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary">Check</button>' ..
+        '<button type="button" class="quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary">Reset</button>'
+    end
+    actions_html = actions_html ..
       '<span class="quarto-exercise-status" aria-live="polite"></span>' ..
       '</div>'
-    )
+    local actions = pandoc.RawBlock("html", actions_html)
     local wrapper = pandoc.Div({ container, actions }, { class = "quarto-exercise-code-cloze-wrapper" })
     if prefix_html ~= "" then
       return pandoc.List({ pandoc.RawBlock("html", prefix_html), wrapper })
@@ -1052,7 +1038,7 @@ local function render_blank(el, id, parent_id)
 
   local answer = el.attributes.answers or el.attributes.answer or ""
   if not html() then
-    return options["show-answers"] and pandoc.Underline({ pandoc.Str(answer) }) or pandoc.Str("________")
+    return pandoc.Str("________")
   end
 
   local container_attrs = {
@@ -1087,13 +1073,17 @@ local function render_blank(el, id, parent_id)
     container_attrs["data-collapse-space"] = tostring(collapse_space_val)
   end
 
+  local check_mode = options["check-mode"] or "exercise"
+  local suppress_controls = (check_mode == "page" and parent_id == nil)
+  local button_html = suppress_controls and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
+
   local prefix = get_key_script()
   return pandoc.RawInline("html",
     prefix ..
     raw_inline("span", container_attrs) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..
-    '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>' ..
+    button_html ..
     '<span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>'
   )
 end
@@ -1126,7 +1116,7 @@ local function render_choose(el, id, parent_id)
   end
 
   if not html() then
-    return options["show-answers"] and pandoc.Underline({ pandoc.Str(answer) }) or pandoc.Str("________")
+    return pandoc.Str("________")
   end
 
   local container_attrs = {
@@ -1154,13 +1144,17 @@ local function render_choose(el, id, parent_id)
     container_attrs["data-ignore-case"] = tostring(ignore_case_val)
   end
 
+  local check_mode = options["check-mode"] or "exercise"
+  local suppress_controls = (check_mode == "page" and parent_id == nil)
+  local button_html = suppress_controls and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
+
   local prefix = get_key_script()
   return pandoc.RawInline("html",
     prefix ..
     raw_inline("span", container_attrs) ..
     '<select class="quarto-exercise-choose-select"><option value="">Choose...</option></select>' ..
     '<span class="quarto-exercise-choose-correct-text" hidden></span>' ..
-    '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>' ..
+    button_html ..
     '<span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span>'
   )
 end
@@ -1254,6 +1248,14 @@ function Div(el)
     return render_static_exercise(data)
   end
 
+  local check_mode = options["check-mode"] or "exercise"
+  local suppress_controls = false
+  if check_mode == "page" then
+    suppress_controls = true
+  elseif check_mode == "batch" and el.attributes["data-in-batch"] == "true" then
+    suppress_controls = true
+  end
+
   return render_html_exercise(data, id, {
     instant = bool_option(el.attributes, "instant"),
     reveal = bool_option(el.attributes, "reveal"),
@@ -1270,6 +1272,7 @@ function Div(el)
     ["check-mode"] = validate_option(tostring(options["check-mode"]), { exercise = true, batch = true, page = true }, "exercise", id, "check-mode"),
     score = bool_option(el.attributes, "score"),
     points = tonumber(el.attributes.points or options.points) or defaults.points,
+    suppress_controls = suppress_controls,
     attributes = el.attributes
   })
 end
@@ -1298,8 +1301,23 @@ function Span(el)
   return nil
 end
 
+local function mark_batch_exercises(el)
+  if el.classes:includes("check-batch") then
+    el = el:walk({
+      Div = function(sub_div)
+        if sub_div.classes:includes("exercise") then
+          sub_div.attributes["data-in-batch"] = "true"
+          return sub_div
+        end
+      end
+    })
+    return el
+  end
+end
+
 return {
   { Meta = Meta },
+  { Div = mark_batch_exercises },
   { Div = Div },
   { Span = Span, CodeBlock = CodeBlock }
 }

@@ -70,3 +70,26 @@ test('page-level checking preserves question options and reports a total score',
   await expect(page.locator('.quarto-exercise-check-btn')).toHaveCount(1);
   await expect(page.locator('.quarto-exercise-page-controls')).toHaveScreenshot('page-score-correct.png');
 });
+
+test('page-level check with partial correctness and reset behavior', async ({ page }) => {
+  await page.goto(fullPageUrl, { waitUntil: 'load' });
+  // Check only page-ring (correct) and page-blank (correct), but fellowship is unanswered/wrong
+  await page.locator('[data-testid="page-ring"]').getByText('Frodo Baggins').click();
+  await page.locator('[data-testid="page-blank"] .quarto-exercise-blank-input').fill('Gandalf');
+  await page.getByRole('button', { name: 'Check Page' }).click();
+
+  // Score should be 3 / 6 (2 for ring + 1 for blank)
+  await expect(page.locator('.quarto-exercise-page-controls .quarto-exercise-status')).toHaveText('Not quite. Score: 3 / 6.');
+
+  // Since reveal: false is configured globally in full-page-check.qmd:
+  // Check that fellowship unselected correct choices are not highlighted/shown with correctness classes
+  await expect(page.locator('[data-testid="page-fellowship"] .quarto-exercise-answer.is-correct')).toHaveCount(0);
+
+  // Now click Reset Page
+  await page.getByRole('button', { name: 'Reset Page' }).click();
+  await expect(page.locator('.quarto-exercise-page-controls .quarto-exercise-status')).toHaveText('');
+  await expect(page.locator('[data-testid="page-blank"] .quarto-exercise-blank-input')).toHaveValue('');
+  // Check that incorrect/correct classes are gone
+  await expect(page.locator('.is-correct')).toHaveCount(0);
+  await expect(page.locator('.is-incorrect')).toHaveCount(0);
+});

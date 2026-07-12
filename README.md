@@ -233,7 +233,6 @@ quarto-exercises:
   reset: true
   shuffle: false
   reshuffle-on-reset: false
-  show-answers: false
   explanation: correct
   feedback-correct: "Correct!"
   feedback-incorrect: "Not quite."
@@ -303,13 +302,6 @@ For formats such as PDF, DOCX, Typst, and Markdown, the filter removes the inter
 
 - multiple-choice exercises become lettered lists
 - blanks, choices, and code cloze controls become underlines
-- `show-answers: true` prints answer keys and explanations
-
-Example answer key:
-
-```markdown
-Answer: A, C
-```
 
 ## Styling
 
