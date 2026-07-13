@@ -240,7 +240,7 @@ quarto-exercises:
   question-boxes: false
   option-columns: 1
   button-style: theme
-  check-mode: exercise
+  check-page: false
 ```
 
 Per-exercise overrides:
@@ -264,7 +264,7 @@ Exercise attributes:
 - `question-boxes`: add a subtle border and padding around each exercise
 - `option-columns`: `1` or `2` columns for multiple-choice options
 - `button-style`: `theme` uses Quarto/Bootstrap variables when available; `plain` keeps the basic controls
-- `check-mode`: `exercise`, `batch`, or `page` controls where Check and Reset buttons appear
+- `check-page`: set `true` to check the entire page at once with a single set of Check Page and Reset Page controls
 
 Correct and incorrect choices are indicated with a check or X as well as color. Put a `.feedback` Div inside an `.answer` to show option-specific feedback after the learner checks that option.
 
@@ -282,7 +282,7 @@ Exactly right.
 :::
 ```
 
-For one control set around several exercises, set `check-mode: batch` and wrap them in `.check-batch`. `check-mode: page` gives the page one Check Page and Reset Page control; each `.exercise` still keeps its own options such as `shuffle` and `reveal`.
+By default, every exercise gets its own Check and Reset controls. If you wrap multiple exercises in a `.check-batch` container, they are checked together as a batch using one set of controls. You do not need to configure any special mode to write batches. Set `check-page: true` to check the entire page at once; each `.exercise` still keeps its own options such as `shuffle` and `reveal`.
 
 ```markdown
 ::: {.check-batch}

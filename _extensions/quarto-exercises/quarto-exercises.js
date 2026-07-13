@@ -314,16 +314,16 @@ function initController(kind, root) {
 
 function initCheckControllers() {
   const mode = window.quartoExercisesCheckMode || "exercise";
-  if (mode === "batch") {
-    $$(document, ".check-batch").forEach(batch => {
-      initController("batch", batch);
-    });
-  } else if (mode === "page") {
+  if (mode === "page") {
     const content = document.querySelector("main#quarto-document-content, main.content, main") || document.body;
     const units = findCheckableUnits(content);
     if (units.exercises.length > 0 || units.blanks.length > 0 || units.chooses.length > 0 || units.clozes.length > 0) {
       initController("page", content);
     }
+  } else {
+    $$(document, ".check-batch").forEach(batch => {
+      initController("batch", batch);
+    });
   }
 }
 

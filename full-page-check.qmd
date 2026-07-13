@@ -3,13 +3,13 @@ title: "Full Page Check"
 filters:
   - quarto-exercises
 quarto-exercises:
-  check-mode: page
+  check-page: true
   score: true
   reveal: false
   reset: true
 ---
 
-This page demonstrates check-mode: page. The page has one Check Page button and one Reset Page button for all exercises. Each question still keeps its own options, including points, shuffle, and reveal. For the authoring pattern, see the [Reference page](reference.qmd).
+This page demonstrates check-page: true. The page has one Check Page button and one Reset Page button for all exercises. Each question still keeps its own options, including points, shuffle, and reveal. For the authoring pattern, see the [Reference page](reference.qmd).
 
 ## Ringbearer (2 points)
 

@@ -292,11 +292,11 @@ body.quarto-dark {
 .quarto-exercise-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin: 1rem 0;
   --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
   --ex-button-primary-color: var(--bs-white, #fff);
-  --ex-button-secondary-bg: var(--bs-secondary-bg, var(--ex-control-bg));
-  --ex-button-secondary-color: var(--bs-body-color, inherit);
+  --ex-button-secondary-bg: var(--bs-secondary, #6c757d);
+  --ex-button-secondary-color: #fff;
   --ex-button-border: var(--bs-border-color, var(--ex-border-color));
 }
 
@@ -331,10 +331,28 @@ body.quarto-dark {
   color: var(--ex-button-primary-color);
 }
 
+.quarto-exercise-btn-primary:hover {
+  background-color: var(--ex-button-primary-bg) !important;
+  color: var(--ex-button-primary-color) !important;
+  opacity: 0.85;
+}
+
 .quarto-exercise-btn-secondary,
 .quarto-exercise-hint-btn.quarto-exercise-btn-secondary {
   background: var(--ex-button-secondary-bg);
   color: var(--ex-button-secondary-color);
+}
+
+.quarto-exercise-btn-secondary:hover,
+.quarto-exercise-hint-btn.quarto-exercise-btn-secondary:hover {
+  background-color: var(--ex-button-secondary-bg) !important;
+  color: var(--ex-button-secondary-color) !important;
+  opacity: 0.85;
+}
+
+body.quarto-dark .quarto-exercise-reset-btn,
+body.quarto-dark .quarto-exercise-hint-btn {
+  border-color: transparent !important;
 }
 
 .quarto-exercise-btn:focus-visible {

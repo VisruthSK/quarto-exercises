@@ -1268,7 +1268,7 @@ Saruman
       'question-boxes': false,
       'option-columns': 1,
       'button-style': 'theme',
-      'check-mode': 'exercise',
+      'check-page': false,
       score: false,
       points: 1
     });
@@ -1278,7 +1278,7 @@ Saruman
     const lua = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.lua'), 'utf8');
     const js = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
-    for (const option of ['question-boxes', 'option-columns', 'button-style', 'check-mode']) {
+    for (const option of ['question-boxes', 'option-columns', 'button-style', 'check-page']) {
       assert.match(lua, new RegExp(`\\["${option}"\\]`));
     }
     assert.match(lua, /quarto-exercise-answer-state/);
@@ -1554,13 +1554,35 @@ x = {{blank answer="1"}}
     assert.match(html, /class="quarto-exercise-code-cloze-container[^>]*data-points="10"/);
   });
 
-  test('check-mode: page suppresses individual check and reset buttons in the HTML', () => {
+  test('Nested inline blanks and chooses do not emit Check buttons in any mode', () => {
+    const qmdContent = `---
+title: "Nested Controls Test"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #ex-nested}
+Blank: [Samwise]{.blank answer="Samwise"}.
+
+Choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'nested-controls.qmd'), qmdContent);
+    renderQuarto('nested-controls.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'nested-controls.html'), 'utf8');
+    assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
+    assert.doesNotMatch(html, /class="quarto-exercise-blank-check-btn"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-choose-check-btn"/);
+  });
+
+  test('check-page: true suppresses individual check and reset buttons in the HTML', () => {
     const qmdContent = `---
 title: "Page Checking Mode"
 filters:
   - quarto-exercises
 quarto-exercises:
-  check-mode: page
+  check-page: true
 ---
 
 ::: {.exercise #ex1}
@@ -1578,13 +1600,11 @@ Yes
     assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
   });
 
-  test('check-mode: batch suppresses individual buttons inside .check-batch in the HTML', () => {
+  test('check-batch is supported by default and suppresses individual buttons inside .check-batch in the HTML', () => {
     const qmdContent = `---
 title: "Batch Checking Mode"
 filters:
   - quarto-exercises
-quarto-exercises:
-  check-mode: batch
 ---
 
 ::: {.check-batch}
@@ -1618,13 +1638,13 @@ Yes
     assert.match(outPart, /quarto-exercise-check-btn/);
   });
 
-  test('check-mode: page with standalone controls suppresses all individual buttons in HTML', () => {
+  test('check-page: true with standalone controls suppresses all individual buttons in HTML', () => {
     const qmdContent = `---
 title: "Page Checking Standalone"
 filters:
   - quarto-exercises
 quarto-exercises:
-  check-mode: page
+  check-page: true
 ---
 
 The wizard is [Gandalf]{.blank answer="Gandalf"}.
@@ -1645,13 +1665,11 @@ x = {{blank answer="1"}}
     assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
   });
 
-  test('check-mode: batch with standalone controls inside .check-batch suppresses their buttons', () => {
+  test('check-batch with standalone controls inside .check-batch suppresses their buttons by default', () => {
     const qmdContent = `---
 title: "Batch Standalone"
 filters:
   - quarto-exercises
-quarto-exercises:
-  check-mode: batch
 ---
 
 ::: {.check-batch}
@@ -2028,7 +2046,7 @@ title: "Scoring and Page checking test"
 filters:
   - quarto-exercises
 quarto-exercises:
-  check-mode: page
+  check-page: true
   score: true
   obfuscate-answers: false
 ---

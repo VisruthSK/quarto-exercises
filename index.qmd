@@ -18,10 +18,27 @@ Enable the filter in a document or project:
 filters:
   - quarto-exercises
 ```
+## Minimal Example
 
-## Pages
+Add this markup to your document to render a simple multiple-choice exercise:
 
-- [Example](example.qmd): a complete document showing the extension in use.
-- [Reference](reference.qmd): problem types, configuration, options, and authoring patterns.
-- [Full Page Check](full-page-check.qmd): one page-level Check and Reset control with scores.
-- [GitHub README](https://github.com/VisruthSK/quarto-exercises#readme): package documentation and more details.
+```markdown
+::: {.exercise}
+Who carried the One Ring?
+
+::: {.answer correct=true}
+Frodo
+:::
+
+::: {.answer}
+Boromir
+:::
+:::
+```
+
+## Routing
+
+- Use [Example](example.qmd) to see rendered exercises.
+- Use [Reference](reference.qmd) to write your own. Start here when writing exercises. It covers syntax, options, checking modes, scoring, and styling.
+- Use [Full Page Check](full-page-check.qmd) to see page-level checking and scoring.
+- Use [GitHub README](https://github.com/VisruthSK/quarto-exercises#readme) for package documentation and more details.

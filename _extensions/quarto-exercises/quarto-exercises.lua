@@ -13,7 +13,7 @@ local defaults = {
   ["question-boxes"] = false,
   ["option-columns"] = 1,
   ["button-style"] = "theme",
-  ["check-mode"] = "exercise",
+  ["check-page"] = false,
   score = false,
   points = 1
 }
@@ -253,7 +253,7 @@ local function get_key_script()
   end
   key_script_emitted = true
   local key_val = key or ""
-  local check_mode = options["check-mode"] or "exercise"
+  local check_mode = options["check-page"] == true and "page" or "exercise"
   local score_val = tostring(options["score"] == true)
   return '<script type="text/javascript">/* protects against static source inspection, not runtime inspection */ window.quartoExercisesKey = "' .. key_val .. '"; window.quartoExercisesDocId = "' .. doc_id .. '"; window.quartoExercisesCheckMode = "' .. check_mode .. '"; window.quartoExercisesScore = ' .. score_val .. ';</script>'
 end
@@ -846,6 +846,11 @@ local function make_token(text, idx)
     idx = idx + 1
   end
 end
+local function should_suppress_controls(parent_id, el_attributes)
+  local check_page_active = options["check-page"] == true
+  local in_batch = (el_attributes["data-in-batch"] == "true")
+  return (parent_id ~= nil) or check_page_active or in_batch
+end
 
 local function process_code_cloze(el, parent_id)
   el.attributes["data-cloze-processed"] = nil
@@ -993,9 +998,7 @@ local function process_code_cloze(el, parent_id)
   local prefix_html = get_key_script()
 
   if parent_id == nil then
-    local check_mode = options["check-mode"] or "exercise"
-    local in_batch = (el.attributes["data-in-batch"] == "true")
-    local suppress_controls = (check_mode == "page") or (check_mode == "batch" and in_batch)
+    local suppress_controls = should_suppress_controls(nil, el.attributes)
     local actions_html = '<div class="quarto-exercise-actions">'
     if not suppress_controls then
       actions_html = actions_html ..
@@ -1057,7 +1060,7 @@ local function render_blank(el, id, parent_id)
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])) == "true"
   local trim_val = (el.attributes.trim or "true") ~= "false"
-  local collapse_space_val = (el.attributes["collapse-space"] or "false") == "true"
+  local collapse_space_val = (normalize_bool(el.attributes["collapse-space"]) or tostring(options["collapse-space"])) == "true"
 
   if options["obfuscate-answers"] then
     local ans_list = split_values(answer, "|")
@@ -1080,10 +1083,7 @@ local function render_blank(el, id, parent_id)
     container_attrs["data-collapse-space"] = tostring(collapse_space_val)
   end
 
-  local check_mode = options["check-mode"] or "exercise"
-  local in_batch = (el.attributes["data-in-batch"] == "true")
-  local suppress_controls = (check_mode == "page" and parent_id == nil) or (check_mode == "batch" and in_batch and parent_id == nil)
-  local button_html = suppress_controls and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
+  local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
 
   local prefix = get_key_script()
   return pandoc.RawInline("html",
@@ -1155,10 +1155,7 @@ local function render_choose(el, id, parent_id)
     container_attrs["data-ignore-case"] = tostring(ignore_case_val)
   end
 
-  local check_mode = options["check-mode"] or "exercise"
-  local in_batch = (el.attributes["data-in-batch"] == "true")
-  local suppress_controls = (check_mode == "page" and parent_id == nil) or (check_mode == "batch" and in_batch and parent_id == nil)
-  local button_html = suppress_controls and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
+  local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
 
   local prefix = get_key_script()
   return pandoc.RawInline("html",
@@ -1183,6 +1180,17 @@ function Meta(meta)
     for key, value in pairs(config) do
       options[key] = value
     end
+  end
+
+  local check_page_val = meta["quarto-exercises.check-page"]
+  if check_page_val == nil and type(config) == "table" then
+    check_page_val = config["check-page"]
+  end
+  if check_page_val ~= nil then
+    local norm = normalize_bool(as_value(check_page_val))
+    options["check-page"] = norm == "true" or check_page_val == true
+  else
+    options["check-page"] = false
   end
 
   local obfuscate = true
@@ -1260,13 +1268,15 @@ function Div(el)
     return render_static_exercise(data)
   end
 
-  local check_mode = options["check-mode"] or "exercise"
-  local suppress_controls = false
-  if check_mode == "page" then
-    suppress_controls = true
-  elseif check_mode == "batch" and el.attributes["data-in-batch"] == "true" then
-    suppress_controls = true
+  local check_page_active = options["check-page"] == true
+  local is_in_batch = el.attributes["data-in-batch"] == "true"
+  local runtime_check_mode = "exercise"
+  if check_page_active then
+    runtime_check_mode = "page"
+  elseif is_in_batch then
+    runtime_check_mode = "batch"
   end
+  local suppress_controls = check_page_active or is_in_batch
 
   return render_html_exercise(data, id, {
     instant = bool_option(el.attributes, "instant"),
@@ -1281,7 +1291,7 @@ function Div(el)
     ["question-boxes"] = bool_option(el.attributes, "question-boxes"),
     ["option-columns"] = validate_option(tostring(string_option(el.attributes, "option-columns")), { ["1"] = true, ["2"] = true }, "1", id, "option-columns"),
     ["button-style"] = validate_option(tostring(options["button-style"]), { plain = true, theme = true }, "theme", id, "button-style"),
-    ["check-mode"] = validate_option(tostring(options["check-mode"]), { exercise = true, batch = true, page = true }, "exercise", id, "check-mode"),
+    ["check-mode"] = runtime_check_mode,
     score = bool_option(el.attributes, "score"),
     points = tonumber(el.attributes.points or options.points) or defaults.points,
     suppress_controls = suppress_controls,
