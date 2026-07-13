@@ -253,18 +253,18 @@ Question content here...
 
 Exercise attributes:
 
-- `shuffle`: randomize answer choices
-- `reshuffle-on-reset`: shuffle again after Reset
-- `instant`: check after each change instead of showing a Check button
-- `reveal`: reveal correct answers after checking
-- `lock`: disable controls after a correct answer
-- `reset`: show the Reset button
+- `shuffle`: Set true to randomize answer choices
+- `reshuffle-on-reset`: Set true to shuffle again after Reset
+- `instant`: Set true to check after each change instead of showing a Check button
+- `reveal`: Set true to reveal correct answers after checking
+- `lock`: Set true to disable controls after a correct answer
+- `reset`: Set true to show the Reset button
 - `explanation`: `correct`, `after-check`, or `never`
 - `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
-- `question-boxes`: add a subtle border and padding around each exercise
+- `question-boxes`: Set true to add a subtle border and padding around each exercise
 - `option-columns`: split multiple-choice options into columns (supports `1`, `2`, `3`, or `4` columns)
 - `button-style`: `theme` uses Quarto/Bootstrap variables when available; `plain` keeps the basic controls
-- `check-page`: set `true` to check the entire page at once with a single set of Check Page and Reset Page controls
+- `check-page`: Set true to check the entire page at once with a single set of Check Page and Reset Page controls
 
 Correct and incorrect choices are indicated with a check or X as well as color. Put a `.feedback` Div inside an `.answer` to show option-specific feedback after the learner checks that option.
 

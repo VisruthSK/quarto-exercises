@@ -416,7 +416,7 @@ end
 
 local function check_attrs(actual, valid, id)
   for key in pairs(actual) do
-    if not valid[key] and not key:match("^data%-") then
+    if not valid[key] and not key:match("^data%-") and key ~= "style" and key ~= "class" and key ~= "id" then
       warn(id, "unsupported attribute '" .. key .. "'")
     end
   end

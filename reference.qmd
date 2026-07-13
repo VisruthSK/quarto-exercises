@@ -71,7 +71,17 @@ Complete the name: [Samwise]{.blank answer="Samwise"} Gamgee.
 :::
 :::
 
-Set `check-page: true` for one Check Page and Reset Page control after all exercises in the document. It checks every `.exercise` while preserving each question's own settings. Set `score: true` to show points after an individual, batch, or page check. Each exercise uses `points` (default `1`). In multi-question exercises, points are split evenly across its scoring units (each MCQ group, each inline blank, each inline choose, and each blank/choose in code clozes count as one scoring unit). Standalone blanks, chooses, and code clozes are worth `1` point unless they specify their own `points` attribute.
+Set `check-page: true` to place one Check Page and Reset Page control after all exercises in the document.
+
+Set `score: true` to show earned and possible points after checking.
+
+Scoring units:
+- one MCQ group = 1 unit
+- one inline blank = 1 unit
+- one inline choose = 1 unit
+- each blank or choose inside a code cloze = 1 unit
+
+An exercise’s points value is split evenly across its scoring units. Standalone blanks, chooses, and code clozes are worth 1 point unless they specify points.
 
 The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
 
@@ -437,6 +447,8 @@ The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.c
 ## Code Cloze
 
 Code cloze markers are parsed from raw code text, so escaped delimiter examples use one fewer backslash than normal Markdown attributes.
+
+Code cloze inputs do not show per-input feedback text inside the highlighted code block. In a grouped exercise, the shared status becomes correct only when every cloze input is correct.
 
 ````markdown
 ```{.code-cloze lang="r"}
