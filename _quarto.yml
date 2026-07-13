@@ -17,3 +17,8 @@ website:
         text: Reference
       - href: full-page-check.qmd
         text: Full Page Check
+
+theme:
+  light: flatly
+  dark: darkly
+
