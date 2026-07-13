@@ -30,7 +30,9 @@ quarto-exercises:
 ```
 
 
-## Multiple Choice Exercises
+## Question Types
+
+### Multiple Choice Exercises
 
 ```markdown
 ::: {.exercise}
@@ -148,7 +150,7 @@ He is also known as Mithrandir.
 
 
 
-## Inline Blanks
+### Inline Blanks
 
 Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
 
@@ -192,7 +194,7 @@ Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Sam
 
 
 
-## Inline Dropdowns
+### Inline Dropdowns
 
 ```markdown
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
@@ -208,7 +210,7 @@ The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" sh
 
 
 
-## Shared Controls Exercise
+### Shared Controls Exercise
 
 ```markdown
 ::: {.exercise}
@@ -220,7 +222,7 @@ The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.c
 The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 :::
 
-## Code Cloze
+### Code Cloze
 
 Code cloze markers are parsed from raw code text, so escaped delimiter examples use one fewer backslash than normal Markdown attributes.
 

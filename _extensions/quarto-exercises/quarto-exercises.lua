@@ -730,9 +730,9 @@ local function render_html_exercise(data, id, exercise_options)
     output:insert(pandoc.RawBlock("html", "</div></fieldset>"))
   end
 
-  output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-actions">'))
   local button_class = " quarto-exercise-btn quarto-exercise-btn-primary"
   local reset_button_class = " quarto-exercise-btn quarto-exercise-btn-secondary"
+  output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-actions">'))
   if not exercise_options.instant and not exercise_options.suppress_controls then
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-check-btn' .. button_class .. '">Check</button>'))
   end

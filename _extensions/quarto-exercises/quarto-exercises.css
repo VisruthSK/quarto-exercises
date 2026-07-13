@@ -19,6 +19,7 @@
   --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
   --ex-panel-border: #6c757d;
   --ex-panel-border-dark: #adb5bd;
+  --ex-select-arrow: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23666' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
 }
 
 body.quarto-dark {
@@ -38,6 +39,7 @@ body.quarto-dark {
   --ex-control-primary-hover-bg: #4f5357;
   --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);
   --ex-panel-border: #9aa0a6;
+  --ex-select-arrow: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
 }
 
 .quarto-exercise {
@@ -109,6 +111,11 @@ body.quarto-dark {
   display: grid;
   grid-template-columns: repeat(var(--ex-batch-columns, 1), minmax(0, 1fr));
   gap: 1rem;
+}
+
+.check-batch.quarto-exercise-batch-grid > .quarto-exercise,
+.check-batch.quarto-exercise-batch-grid > .quarto-exercise-actions {
+  margin: 0;
 }
 
 .check-batch.quarto-exercise-batch-grid > .quarto-exercise-actions {
@@ -535,13 +542,13 @@ body.quarto-dark .quarto-exercise-explanation {
   line-height: inherit;
   border: 1px solid var(--ex-border-strong);
   border-radius: var(--ex-border-radius);
-  background-color: transparent;
-  color: inherit;
+  background-color: var(--bs-body-bg, var(--ex-control-bg));
+  color: var(--bs-body-color, inherit);
   cursor: pointer;
   box-sizing: border-box;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23666' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
+  background-image: var(--ex-select-arrow);
   background-repeat: no-repeat;
   background-position: right 0.4rem center;
   outline: none;
@@ -549,6 +556,12 @@ body.quarto-dark .quarto-exercise-explanation {
 
 .quarto-exercise-choose-select:focus {
   border-color: var(--ex-accent);
+}
+
+.quarto-exercise-choose-select option,
+.quarto-exercise-code-choose option {
+  background-color: var(--bs-body-bg, var(--ex-control-bg));
+  color: var(--bs-body-color, inherit);
 }
 
 .quarto-exercise-choose-check-btn,
@@ -642,7 +655,8 @@ body.quarto-dark .quarto-exercise-explanation {
 .quarto-exercise-code-choose {
   cursor: pointer;
   outline: none;
-  background: transparent;
+  background-color: var(--bs-body-bg, var(--ex-control-bg));
+  color: var(--bs-body-color, inherit);
 }
 
 .quarto-exercise-code-choose:focus {

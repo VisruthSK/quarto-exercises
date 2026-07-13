@@ -219,8 +219,11 @@ function controllerActions(kind) {
 }
 
 function removeExerciseControls(exercise) {
-  $$(exercise, ".quarto-exercise-actions > .quarto-exercise-check-btn, .quarto-exercise-actions > .quarto-exercise-reset-btn")
+  const actions = $(exercise, ".quarto-exercise-actions");
+  if (!actions) return;
+  $$(actions, ".quarto-exercise-check-btn, .quarto-exercise-reset-btn, .quarto-exercise-status")
     .forEach(button => button.remove());
+  if (actions.children.length === 0) actions.remove();
 }
 
 function findCheckableUnits(root) {

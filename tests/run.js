@@ -9,6 +9,7 @@ const assert = require('assert');
 const test = require('node:test');
 const vm = require('vm');
 const crypto = require('crypto');
+const { pathToFileURL } = require('url');
 
 const TEMP_DIR = path.join(__dirname, '.tmp', 'test-sandbox');
 const quote = value => `"${String(value).replace(/"/g, '""')}"`;
@@ -156,10 +157,14 @@ body {
   font: 16px/1.5 system-ui, sans-serif;
   color: #202124;
   background: #fff;
+  --bs-body-color: #202124;
+  --bs-body-bg: #fff;
 }
 body.quarto-dark {
   color: #e8eaed;
   background: #202124;
+  --bs-body-color: #e8eaed;
+  --bs-body-bg: #202124;
 }
 main {
   max-width: 760px;
@@ -187,6 +192,7 @@ ${css}
 </div>
 <p>Standalone blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<div class="sourceCode"><pre><code><span>member = </span><select class="quarto-exercise-code-choose"><option value="">Choose...</option><option value="Gimli">Gimli</option><option value="Legolas">Legolas</option></select></code></pre></div>
 <div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Select all hobbits.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
@@ -195,6 +201,11 @@ ${css}
 <div class="quarto-exercise-answer" data-key="legolas" data-correct="false"><div class="quarto-exercise-control"><input id="checkbox-ex-legolas" type="checkbox" name="checkbox-ex" value="legolas" class="quarto-exercise-input"><label for="checkbox-ex-legolas" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Legolas</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Legolas is an elf.</div></div>
 </div></fieldset>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
+</div>
+<div class="check-batch quarto-exercise-batch-grid" id="visual-batch" style="--ex-batch-columns: 2;">
+<div class="quarto-exercise"><p>What does Gimli carry?</p></div>
+<div class="quarto-exercise"><p>What kind of being is Treebeard?</p></div>
+<div class="quarto-exercise-actions"><button type="button">Check</button><button type="button">Reset</button></div>
 </div>
 </main>
 <script>${js}</script>
@@ -212,6 +223,37 @@ async function runVisualMode(playwright, mode) {
   if (mode === 'dark') {
     await page.evaluate(() => document.body.classList.add('quarto-dark'));
   }
+
+  const chooseStates = await page.evaluate(() => {
+    const body = getComputedStyle(document.body);
+    return ['.quarto-exercise-choose-select', '.quarto-exercise-code-choose'].map(selector => {
+      const select = document.querySelector(selector);
+      const option = select.options[0];
+      return {
+        selector,
+        selectColor: getComputedStyle(select).color,
+        selectBackground: getComputedStyle(select).backgroundColor,
+        optionColor: getComputedStyle(option).color,
+        optionBackground: getComputedStyle(option).backgroundColor,
+        bodyColor: body.color,
+        bodyBackground: body.backgroundColor
+      };
+    });
+  });
+
+  const batchGridState = await page.evaluate(() => {
+    const batch = document.querySelector('#visual-batch');
+    const exercises = Array.from(batch.querySelectorAll(':scope > .quarto-exercise'));
+    const actions = batch.querySelector(':scope > .quarto-exercise-actions');
+    const exerciseBottom = Math.max(...exercises.map(exercise => exercise.getBoundingClientRect().bottom));
+    return {
+      columns: getComputedStyle(batch).gridTemplateColumns.split(' ').length,
+      gap: parseFloat(getComputedStyle(batch).rowGap),
+      visualGap: actions.getBoundingClientRect().top - exerciseBottom,
+      exerciseBottomMargins: exercises.map(exercise => parseFloat(getComputedStyle(exercise).marginBottom)),
+      actionsTopMargin: parseFloat(getComputedStyle(actions).marginTop)
+    };
+  });
 
   const standaloneBlankState = await page.evaluate(() => {
     const blank = document.querySelector('main > p .quarto-exercise-blank-container');
@@ -324,7 +366,7 @@ async function runVisualMode(playwright, mode) {
   }));
 
   await browser.close();
-  return { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong };
+  return { batchGridState, chooseStates, standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong };
 }
 
 test.describe('Quarto Exercises Extension Tests', () => {
@@ -1611,7 +1653,7 @@ Yes
     assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
   });
 
-  test('check-batch is supported by default and suppresses individual buttons inside .check-batch in the HTML', () => {
+  test('check-batch keeps one shared status and removes private exercise action rows', async () => {
     const qmdContent = `---
 title: "Batch Checking Mode"
 filters:
@@ -1621,6 +1663,14 @@ filters:
 ::: {.check-batch option-columns="2"}
 ::: {.exercise #ex-in-batch}
 Inside batch.
+
+::: {.answer correct=true}
+Yes
+:::
+:::
+
+::: {.exercise #ex-in-batch-2}
+Also inside batch.
 
 ::: {.answer correct=true}
 Yes
@@ -1650,6 +1700,26 @@ Yes
     // The exercise outside the batch should still have check/reset buttons
     const outPart = html.match(/class="quarto-exercise"[^>]*id="ex-out-batch"[\s\S]*$/)[0];
     assert.match(outPart, /quarto-exercise-check-btn/);
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'batch-mode.html')).href);
+      const batch = page.locator('.check-batch');
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise').count(), 2);
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise > .quarto-exercise-actions').count(), 0, 'private empty action rows should be removed');
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise .quarto-exercise-status').count(), 0, 'private exercise statuses should be removed');
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise-actions .quarto-exercise-status').count(), 1, 'batch should expose one shared status');
+
+      await page.locator('#ex-in-batch .quarto-exercise-input').check();
+      await page.locator('#ex-in-batch-2 .quarto-exercise-input').check();
+      await batch.locator(':scope > .quarto-exercise-actions .quarto-exercise-check-btn').click();
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise-actions .quarto-exercise-status').textContent(), 'Correct!');
+      assert.strictEqual(await batch.getByText('Correct!', { exact: true }).count(), 1, 'only the batch should report Correct!');
+    } finally {
+      await browser.close();
+    }
   });
 
   test('boxed check-batch gets quarto-exercise-boxed class and suppresses nested boxes', () => {
@@ -1750,7 +1820,8 @@ x = {{blank answer="1"}}
       '--ex-border-radius': '4px',
       '--ex-focus-ring': '0 0 0 2px rgba(26, 115, 232, 0.3)',
       '--ex-panel-border': '#6c757d',
-      '--ex-panel-border-dark': '#adb5bd'
+      '--ex-panel-border-dark': '#adb5bd',
+      '--ex-select-arrow': 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 10 10\'%3E%3Cpath fill=\'%23666\' d=\'M1 3h8l-4 4z\'/%3E%3C/svg%3E")'
     });
     assert.deepStrictEqual(parseCssVariables(css, 'body.quarto-dark'), {
       '--ex-accent': '#8ab4f8',
@@ -1768,7 +1839,8 @@ x = {{blank answer="1"}}
       '--ex-control-primary-bg': '#3c4043',
       '--ex-control-primary-hover-bg': '#4f5357',
       '--ex-focus-ring': '0 0 0 2px rgba(138, 180, 248, 0.4)',
-      '--ex-panel-border': '#9aa0a6'
+      '--ex-panel-border': '#9aa0a6',
+      '--ex-select-arrow': 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 10 10\'%3E%3Cpath fill=\'%23aaa\' d=\'M1 3h8l-4 4z\'/%3E%3C/svg%3E")'
     });
   });
 
@@ -1779,7 +1851,19 @@ x = {{blank answer="1"}}
 
     for (const mode of ['light', 'dark']) {
       const result = await runVisualMode(playwright, mode);
-      const { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong } = result;
+      const { batchGridState, chooseStates, standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong } = result;
+
+      assert.strictEqual(batchGridState.columns, 2, `${mode} batch should retain two columns`);
+      assert.ok(batchGridState.visualGap <= batchGridState.gap + 1, `${mode} batch controls should be separated by only the grid gap`);
+      assert.deepStrictEqual(batchGridState.exerciseBottomMargins, [0, 0], `${mode} batch exercises should not add margins to the grid gap`);
+      assert.strictEqual(batchGridState.actionsTopMargin, 0, `${mode} batch actions should not add a second gap`);
+
+      for (const state of chooseStates) {
+        assert.strictEqual(state.selectColor, state.bodyColor, `${mode} ${state.selector} text should use the bslib body color`);
+        assert.strictEqual(state.selectBackground, state.bodyBackground, `${mode} ${state.selector} background should use the bslib body background`);
+        assert.strictEqual(state.optionColor, state.bodyColor, `${mode} ${state.selector} options should use the bslib body color`);
+        assert.strictEqual(state.optionBackground, state.bodyBackground, `${mode} ${state.selector} options should use the bslib body background`);
+      }
 
       assert.ok(selectWidthChoose < selectWidthLong, `${mode} choose select should expand for longer selected option`);
       assert.strictEqual(standaloneBlankState.placeholder, '', `${mode} standalone blank placeholder should be empty`);
@@ -1850,6 +1934,80 @@ x = {{blank answer="1"}}
         assert.ok(fs.existsSync(shot), `${shot} should exist`);
         assert.ok(fs.statSync(shot).size > 1000, `${shot} should not be blank`);
       }
+    }
+  });
+
+  test('Bslib light and dark themes keep inline and code-cloze dropdowns legible', async () => {
+    const qmdContent = `---
+title: "Bslib dropdown colors"
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+filters:
+  - quarto-exercises
+quarto-exercises:
+  obfuscate-answers: false
+---
+
+Inline choice: [Gimli|Legolas]{.choose answer="Gimli"}.
+
+\`\`\`{.code-cloze lang="r"}
+member <- {{choose answer="Gimli" options="Gimli|Legolas|Pippin"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'bslib-dropdowns.qmd'), qmdContent);
+    renderQuarto('bslib-dropdowns.qmd');
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'bslib-dropdowns.html')).href);
+
+      const readColors = () => page.evaluate(() => {
+        const body = getComputedStyle(document.body);
+        return {
+          bodyColor: body.color,
+          bodyBackground: body.backgroundColor,
+          controls: ['.quarto-exercise-choose-select', '.quarto-exercise-code-choose'].map(selector => {
+            const select = document.querySelector(selector);
+            return {
+              selector,
+              color: getComputedStyle(select).color,
+              background: getComputedStyle(select).backgroundColor,
+              options: Array.from(select.options, option => ({
+                color: getComputedStyle(option).color,
+                background: getComputedStyle(option).backgroundColor
+              }))
+            };
+          })
+        };
+      });
+
+      const assertThemeColors = (state, mode) => {
+        for (const control of state.controls) {
+          assert.strictEqual(control.color, state.bodyColor, `${mode} ${control.selector} should use bslib body text`);
+          assert.strictEqual(control.background, state.bodyBackground, `${mode} ${control.selector} should use bslib body background`);
+          assert.ok(control.options.length >= 2, `${mode} ${control.selector} should expose its options`);
+          for (const option of control.options) {
+            assert.strictEqual(option.color, state.bodyColor, `${mode} ${control.selector} option text should use bslib body text`);
+            assert.strictEqual(option.background, state.bodyBackground, `${mode} ${control.selector} option background should use bslib body background`);
+          }
+        }
+      };
+
+      const light = await readColors();
+      assertThemeColors(light, 'light');
+      await page.evaluate(() => window.quartoToggleColorScheme());
+      await page.waitForFunction(() => document.body.classList.contains('quarto-dark'));
+      const dark = await readColors();
+      assertThemeColors(dark, 'dark');
+      assert.notStrictEqual(light.bodyColor, dark.bodyColor, 'theme toggle should change the bslib body text color');
+      assert.notStrictEqual(light.bodyBackground, dark.bodyBackground, 'theme toggle should change the bslib body background');
+    } finally {
+      await browser.close();
     }
   });
 
