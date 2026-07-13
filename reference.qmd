@@ -12,21 +12,21 @@ Place configuration overrides in the document frontmatter under `quarto-exercise
 
 ```yaml
 quarto-exercises:
-  instant: false              # Validate answers on change instead of waiting for a Check button
-  reveal: false               # Reveal correct answers and statuses when checking
-  lock: false                 # Disable input fields after a correct answer is checked
-  reset: true                 # Show a Reset button to clear student inputs
-  shuffle: false              # Randomize the display order of choices
-  reshuffle-on-reset: false   # Randomize option order again when clicking Reset
+  instant: false              # Set true to validate answers immediately when inputs change.
+  reveal: false               # Set true to reveal correct answers after checking.
+  lock: false                 # Set true to disable inputs after a correct answer is checked.
+  reset: true                 # Set true to show a Reset button to clear student inputs.
+  shuffle: false              # Set true to randomize the display order of choices.
+  reshuffle-on-reset: false   # Set true to randomize option order again when clicking Reset.
   explanation: correct        # When to reveal explanations: correct, after-check, or never
   feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
   feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer
-  ignore-case: false          # Ignore casing during text input validation
-  question-boxes: false       # Add a contained box around each exercise
+  ignore-case: false          # Set true to ignore casing during text input validation.
+  question-boxes: false       # Set true to add a contained box around each exercise.
   option-columns: 1           # Lay out MCQ options in one or two columns
   button-style: theme          # Use theme-aware Check, Reset, and Hint buttons
-  check-page: false           # Set true to check the entire page at once with one control set
-  score: false                 # Show earned and possible points after checking
+  check-page: false           # Set true to check the entire page at once with one control set.
+  score: false                 # Set true to show earned and possible points after checking.
   points: 1                    # Default points for each exercise
 ```
 
@@ -173,6 +173,74 @@ Fourth answer
 Set `button-style: plain` to keep the existing neutral button appearance. This option is document-wide.
 
 Authors can still override any extension class in their document stylesheet, including `.quarto-exercise-boxed`, `.quarto-exercise-options-cols-2`, `.quarto-exercise-check-btn`, `.quarto-exercise-reset-btn`, and `.quarto-exercise-hint-btn`.
+
+### Custom CSS Styling
+
+Since the extension outputs clean semantic HTML with dedicated class hooks, you can apply custom CSS or inline styles directly to any exercise, batch, or answer choice container.
+
+For instance, you can style a `.check-batch` with a custom border or background:
+
+```markdown
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}
+::: {.exercise}
+...
+:::
+:::
+```
+
+You can even style individual exercises using custom CSS rules. Add these rules to your stylesheet:
+
+```css
+.fancy-card {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.fancy-card .quarto-exercise-answer {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  color: #fff;
+  transition: background 0.2s;
+}
+.fancy-card .quarto-exercise-answer:hover {
+  background: rgba(255,255,255,0.2);
+}
+```
+
+Then apply the class to your exercise:
+
+```markdown
+::: {.exercise .fancy-card}
+Which is the highest peak in Middle-earth?
+
+::: {.answer correct=true}
+Celebdil
+:::
+
+::: {.answer}
+Caradhras
+:::
+:::
+```
+
+Rendered result:
+
+::: {.exercise style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-bottom: 2rem;"}
+Which is the highest peak in Middle-earth?
+
+::: {.answer correct=true style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px; margin: 0.5rem 0; color: #fff; transition: background 0.2s;"}
+Celebdil
+:::
+
+::: {.answer style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px; margin: 0.5rem 0; color: #fff; transition: background 0.2s;"}
+Caradhras
+:::
+:::
 
 
 

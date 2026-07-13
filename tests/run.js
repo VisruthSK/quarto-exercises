@@ -1286,7 +1286,7 @@ Saruman
     assert.match(js, /function initCheckControllers/);
     assert.match(js, /function setAnswerState/);
     assert.match(css, /quarto-exercise-boxed/);
-    assert.match(css, /quarto-exercise-options-cols-2/);
+    assert.match(css, /quarto-exercise-choices-grid/);
     assert.match(css, /quarto-exercise-answer\.is-correct::before/);
   });
 
