@@ -15,7 +15,6 @@ quarto-exercises:
   lock: false
   reset: true
   shuffle: false
-  show-answers: false
 ---
 
 See the extension in action. If you want to learn more about how to write the questions, read the [reference page](reference.qmd).

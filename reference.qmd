@@ -342,6 +342,14 @@ Standalone blanks, chooses, and code clozes are worth 1 point unless they specif
 
 The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
 
+## Answer Obfuscation
+
+Answer obfuscation is always enabled. It has no option, key, environment variable, or external runtime dependency. Render documents normally with `quarto render`.
+
+Generated HTML stores opaque choice IDs, salts, and digests instead of plaintext correctness metadata. Accepted blank and dropdown answers are normalized and stored as salted digests. Regex patterns are stored in encrypted per-control payloads and retain the same matching behavior.
+
+This is static source obfuscation, not secure grading. Because checking runs in the browser, a determined student can reverse engineer it. Use it to discourage casual answer lookup through view-source, DOM attributes, or obvious console inspection, not to secure a graded assessment.
+
 ## Visual Style
 
 The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto's light and dark themes, Bootstrap themes, custom themes, and `theme: none`.

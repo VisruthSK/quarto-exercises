@@ -4,7 +4,7 @@ title: "quarto-exercises"
 
 `quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents.
 
-Use it to add multiple-choice questions, inline blanks and choices--including in code, with syntax highlighting--to Quarto pages.
+Use it to add multiple-choice questions, inline blanks, and dropdown choices to Quarto pages. Blanks and choices also work inside syntax-highlighted code blocks.
 
 ## Install
 
@@ -18,6 +18,7 @@ Enable the filter in a document or project:
 filters:
   - quarto-exercises
 ```
+
 ## Minimal Example
 
 Add this markup to your document to render a simple multiple-choice exercise:

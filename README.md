@@ -65,7 +65,7 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 :::
 ```
 
-Use `key` when you want stable answer identifiers in the generated HTML. Without it, the extension assigns `a`, `b`, `c`, and so on.
+The optional `key` attribute gives an answer a stable authoring identifier for duplicate-key validation. It is not written to the generated HTML. The extension assigns every rendered choice a random-looking opaque ID.
 
 ## Feedback, Hints, and Explanations
 
@@ -263,7 +263,9 @@ Exercise attributes:
 - `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
 - `question-boxes`: Set true to add a subtle border and padding around each exercise
 - `option-columns`: on an `.exercise`, choose any positive number of answer-choice columns; on a `.check-batch`, choose the number of exercise columns
-- `check-page`: Set true to check the entire page at once with a single set of Check Page and Reset Page controls
+- `points`: Set the exercise's value when scoring is enabled
+
+The global-only `check-page` option checks the entire page with one Check Page and Reset Page control. The global-only `score` option includes earned and possible points in check results.
 
 Correct and incorrect choices are indicated with a check or X as well as color. Put a `.feedback` Div inside an `.answer` to show option-specific feedback after the learner checks that option.
 
@@ -354,16 +356,14 @@ body.quarto-dark {
 
 ## Answer Obfuscation
 
-To prevent students from finding correct answers in the generated static HTML source code (via DOM attributes, hidden tags, or inspect elements), the extension supports **static source obfuscation**.
+The extension obfuscates answer metadata in generated HTML to prevent casual answer lookup through view-source, DOM attributes, or the browser console.
 
-Answer obfuscation is always enabled and requires no setup beyond Quarto and this extension. The rendered HTML stores opaque IDs, salts, and digests instead of plaintext correct-answer metadata. Regex patterns use an opaque per-control encrypted payload so regex matching retains its normal behavior.
+Obfuscation is always enabled and has no configuration option. It requires no key, environment variable, or external program. Multiple-choice answers use opaque IDs and salted digests. Blanks and choices use salted digests of normalized accepted answers. Regex blanks store an encrypted pattern payload so they keep the same matching behavior without placing the pattern in plaintext answer metadata.
 
-### Security & Limitations
+### Security limitations
 
 > [!WARNING]
-> This feature acts as **static source obfuscation**, not server-side secure grading.
->
-> A determined student can still reverse engineer browser-side checking. This is obfuscation, not secure grading; it prevents casual answer scraping through view-source, HTML attributes, or obvious console inspection.
+> This is static source obfuscation, not secure grading. Checking happens in the browser, so a determined student can reverse engineer it. Do not use the extension as the security boundary for a graded assessment.
 
 ## Limitations
 
