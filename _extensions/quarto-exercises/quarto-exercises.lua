@@ -9,7 +9,6 @@ local defaults = {
   ["feedback-correct"] = "Correct!",
   ["feedback-incorrect"] = "Not quite.",
   ["ignore-case"] = false,
-  ["obfuscate-answers"] = true,
   ["question-boxes"] = false,
   ["check-page"] = false,
   score = false,
@@ -195,52 +194,7 @@ end
 
 local json_encode
 
-local function json_decode(str)
-  local res = {}
-  
-  local payload = str:match('"payload"%s*:%s*"([^"]+)"')
-  if payload then
-    res.payload = payload
-  end
-  
-  local pageKey = str:match('"pageKey"%s*:%s*"([^"]+)"')
-  if pageKey then
-    res.pageKey = pageKey
-  end
-
-  local pub_x = str:match('"x"%s*:%s*"([^"]+)"')
-  local pub_y = str:match('"y"%s*:%s*"([^"]+)"')
-  local pub_crv = str:match('"crv"%s*:%s*"([^"]+)"')
-  local pub_kty = str:match('"kty"%s*:%s*"([^"]+)"')
-  if pub_x then
-    res.publicKey = {
-      x = pub_x,
-      y = pub_y,
-      crv = pub_crv,
-      kty = pub_kty
-    }
-  end
-  
-  local regex_payload = str:match('"regexPayload"%s*:%s*"([^"]+)"')
-  if regex_payload then
-    res.regexPayload = regex_payload
-  end
-  
-  local sigs_str = str:match('"signatures"%s*:%s*%[(.-)%]')
-  if sigs_str then
-    local signatures = {}
-    for sig in sigs_str:gmatch('"([a-f0-9]+)"') do
-      signatures[#signatures + 1] = sig
-    end
-    res.signatures = signatures
-  end
-  
-  return res
-end
-
 local doc_id = "default-doc"
-
-local function get_key_script() return "" end
 
 local opaque_counter = 0
 local function hex(bytes)
@@ -252,6 +206,15 @@ local function opaque(prefix)
 end
 local function digest(salt, value)
   return hex(sha256.sha256(salt .. "\0" .. value))
+end
+local function encode_pattern(salt, pattern)
+  local key = sha256.sha256(salt)
+  local bytes = {}
+  for i = 1, #pattern do
+    local encoded = string.byte(pattern, i) ~ string.byte(key, ((i - 1) % #key) + 1)
+    bytes[#bytes + 1] = string.format("%02x", encoded)
+  end
+  return table.concat(bytes)
 end
 
 local counter = 0
@@ -630,9 +593,15 @@ end
 
 local function render_html_exercise(data, id, exercise_options)
   local output = pandoc.List()
-  output:insert(pandoc.RawBlock("html", get_key_script()))
   local input_type = data.correct_count > 1 and "checkbox" or "radio"
   local answer_salt = opaque("salt")
+  local correct_digests = {}
+  for _, answer in ipairs(data.answers) do
+    answer.opaque_key = opaque("opt")
+    if answer.correct then
+      correct_digests[#correct_digests + 1] = digest(answer_salt, answer.opaque_key)
+    end
+  end
 
   local div_attrs = {
     class = "quarto-exercise" .. (exercise_options["question-boxes"] and " quarto-exercise-boxed" or ""),
@@ -652,6 +621,10 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-score"] = exercise_options.score,
     ["data-points"] = exercise_options.points
   }
+  if #data.answers > 0 then
+    div_attrs["data-qx-salt"] = answer_salt
+    div_attrs["data-qx-correct"] = table.concat(correct_digests, " ")
+  end
   for _, class in ipairs(exercise_options.classes or {}) do
     if class ~= "exercise" then
       div_attrs.class = div_attrs.class .. " " .. class
@@ -672,11 +645,10 @@ local function render_html_exercise(data, id, exercise_options)
   if #data.answers > 0 then
     output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-' .. exercise_options["option-columns"] .. '" style="--ex-option-columns: ' .. exercise_options["option-columns"] .. ';">'))
     for _, answer in ipairs(data.answers) do
-      local answer_key = opaque("opt")
-      local digest_attr = ' data-qx-salt="' .. answer_salt .. '" data-qx-digest="' .. digest(answer_salt, answer_key) .. '"'
+      local answer_key = answer.opaque_key
       local input_id = id .. "-" .. answer_key
       output:insert(pandoc.RawBlock("html",
-        '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '"' .. digest_attr .. '>' ..
+        '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '">' ..
         '<div class="quarto-exercise-control">' ..
         '<input id="' .. html_escape(input_id) .. '" type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer_key) .. '" class="quarto-exercise-input" />' ..
         '<label for="' .. html_escape(input_id) .. '" class="quarto-exercise-answer-label"></label>' ..
@@ -827,7 +799,6 @@ local function process_code_cloze(el, parent_id)
   el.attributes["data-cloze-processed"] = nil
   local text = el.text
   local metadata = {}
-  local static_answers = {}
   local count = 0
   local id = id_for(el, "cloze")
 
@@ -887,9 +858,6 @@ local function process_code_cloze(el, parent_id)
         attrs = attrs
       }
 
-      local ans = attrs.answer or attrs.answers or ""
-      static_answers[#static_answers + 1] = ans
-
       html_text = string.sub(html_text, 1, start_pos - 1) .. token .. string.sub(html_text, end_pos + 2)
     else
       html_text = string.sub(html_text, 1, start_pos - 1) .. "INVALID_CLOZE" .. string.sub(html_text, end_pos + 2)
@@ -945,12 +913,21 @@ local function process_code_cloze(el, parent_id)
       local values = info.type == "blank" and split_values(expected, "|") or { expected }
       local digests = {}
       local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
-      for _, value in ipairs(values) do
-        local normalized = value:match("^%s*(.-)%s*$")
-        if ignore_case then normalized = string.lower(normalized) end
-        digests[#digests + 1] = digest(salt, normalized)
+      local trim = normalize_bool(info.attrs.trim) ~= "false"
+      local collapse_space = normalize_bool(info.attrs["collapse-space"]) == "true"
+      local regex = nil
+      if info.type == "blank" and info.attrs.match == "regex" then
+        regex = encode_pattern(salt, expected)
+      else
+        for _, value in ipairs(values) do
+          local normalized = value
+          if trim then normalized = normalized:match("^%s*(.-)%s*$") end
+          if collapse_space then normalized = normalized:gsub("%s+", " ") end
+          if ignore_case then normalized = string.lower(normalized) end
+          digests[#digests + 1] = digest(salt, normalized)
+        end
       end
-      qx = { salt = salt, digests = digests, ignoreCase = ignore_case }
+      qx = { salt = salt, digests = digests, regex = regex, ignoreCase = ignore_case, trim = trim, collapseSpace = collapse_space }
     end
     display_metadata[token] = { type = info.type, attrs = attrs, qx = qx }
   end
@@ -966,8 +943,6 @@ local function process_code_cloze(el, parent_id)
   end
 
   local container = pandoc.Div({ el }, container_attrs)
-  local prefix_html = get_key_script()
-
   if parent_id == nil then
     local suppress_controls = should_suppress_controls(nil, el.attributes)
     local actions_html = '<div class="quarto-exercise-actions">'
@@ -981,17 +956,9 @@ local function process_code_cloze(el, parent_id)
       '</div>'
     local actions = pandoc.RawBlock("html", actions_html)
     local wrapper = pandoc.Div({ container, actions }, { class = "quarto-exercise-code-cloze-wrapper" })
-    if prefix_html ~= "" then
-      return pandoc.List({ pandoc.RawBlock("html", prefix_html), wrapper })
-    else
-      return wrapper
-    end
+    return wrapper
   else
-    if prefix_html ~= "" then
-      return pandoc.List({ pandoc.RawBlock("html", prefix_html), container })
-    else
-      return container
-    end
+    return container
   end
 end
 
@@ -1033,27 +1000,31 @@ local function render_blank(el, id, parent_id)
   local trim_val = (el.attributes.trim or "true") ~= "false"
   local collapse_space_val = (normalize_bool(el.attributes["collapse-space"]) or tostring(options["collapse-space"])) == "true"
 
-  if options["obfuscate-answers"] then
-    local ans_list = split_values(answer, "|")
+  do
     local salt = opaque("salt")
-    local digests = {}
-    for _, value in ipairs(ans_list) do
-      local normalized = value
-      if trim_val then normalized = normalized:match("^%s*(.-)%s*$") end
-      if collapse_space_val then normalized = normalized:gsub("%s+", " ") end
-      if ignore_case_val then normalized = string.lower(normalized) end
-      digests[#digests + 1] = digest(salt, normalized)
+    if match == "regex" then
+      container_attrs["data-qx-regex"] = encode_pattern(salt, answer)
+    else
+      local ans_list = split_values(answer, "|")
+      local digests = {}
+      for _, value in ipairs(ans_list) do
+        local normalized = value
+        if trim_val then normalized = normalized:match("^%s*(.-)%s*$") end
+        if collapse_space_val then normalized = normalized:gsub("%s+", " ") end
+        if ignore_case_val then normalized = string.lower(normalized) end
+        digests[#digests + 1] = digest(salt, normalized)
+      end
+      container_attrs["data-qx-digests"] = table.concat(digests, " ")
     end
     container_attrs["data-qx-salt"] = salt
-    container_attrs["data-qx-digests"] = table.concat(digests, " ")
     container_attrs["data-qx-ignore-case"] = tostring(ignore_case_val)
+    container_attrs["data-qx-trim"] = tostring(trim_val)
+    container_attrs["data-qx-collapse-space"] = tostring(collapse_space_val)
   end
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
 
-  local prefix = get_key_script()
   return pandoc.RawInline("html",
-    prefix ..
     raw_inline("span", container_attrs) ..
     '<input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank" />' ..
     '<span class="quarto-exercise-blank-correct-text" hidden></span>' ..
@@ -1118,9 +1089,7 @@ local function render_choose(el, id, parent_id)
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
 
-  local prefix = get_key_script()
   return pandoc.RawInline("html",
-    prefix ..
     raw_inline("span", container_attrs) ..
     '<select class="quarto-exercise-choose-select"><option value="">Choose...</option></select>' ..
     '<span class="quarto-exercise-choose-correct-text" hidden></span>' ..
@@ -1161,23 +1130,6 @@ function Meta(meta)
   else
     options["check-page"] = false
   end
-
-  local obfuscate = true
-  local override = meta["quarto-exercises.obfuscate-answers"]
-  local val = nil
-  if override ~= nil then
-    val = normalize_bool(as_value(override))
-    if val == "false" then
-      obfuscate = false
-    end
-  end
-  if obfuscate and options["obfuscate-answers"] ~= nil then
-    local val = normalize_bool(options["obfuscate-answers"])
-    if val == "false" or options["obfuscate-answers"] == false then
-      obfuscate = false
-    end
-  end
-  options["obfuscate-answers"] = obfuscate
 
   if quarto and quarto.doc and quarto.doc.add_html_dependency and html() then
     quarto.doc.add_html_dependency({

@@ -8,17 +8,13 @@ const { spawnSync } = require('child_process');
 const assert = require('assert');
 const test = require('node:test');
 const vm = require('vm');
-const crypto = require('crypto');
 const { pathToFileURL } = require('url');
 
 const TEMP_DIR = path.join(__dirname, '.tmp', 'test-sandbox');
 const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 
-const testSymmetricKey = crypto.randomBytes(32).toString('hex');
-
 // Helper to prepare temp directory
 function setup() {
-  process.env.QUARTO_EXERCISES_KEY = testSymmetricKey;
   if (fs.existsSync(TEMP_DIR)) {
     fs.rmSync(TEMP_DIR, { recursive: true, force: true });
   }
@@ -54,10 +50,7 @@ function runQuarto(fileName, format = 'html', extraEnv = {}) {
       delete mergedEnv[k];
     }
   }
-  let cmd = `quarto render ${quote(filePath)} --to ${quote(format)}`;
-  if (!fileName.startsWith('tdd-')) {
-    cmd += ` -M "quarto-exercises.obfuscate-answers=false"`;
-  }
+  const cmd = `quarto render ${quote(filePath)} --to ${quote(format)}`;
   const res = spawnSync(cmd, {
     encoding: 'utf8',
     shell: true,
@@ -179,26 +172,26 @@ ${css}
 </head>
 <body>
 <main>
-<div class="quarto-exercise" id="visual-ex" data-id="visual-ex" data-type="radio" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<div class="quarto-exercise" id="visual-ex" data-id="visual-ex" data-type="radio" data-qx-salt="s1" data-qx-correct="b9f833b1ea3f44fb47f4a201df30f9f33d73acf9d444307e17817ae981fd77e3" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Choose the code fragment that returns the mean.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
-<div class="quarto-exercise-answer" data-key="a" data-correct="false"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
-<div class="quarto-exercise-answer" data-key="b" data-correct="true"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
+<div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
+<div class="quarto-exercise-answer" data-key="b"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
 </div></fieldset>
-<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-qx-salt="s2" data-qx-digests="6a4e1f66a7a3226d4929cadb9ae166f19bc891064321ee91cd8138a9f0030d8b" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-qx-salt="s3" data-qx-digests="717918c208983cba7e2bfdab7854d7b3673fb5ed04059513e32a0dd0be2aab2d" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><button type="button" class="quarto-exercise-hint-btn">Hint</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 <div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
 </div>
-<p>Standalone blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
-<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>Standalone blank: <span class="quarto-exercise-blank-container" data-qx-salt="s4" data-qx-digests="0186fe0a5aa2e9c5bd1a8bf7a6d5b951a06720d7ffd17a14ce9d9c94a55db846" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-qx-salt="s4" data-qx-digests="0186fe0a5aa2e9c5bd1a8bf7a6d5b951a06720d7ffd17a14ce9d9c94a55db846" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="sourceCode"><pre><code><span>member = </span><select class="quarto-exercise-code-choose"><option value="">Choose...</option><option value="Gimli">Gimli</option><option value="Legolas">Legolas</option></select></code></pre></div>
-<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-qx-salt="s5" data-qx-correct="28c36f1054b6b9b77f71f7465a03cedfe216fbb4d2ca6f452dedc101c64926d9 66f8d9609638cd8653a3e5b1e8ede4c38ba467221810c4ea5513c1a4da1a0d3a" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Select all hobbits.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
-<div class="quarto-exercise-answer" data-key="frodo" data-correct="true"><div class="quarto-exercise-control"><input id="checkbox-ex-frodo" type="checkbox" name="checkbox-ex" value="frodo" class="quarto-exercise-input"><label for="checkbox-ex-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Frodo</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Frodo is a hobbit.</div></div>
-<div class="quarto-exercise-answer" data-key="sam" data-correct="true"><div class="quarto-exercise-control"><input id="checkbox-ex-sam" type="checkbox" name="checkbox-ex" value="sam" class="quarto-exercise-input"><label for="checkbox-ex-sam" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Sam</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Sam is a hobbit.</div></div>
-<div class="quarto-exercise-answer" data-key="legolas" data-correct="false"><div class="quarto-exercise-control"><input id="checkbox-ex-legolas" type="checkbox" name="checkbox-ex" value="legolas" class="quarto-exercise-input"><label for="checkbox-ex-legolas" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Legolas</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Legolas is an elf.</div></div>
+<div class="quarto-exercise-answer" data-key="frodo"><div class="quarto-exercise-control"><input id="checkbox-ex-frodo" type="checkbox" name="checkbox-ex" value="frodo" class="quarto-exercise-input"><label for="checkbox-ex-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Frodo</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Frodo is a hobbit.</div></div>
+<div class="quarto-exercise-answer" data-key="sam"><div class="quarto-exercise-control"><input id="checkbox-ex-sam" type="checkbox" name="checkbox-ex" value="sam" class="quarto-exercise-input"><label for="checkbox-ex-sam" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Sam</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Sam is a hobbit.</div></div>
+<div class="quarto-exercise-answer" data-key="legolas"><div class="quarto-exercise-control"><input id="checkbox-ex-legolas" type="checkbox" name="checkbox-ex" value="legolas" class="quarto-exercise-input"><label for="checkbox-ex-legolas" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Legolas</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Legolas is an elf.</div></div>
 </div></fieldset>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
@@ -219,7 +212,9 @@ async function runVisualMode(playwright, mode) {
     viewport: { width: 900, height: 720 },
     colorScheme: mode
   });
-  await page.setContent(visualFixture(), { waitUntil: 'load' });
+  const fixturePath = path.join(TEMP_DIR, 'visual', `${mode}-fixture.html`);
+  fs.writeFileSync(fixturePath, visualFixture());
+  await page.goto(pathToFileURL(fixturePath).href, { waitUntil: 'load' });
   if (mode === 'dark') {
     await page.evaluate(() => document.body.classList.add('quarto-dark'));
   }
@@ -375,8 +370,8 @@ test.describe('Quarto Exercises Extension Tests', () => {
     setup();
   });
 
-  test('JS unit tests for production matching logic', () => {
-    const { checkBlankMatch, splitList } = loadRuntime();
+  test('JS unit tests for canonicalization and escaped lists', () => {
+    const { canonicalize, splitList } = loadRuntime();
     const list = value => Array.from(splitList(value));
 
     assert.deepStrictEqual(list("red|green|blue"), ["red", "green", "blue"]);
@@ -384,32 +379,10 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.deepStrictEqual(list("C:\\\\Temp|D:\\\\Data"), ["C:\\Temp", "D:\\Data"]);
     assert.deepStrictEqual(list("literal\\\\\\|pipe|plain"), ["literal\\|pipe", "plain"]);
 
-    // Exact match
-    assert.strictEqual(checkBlankMatch("Gandalf", "Gandalf", "exact", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("gandalf", "Gandalf", "exact", false, true, false), false);
-    assert.strictEqual(checkBlankMatch("gandalf", "Gandalf", "exact", true, true, false), true);
-    
-    // Trim/Collapse spaces
-    assert.strictEqual(checkBlankMatch("  Gandalf  ", "Gandalf", "exact", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Gandalf The Grey", "Gandalf  The   Grey", "exact", false, true, true), true);
-
-    // One of multiple
-    assert.strictEqual(checkBlankMatch("Frodo Baggins", "Frodo|Frodo Baggins", "one-of", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Samwise", "Frodo|Frodo Baggins", "one-of", false, true, false), false);
-    assert.strictEqual(checkBlankMatch(" Frodo ", " Frodo |Sam", "one-of", false, false, false), true);
-    assert.strictEqual(checkBlankMatch("Frodo", " Frodo |Sam", "one-of", false, false, false), false);
-
-    // Regex
-    assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("the fellowship of the ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", true, true, false), true);
-    assert.strictEqual(checkBlankMatch("Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
-    assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
-    assert.strictEqual(checkBlankMatch("Frodo, Sam", "^Frodo,\\s+Sam$", "regex", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Frodo", "^Frodo,\\s+Sam$", "regex", false, true, false), false);
-
-    // Escaped delimiter values
-    assert.strictEqual(checkBlankMatch("yes|no", "yes\\|no|maybe", "one-of", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("yes", "yes\\|no|maybe", "one-of", false, true, false), false);
+    assert.strictEqual(canonicalize("  Gandalf  ", {}), "Gandalf");
+    assert.strictEqual(canonicalize("Gandalf  The   Grey", { collapseSpace: true }), "Gandalf The Grey");
+    assert.strictEqual(canonicalize("  FRODO  ", { ignoreCase: true }), "frodo");
+    assert.strictEqual(canonicalize(" Frodo ", { trim: false }), " Frodo ");
   });
 
   test('Code cloze blank sizing resizes to typed text and toggles underline', () => {
@@ -519,9 +492,10 @@ He is short and has hairy feet.
     assert.match(html, /style="background: navy;"/);
     assert.match(html, /data-type="radio"/);
 
-    // 2. Explicit answer keys are preserved.
-    assert.match(html, /data-key="frodo"/);
-    assert.match(html, /data-key="legolas"/);
+    // 2. Author keys are replaced by opaque option IDs and correct digests.
+    assert.match(html, /data-key="opt_[a-f0-9]{24}"/);
+    assert.match(html, /data-qx-correct="[a-f0-9]{64}"/);
+    assert.doesNotMatch(html, /data-key="(?:frodo|legolas)"/);
 
     // 3. Accessibility elements present
     assert.match(html, /fieldset class="quarto-exercise-fieldset"/);
@@ -566,14 +540,15 @@ for(i in {{blank answer="seq_along(rings)"}}) {
     assert.match(html, /class="quarto-exercise-blank-input"/);
     assert.match(html, /class="quarto-exercise-blank-check-btn"/);
     assert.doesNotMatch(html, /placeholder=/);
-    assert.match(html, /data-answers="Gandalf"/);
-    assert.match(html, /data-ignore-case="true"/);
+    assert.match(html, /data-qx-digests="[a-f0-9]{64}"/);
+    assert.match(html, /data-qx-ignore-case="true"/);
+    assert.doesNotMatch(html, /data-answers=/);
     assert.match(html, /data-feedback-incorrect=""/);
 
     // Standalone choose renders as dropdown
     assert.match(html, /class="quarto-exercise-choose-select"/);
     assert.match(html, /data-options="Rivendell\|Minas Tirith\|Edoras"/);
-    assert.match(html, /data-answer="Rivendell"/);
+    assert.doesNotMatch(html, /data-answer=/);
 
     // Code cloze renders correctly
     assert.match(html, /class="[^"]*quarto-exercise-code-cloze-container/);
@@ -604,7 +579,7 @@ The path is [Mordor| Gondor |Rohan]{.choose answer="Mordor"}.
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'pipe-choice.html'), 'utf8');
     assert.match(html, /data-options="Mordor\| Gondor \|Rohan"/);
-    assert.match(html, /data-answer="Mordor"/);
+    assert.match(html, /data-qx-digests="[a-f0-9]{64}"/);
   });
 
   test('Escaped pipe delimiters render as literal value characters', (t) => {
@@ -622,9 +597,8 @@ Literal choice: [yes\\\\|no|maybe|unknown]{.choose answer="yes|no"}.
     renderQuarto('escaped-pipe.qmd');
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'escaped-pipe.html'), 'utf8');
-    assert.match(html, /data-answers="yes\\\|no\|maybe"/);
     assert.match(html, /data-options="yes\\\|no\|maybe\|unknown"/);
-    assert.match(html, /data-answer="yes\|no"/);
+    assert.doesNotMatch(html, /data-(?:answer|answers)=/);
   });
 
   test('Inline blanks validate exact, one-of, regex, trimming, and whitespace behavior in browser', async () => {
@@ -966,7 +940,7 @@ Legolas
 
     assert.doesNotMatch(log, /invalid boolean value/);
     assert.doesNotMatch(log, /has no correct answers/);
-    assert.match(html, /data-correct="true"/);
+    assert.match(html, /data-qx-correct="[a-f0-9]{64}"/);
   });
 
   test('Numeric boolean attributes are invalid and not truthy', (t) => {
@@ -995,8 +969,8 @@ Legolas
 
     assert.match(log, /invalid boolean value for 'correct': '1'/);
     assert.match(log, /has no correct answers/);
-    assert.match(html, /data-correct="false"/);
-    assert.doesNotMatch(html, /data-correct="true"/);
+    assert.match(html, /data-qx-correct=""/);
+    assert.doesNotMatch(html, /data-correct=/);
   });
 
   test('JS click interaction simulation', () => {
@@ -1267,23 +1241,26 @@ Saruman
       const page = await browser.newPage({ viewport: { width: 900, height: 600 } });
       await page.goto(`file://${path.join(TEMP_DIR, 'browser-behavior.html')}`, { waitUntil: 'load' });
 
-      await page.click('#reveal-ex [data-key="legolas"]');
+      const revealFrodo = page.locator('#reveal-ex .quarto-exercise-answer', { hasText: 'Frodo' });
+      const revealLegolas = page.locator('#reveal-ex .quarto-exercise-answer', { hasText: 'Legolas' });
+      await revealLegolas.click();
       await page.click('#reveal-ex .quarto-exercise-check-btn');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-status').textContent(), 'Not quite.');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-explanation').isVisible(), true);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="frodo"]').evaluate(el => el.classList.contains('is-correct')), true);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="legolas"]').evaluate(el => el.classList.contains('is-incorrect')), true);
+      assert.strictEqual(await revealFrodo.evaluate(el => el.classList.contains('is-correct')), true);
+      assert.strictEqual(await revealLegolas.evaluate(el => el.classList.contains('is-incorrect')), true);
 
       await page.click('#reveal-ex .quarto-exercise-reset-btn');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-status').textContent(), '');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-explanation').isVisible(), false);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="frodo"]').evaluate(el => el.classList.contains('is-correct')), false);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="legolas"] input').isChecked(), false);
+      assert.strictEqual(await revealFrodo.evaluate(el => el.classList.contains('is-correct')), false);
+      assert.strictEqual(await revealLegolas.locator('input').isChecked(), false);
 
-      await page.click('#lock-ex [data-key="gandalf"]');
+      const lockGandalf = page.locator('#lock-ex .quarto-exercise-answer', { hasText: 'Gandalf' });
+      await lockGandalf.click();
       await page.click('#lock-ex .quarto-exercise-check-btn');
       assert.strictEqual(await page.locator('#lock-ex').evaluate(el => el.classList.contains('is-locked')), true);
-      assert.strictEqual(await page.locator('#lock-ex [data-key="gandalf"] input').isDisabled(), true);
+      assert.strictEqual(await lockGandalf.locator('input').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-check-btn').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-reset-btn').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-status').textContent(), 'Correct!');
@@ -1321,7 +1298,6 @@ Saruman
       'feedback-correct': 'Correct!',
       'feedback-incorrect': 'Not quite.',
       'ignore-case': false,
-      'obfuscate-answers': true,
       'question-boxes': false,
       'check-page': false,
       score: false,
@@ -1464,11 +1440,11 @@ Default choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
     assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
 
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="false"/);
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-trim="true"/);
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-collapse-space="false"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-ignore-case="false"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-trim="true"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-collapse-space="false"/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="false"/);
-    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-ignore-case="false"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-qx-ignore-case="false"/);
   });
 
   test('Global metadata overrides render into exercise, blank, and choice controls', () => {
@@ -1526,7 +1502,7 @@ Shuffled choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.doesNotMatch(html, /class="quarto-exercise-check-btn"/);
     assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
 
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="true"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-ignore-case="true"/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="true"/);
   });
 
@@ -1586,8 +1562,6 @@ Local explanation.
 title: "Standalone Points Test"
 filters:
   - quarto-exercises
-quarto-exercises:
-  obfuscate-answers: false
 ---
 
 Blank: [Samwise]{.blank answer="Samwise" points=3}.
@@ -1947,8 +1921,6 @@ format:
       dark: darkly
 filters:
   - quarto-exercises
-quarto-exercises:
-  obfuscate-answers: false
 ---
 
 Inline choice: [Gimli|Legolas]{.choose answer="Gimli"}.
@@ -2011,7 +1983,7 @@ member <- {{choose answer="Gimli" options="Gimli|Legolas|Pippin"}}
     }
   });
 
-  test('TDD Obfuscation/Encryption Leak and Config Tests', async () => {
+  test('Digest obfuscation hides answers and preserves browser grading', async () => {
     const playwright = require('playwright');
     const qmdContent = `---
 title: "TDD Leak Test"
@@ -2073,14 +2045,8 @@ Inline blank: [Frodo]{.blank answer="Frodo"}.
 Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
 :::
 `;
-    // 1. Missing key fails build when obfuscate-answers is default (true)
     fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
-    const failRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
-    assert.strictEqual(failRes.success, false, "Should fail build if QUARTO_EXERCISES_KEY is missing");
-    assert.match(failRes.stderr + failRes.stdout, /openssl rand -hex 32/, "Should fail with suggestion on how to generate key");
-
-    // 2. Successful build when QUARTO_EXERCISES_KEY is set
-    const buildRes = runQuarto('tdd-leak.qmd', 'html', { QUARTO_EXERCISES_KEY: testSymmetricKey });
+    const buildRes = runQuarto('tdd-leak.qmd');
     assert.strictEqual(buildRes.success, true, "Build should succeed");
     
     // Assert no data-processed or has no .answer block warnings are present
@@ -2096,15 +2062,9 @@ Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
     assert.doesNotMatch(html, /class="quarto-exercise-blank-container"[^>]*data-answers=/);
     assert.doesNotMatch(html, /"answers":/);
     assert.doesNotMatch(html, /"correct":/);
-    assert.doesNotMatch(html, /\^\(0b\)\?1001\$/);
-    assert.doesNotMatch(html, /\^\(the\\s\+\)\?fellowship\$/);
-    assert.doesNotMatch(html, /data-pubk=/);
-    assert.doesNotMatch(html, /data-sigs=/);
-    
-    // Verify that data-pba is present on obfuscated controls
-    assert.match(html, /data-pba=/);
-    // Verify page key is injected in page source
-    assert.match(html, /window\.quartoExercisesKey\s*=/);
+    assert.match(html, /data-qx-salt="salt_[a-f0-9]{24}"/);
+    assert.match(html, /data-qx-(?:correct|digests)="[a-f0-9 ]+"/);
+    assert.doesNotMatch(html, /QUARTO_EXERCISES_KEY|quartoExercisesKey|data-pba=/);
 
     // 3. Verify grading behavior in browser
     const browser = await playwright.chromium.launch();
@@ -2211,28 +2171,6 @@ Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
       await browser.close();
     }
 
-    // 4. Explicit obfuscate-answers: false does not require key and preserves current plaintext behavior
-    const qmdPlaintext = `---
-title: "Plaintext Test"
-filters:
-  - quarto-exercises
-quarto-exercises:
-  obfuscate-answers: false
----
-
-::: {.exercise #ex-plain}
-Select Sam.
-
-::: {.answer key="sam" correct=true}
-Samwise
-:::
-:::
-`;
-    fs.writeFileSync(path.join(TEMP_DIR, 'tdd-plain.qmd'), qmdPlaintext);
-    renderQuarto('tdd-plain.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
-    const plainHtml = fs.readFileSync(path.join(TEMP_DIR, 'tdd-plain.html'), 'utf8');
-    assert.match(plainHtml, /data-correct="true"/);
-    assert.match(plainHtml, /data-key="sam"/);
   });
 
   test('Canvas-like checking, document-level and scoring semantics E2E', async () => {
@@ -2244,7 +2182,6 @@ filters:
 quarto-exercises:
   check-page: true
   score: true
-  obfuscate-answers: false
 ---
 
 [Gandalf]{.blank answer="Gandalf" id="stand-blank" points=2}.
@@ -2273,7 +2210,7 @@ x = {{blank answer="1"}}
 [Rivendell|Edoras]{.choose answer="Rivendell" id="stand-choose" points=3}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'page-scoring-e2e.qmd'), qmdContent);
-    renderQuarto('page-scoring-e2e.qmd', 'html', { QUARTO_EXERCISES_KEY: '' });
+    renderQuarto('page-scoring-e2e.qmd');
 
     const htmlPath = path.join(TEMP_DIR, 'page-scoring-e2e.html');
     const browser = await playwright.chromium.launch();

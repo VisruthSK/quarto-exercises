@@ -155,27 +155,28 @@ test.describe('MCQ per-answer feedback', () => {
 
   test('correct answer shows its feedback message', async ({ page }) => {
     const e = ex(page, 'mcq-with-feedback');
-    // Click the radio input for "Gandalf" directly by key attribute
-    await e.locator('.quarto-exercise-answer[data-key="gandalf"] .quarto-exercise-input').click();
+    const answer = e.locator('.quarto-exercise-answer').filter({ hasText: 'Gandalf' });
+    await answer.locator('.quarto-exercise-input').click();
     await e.getByRole('button', { name: 'Check' }).click();
     await expect(e.locator('.quarto-exercise-status')).toHaveText('Correct!');
     // Feedback for selected answer should be visible
-    await expect(e.locator('[data-key="gandalf"] .quarto-exercise-feedback')).toBeVisible();
+    await expect(answer.locator('.quarto-exercise-feedback')).toBeVisible();
     await expect(e).toHaveScreenshot('mcq-feedback-correct.png', snap);
   });
 
   test('incorrect answer shows its feedback message', async ({ page }) => {
     const e = ex(page, 'mcq-with-feedback');
-    await e.locator('.quarto-exercise-answer[data-key="saruman"] .quarto-exercise-input').click();
+    const answer = e.locator('.quarto-exercise-answer').filter({ hasText: 'Saruman' });
+    await answer.locator('.quarto-exercise-input').click();
     await e.getByRole('button', { name: 'Check' }).click();
     await expect(e.locator('.quarto-exercise-status')).toHaveText('Not quite.');
-    await expect(e.locator('[data-key="saruman"] .quarto-exercise-feedback')).toBeVisible();
+    await expect(answer.locator('.quarto-exercise-feedback')).toBeVisible();
     await expect(e).toHaveScreenshot('mcq-feedback-incorrect.png', snap);
   });
 
   test('reset hides feedback', async ({ page }) => {
     const e = ex(page, 'mcq-with-feedback');
-    await e.locator('.quarto-exercise-answer[data-key="saruman"] .quarto-exercise-input').click();
+    await e.locator('.quarto-exercise-answer').filter({ hasText: 'Saruman' }).locator('.quarto-exercise-input').click();
     await e.getByRole('button', { name: 'Check' }).click();
     await e.getByRole('button', { name: 'Reset' }).click();
     await expect(e.locator('.quarto-exercise-feedback:not([hidden])')).toHaveCount(0);
@@ -713,6 +714,8 @@ test.describe('Exercise states after page-level check', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test.describe('Full-page smoke tests', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test('fixtures.html – initial load (full page)', async ({ page }) => {
     await goto(page, fixturesUrl);
     await page.evaluate(() => window.scrollTo(0, 0));

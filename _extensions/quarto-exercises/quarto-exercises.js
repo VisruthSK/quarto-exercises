@@ -15,6 +15,33 @@ async function digest(salt, value) {
   return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function decodePattern(salt, encoded) {
+  const key = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt)));
+  const bytes = new Uint8Array(encoded.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(encoded.slice(i * 2, i * 2 + 2), 16) ^ key[i % key.length];
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+async function matchesRegex(value, metadata) {
+  const pattern = await decodePattern(metadata.salt, metadata.regex);
+  return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
+}
+
+function canonicalize(value, rules = {}) {
+  let normalized = value || "";
+  if (rules.trim !== false) normalized = normalized.trim();
+  if (rules.collapseSpace) normalized = normalized.replace(/\s+/g, " ");
+  if (rules.ignoreCase) normalized = normalized.toLowerCase();
+  return normalized;
+}
+
+function checkModeFor(control) {
+  return control.closest(".quarto-exercise")?.dataset.checkMode ||
+    (control.closest(".check-batch") ? "batch" : "exercise");
+}
+
 async function checkAnswer(control, submittedValue) {
   const container = control.closest(".quarto-exercise-blank-container") ||
                     control.closest(".quarto-exercise-choose-container") ||
@@ -23,20 +50,26 @@ async function checkAnswer(control, submittedValue) {
   if (!container) return false;
 
   if (control.classList && control.classList.contains("quarto-exercise-answer")) {
-    if (control.dataset.qxDigest) {
-      return (await digest(control.dataset.qxSalt, control.dataset.key)) === control.dataset.qxDigest;
-    }
-    return false;
+    const exercise = control.closest(".quarto-exercise");
+    const expected = exercise?.dataset.qxCorrect?.split(" ") || [];
+    return expected.includes(await digest(exercise?.dataset.qxSalt || "", control.dataset.key || ""));
   }
 
   if (control._qx) {
-    let value = submittedValue.trim();
-    if (control._qx.ignoreCase) value = value.toLowerCase();
+    if (control._qx.regex) return matchesRegex(submittedValue, control._qx);
+    const value = canonicalize(submittedValue, control._qx);
     return control._qx.digests.includes(await digest(control._qx.salt, value));
   }
-  if (container.dataset.qxDigests) {
-    let value = submittedValue.trim();
-    if (container.dataset.qxIgnoreCase === "true") value = value.toLowerCase();
+  if (container.dataset.qxDigests || container.dataset.qxRegex) {
+    const metadata = {
+      salt: container.dataset.qxSalt,
+      regex: container.dataset.qxRegex,
+      ignoreCase: container.dataset.qxIgnoreCase === "true",
+      trim: container.dataset.qxTrim !== "false",
+      collapseSpace: container.dataset.qxCollapseSpace === "true"
+    };
+    if (metadata.regex) return matchesRegex(submittedValue, metadata);
+    const value = canonicalize(submittedValue, metadata);
     return container.dataset.qxDigests.split(" ").includes(await digest(container.dataset.qxSalt, value));
   }
   return false;
@@ -115,7 +148,7 @@ function initController(kind, root) {
     const roundedEarned = Math.round(totalEarned * 100) / 100;
     const roundedPossible = Math.round(totalPossible * 100) / 100;
 
-    const showScore = window.quartoExercisesScore === true || units.exercises.some(ex => bool(ex.dataset.score));
+    const showScore = units.exercises.some(ex => bool(ex.dataset.score));
     status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${roundedEarned} / ${roundedPossible}.` : "");
     status.classList.toggle("is-correct", allCorrect);
     status.classList.toggle("is-incorrect", !allCorrect);
@@ -164,8 +197,8 @@ function initController(kind, root) {
 }
 
 function initCheckControllers() {
-  const mode = window.quartoExercisesCheckMode || "exercise";
-  if (mode === "page") {
+  const pageMode = $$(document, ".quarto-exercise").some(ex => ex.dataset.checkMode === "page");
+  if (pageMode) {
     const content = document.querySelector("main#quarto-document-content, main.content, main") || document.body;
     const units = findCheckableUnits(content);
     if (units.exercises.length > 0 || units.blanks.length > 0 || units.chooses.length > 0 || units.clozes.length > 0) {
@@ -253,33 +286,6 @@ function splitList(value) {
 
 function answerOptions(container) {
   return splitList(container.dataset.options);
-}
-
-function checkBlankMatch(value, answersStr, matchMode, ignoreCase, trimMode, collapseSpace) {
-  const normalize = text => {
-    let out = text || "";
-    if (trimMode) out = out.trim();
-    if (collapseSpace) out = out.replace(/\s+/g, " ");
-    return out;
-  };
-
-  const compare = text => (ignoreCase ? text.toLowerCase() : text);
-  const userValue = compare(normalize(value));
-
-  const answersArr = Array.isArray(answersStr) ? answersStr : splitList(answersStr || "");
-
-  if (matchMode === "regex") {
-    const pattern = answersArr[0] || "";
-    try {
-      return new RegExp(normalize(pattern), ignoreCase ? "i" : "").test(normalize(value));
-    } catch (error) {
-      console.warn("Invalid regex in blank:", pattern, error);
-      return false;
-    }
-  }
-
-  const answers = answersArr.map(answer => compare(normalize(answer)));
-  return answers.some(answer => answer === userValue);
 }
 
 function adjustInputWidth(input) {
@@ -383,7 +389,7 @@ function initBlank(container, onCheck) {
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") {
       event.preventDefault();
-      const mode = window.quartoExercisesCheckMode || "exercise";
+      const mode = checkModeFor(input);
       if (mode === "exercise") {
         onCheck();
       }
@@ -398,14 +404,7 @@ async function verifyBlank(container, { showFeedback = false, reveal = false } =
   const control = {
     closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
     _controlId: container.dataset.id || container.id || "default-blank",
-    _kind: "blank",
-    _answers: container.dataset.answers,
-    _attrs: {
-      match: container.dataset.match || "exact",
-      ignoreCase: container.dataset.ignoreCase === "true",
-      trim: container.dataset.trim !== "false",
-      collapseSpace: container.dataset.collapseSpace === "true"
-    }
+    _kind: "blank"
   };
 
   const isCorrect = await checkAnswer(control, input.value);
@@ -480,7 +479,7 @@ function initChoose(container, onCheck, { instant = false } = {}) {
   select.addEventListener("keydown", event => {
     if (event.key === "Enter") {
       event.preventDefault();
-      const mode = window.quartoExercisesCheckMode || "exercise";
+      const mode = checkModeFor(select);
       if (mode === "exercise") {
         onCheck();
       }
@@ -495,11 +494,7 @@ async function verifyChoose(container, { showFeedback = false, reveal = false } 
   const control = {
     closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
     _controlId: container.dataset.id || container.id || "default-choose",
-    _kind: "choose",
-    _answer: container.dataset.answer,
-    _attrs: {
-      ignoreCase: container.dataset.ignoreCase === "true"
-    }
+    _kind: "choose"
   };
 
   const isCorrect = await checkAnswer(control, select.value);
@@ -952,7 +947,7 @@ function initCodeCloze(container, onCheck) {
       input.addEventListener("keydown", e => {
         if (e.key === "Enter") {
           e.preventDefault();
-          const mode = window.quartoExercisesCheckMode || "exercise";
+          const mode = checkModeFor(input);
           if (mode === "exercise" && onCheck) onCheck();
         }
       });
@@ -963,8 +958,6 @@ function initCodeCloze(container, onCheck) {
         attrs,
         token,
         qx: info.qx,
-        signatures: info.signatures,
-        regexPayload: info.pba
       });
     } else if (info.type === "choose") {
       const attrs = info.attrs || {};
@@ -978,7 +971,7 @@ function initCodeCloze(container, onCheck) {
       select.addEventListener("keydown", e => {
         if (e.key === "Enter") {
           e.preventDefault();
-          const mode = window.quartoExercisesCheckMode || "exercise";
+          const mode = checkModeFor(select);
           if (mode === "exercise" && onCheck) onCheck();
         }
       });
@@ -989,8 +982,7 @@ function initCodeCloze(container, onCheck) {
         el: select,
         attrs,
         token,
-        qx: info.qx,
-        signatures: info.signatures
+        qx: info.qx
       });
     }
   }
@@ -1004,24 +996,14 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
   let correctCount = 0;
 
   for (const ctrl of controls) {
-    const { type, el, attrs, token, signatures, regexPayload } = ctrl;
+    const { type, el, token } = ctrl;
     el.classList.remove("is-correct", "is-incorrect");
 
     const controlObj = {
       closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
       _controlId: token,
       _kind: type,
-      _signatures: signatures,
-      _regexPayload: regexPayload,
-      _qx: ctrl.qx,
-      _answers: attrs.answer || attrs.answers || "",
-      _answer: attrs.answer || "",
-      _attrs: {
-        match: attrs.match || "exact",
-        ignoreCase: attrs["ignore-case"] === "true",
-        trim: attrs.trim !== "false",
-        collapseSpace: attrs["collapse-space"] === "true"
-      }
+      _qx: ctrl.qx
     };
 
     const ok = await checkAnswer(controlObj, el.value);

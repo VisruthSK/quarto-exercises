@@ -237,7 +237,6 @@ quarto-exercises:
   feedback-correct: "Correct!"
   feedback-incorrect: "Not quite."
   ignore-case: false
-  obfuscate-answers: true
   question-boxes: false
   check-page: false
   score: false
@@ -357,16 +356,7 @@ body.quarto-dark {
 
 To prevent students from finding correct answers in the generated static HTML source code (via DOM attributes, hidden tags, or inspect elements), the extension supports **static source obfuscation**.
 
-### Configuration
-
-Add the following options to your metadata:
-
-```yaml
-quarto-exercises:
-  obfuscate-answers: true # defaults to true
-```
-
-Answer obfuscation is enabled by default and requires no setup beyond Quarto and this extension. The rendered HTML stores opaque IDs, salts, and digests instead of plaintext correct answers.
+Answer obfuscation is always enabled and requires no setup beyond Quarto and this extension. The rendered HTML stores opaque IDs, salts, and digests instead of plaintext correct-answer metadata. Regex patterns use an opaque per-control encrypted payload so regex matching retains its normal behavior.
 
 ### Security & Limitations
 
@@ -377,7 +367,7 @@ Answer obfuscation is enabled by default and requires no setup beyond Quarto and
 
 ## Limitations
 
-- The correct answers and feedback are stored in the HTML source (obfuscated by default).
+- Visible option content and authored feedback remain in the HTML source; correctness metadata is obfuscated.
 - Inline blanks or choices inside `.answer` blocks are not supported.
 - Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if `collapse-space=true`, repeated whitespace is also collapsed to one space.
 - Long text inputs are capped at `380px` and scroll horizontally.

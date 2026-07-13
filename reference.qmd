@@ -22,7 +22,6 @@ quarto-exercises:
   feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
   feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer
   ignore-case: false          # Set true to ignore casing during text input validation.
-  obfuscate-answers: true     # Keep correct answers out of generated HTML attributes.
   question-boxes: false       # Set true to add a contained box around each exercise.
   check-page: false           # Set true to check the entire page at once with one control set.
   score: false                 # Set true to show earned and possible points after checking.
