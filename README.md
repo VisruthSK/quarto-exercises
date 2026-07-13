@@ -237,10 +237,11 @@ quarto-exercises:
   feedback-correct: "Correct!"
   feedback-incorrect: "Not quite."
   ignore-case: false
+  obfuscate-answers: true
   question-boxes: false
-  option-columns: 1
-  button-style: theme
   check-page: false
+  score: false
+  points: 1
 ```
 
 Per-exercise overrides:
@@ -262,8 +263,7 @@ Exercise attributes:
 - `explanation`: `correct`, `after-check`, or `never`
 - `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
 - `question-boxes`: Set true to add a subtle border and padding around each exercise
-- `option-columns`: split multiple-choice options into columns (supports `1`, `2`, `3`, or `4` columns)
-- `button-style`: `theme` uses Quarto/Bootstrap variables when available; `plain` keeps the basic controls
+- `option-columns`: on an `.exercise`, choose any positive number of answer-choice columns; on a `.check-batch`, choose the number of exercise columns
 - `check-page`: Set true to check the entire page at once with a single set of Check Page and Reset Page controls
 
 Correct and incorrect choices are indicated with a check or X as well as color. Put a `.feedback` Div inside an `.answer` to show option-specific feedback after the learner checks that option.

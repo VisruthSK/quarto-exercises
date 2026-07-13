@@ -446,7 +446,7 @@ filters:
   - quarto-exercises
 ---
 
-::: {.exercise #ex1 shuffle=true}
+::: {.exercise .fancy-card #ex1 shuffle=true style="background: navy;"}
 Select the hobbit.
 
 ::: {.answer correct=true key="frodo"}
@@ -472,7 +472,9 @@ He is short and has hairy feet.
 
     // 1. Single-correct question renders as radio inputs.
     assert.match(html, /type="radio"/);
-    assert.match(html, /class="quarto-exercise"/);
+    assert.match(html, /class="quarto-exercise(?:\s|\")/);
+    assert.match(html, /class="quarto-exercise fancy-card"/);
+    assert.match(html, /style="background: navy;"/);
     assert.match(html, /data-type="radio"/);
 
     // 2. Explicit answer keys are preserved.
@@ -812,6 +814,18 @@ No answer blocks.
 [\`Gandalf\`]{.blank}
 
 [No Answer]{.choose}
+
+::: {.exercise #hidden-explanation explanation="never"}
+Hidden explanation.
+
+::: {.answer correct=true}
+Yes
+:::
+
+::: {.explanation}
+Learners can never see this.
+:::
+:::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'warnings.qmd'), qmdContent);
     const result = renderQuarto('warnings.qmd');
@@ -823,6 +837,7 @@ No answer blocks.
     assert.match(stderrLog, /match="regex" with no answer/);
     assert.match(stderrLog, /blank with no answer/);
     assert.match(stderrLog, /choose block with no answer/);
+    assert.match(stderrLog, /contains an \.explanation block, but explanation is set to 'never'/);
   });
 
   test('Non-HTML fallback rendering', (t) => {
@@ -1266,8 +1281,6 @@ Saruman
       'ignore-case': false,
       'obfuscate-answers': true,
       'question-boxes': false,
-      'option-columns': 1,
-      'button-style': 'theme',
       'check-page': false,
       score: false,
       points: 1
@@ -1278,7 +1291,7 @@ Saruman
     const lua = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.lua'), 'utf8');
     const js = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
     const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
-    for (const option of ['question-boxes', 'option-columns', 'button-style', 'check-page']) {
+    for (const option of ['question-boxes', 'option-columns', 'check-page']) {
       assert.match(lua, new RegExp(`\\["${option}"\\]`));
     }
     assert.match(lua, /quarto-exercise-answer-state/);
@@ -1290,15 +1303,13 @@ Saruman
     assert.match(css, /quarto-exercise-answer\.is-correct::before/);
   });
 
-  test('Visual style options render scoped classes and validate columns', () => {
+  test('Exercise-level visual options render scoped classes and validate columns', () => {
     const qmdContent = `---
 title: "Visual options"
 filters:
   - quarto-exercises
 quarto-exercises:
   question-boxes: true
-  option-columns: 2
-  button-style: theme
 ---
 
 ::: {.exercise #global}
@@ -1345,7 +1356,7 @@ Two
     const result = renderQuarto('visual-options.qmd');
     const html = fs.readFileSync(path.join(TEMP_DIR, 'visual-options.html'), 'utf8');
     assert.match(html, /id="global"[^>]*class="quarto-exercise quarto-exercise-boxed"|class="quarto-exercise quarto-exercise-boxed"[^>]*id="global"/);
-    assert.match(html, /id="global"[\s\S]*?quarto-exercise-options-cols-2/);
+    assert.match(html, /id="global"[\s\S]*?quarto-exercise-options-cols-1/);
     assert.match(html, /class="quarto-exercise"[^>]*id="local-off"/);
     assert.doesNotMatch(html, /class="quarto-exercise quarto-exercise-boxed"[^>]*id="local-off"/);
     assert.match(html, /id="local-off"[\s\S]*?quarto-exercise-options-cols-1/);
@@ -1355,16 +1366,16 @@ Two
     assert.match(html, /quarto-exercise-hint-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
     assert.doesNotMatch(result.stderr, /unsupported/);
 
-    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns: 2', 'option-columns: invalid'));
+    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns="2"', 'option-columns="invalid"'));
     const invalid = runQuarto('invalid-columns.qmd');
     assert.strictEqual(invalid.success, true, invalid.stderr);
     assert.match(invalid.stderr, /unsupported option-columns 'invalid'/);
 
-    fs.writeFileSync(path.join(TEMP_DIR, 'plain-buttons.qmd'), qmdContent.replace('button-style: theme', 'button-style: plain'));
-    renderQuarto('plain-buttons.qmd');
-    const plain = fs.readFileSync(path.join(TEMP_DIR, 'plain-buttons.html'), 'utf8');
-    assert.doesNotMatch(plain, /quarto-exercise-btn-primary/);
-    assert.doesNotMatch(plain, /quarto-exercise-btn-secondary/);
+    fs.writeFileSync(path.join(TEMP_DIR, 'global-columns.qmd'), qmdContent.replace('question-boxes: true', 'question-boxes: true\n  option-columns: 2'));
+    const globalColumns = renderQuarto('global-columns.qmd');
+    assert.match(globalColumns.stderr + globalColumns.stdout, /'option-columns' is only supported on \.exercise and \.check-batch containers/);
+    const globalHtml = fs.readFileSync(path.join(TEMP_DIR, 'global-columns.html'), 'utf8');
+    assert.match(globalHtml, /id="global"[\s\S]*?quarto-exercise-options-cols-1/);
   });
 
   test('Default options render into exercise, blank, and choice controls', () => {
@@ -1607,7 +1618,7 @@ filters:
   - quarto-exercises
 ---
 
-::: {.check-batch}
+::: {.check-batch option-columns="2"}
 ::: {.exercise #ex-in-batch}
 Inside batch.
 
@@ -1629,6 +1640,9 @@ Yes
     renderQuarto('batch-mode.qmd');
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-mode.html'), 'utf8');
+    assert.match(html, /class="check-batch[^\"]*quarto-exercise-batch-grid/);
+    assert.match(html, /style="[^"]*--ex-batch-columns: 2;/);
+
     // The exercise inside the batch should not have check/reset buttons
     const batchPart = html.match(/class="quarto-exercise"[^>]*id="ex-in-batch"[\s\S]*?class="quarto-exercise"[^>]*id="ex-out-batch"/)[0];
     assert.doesNotMatch(batchPart, /quarto-exercise-check-btn/);

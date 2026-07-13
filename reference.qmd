@@ -22,236 +22,12 @@ quarto-exercises:
   feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
   feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer
   ignore-case: false          # Set true to ignore casing during text input validation.
+  obfuscate-answers: true     # Keep correct answers out of generated HTML attributes.
   question-boxes: false       # Set true to add a contained box around each exercise.
-  option-columns: 1           # Lay out MCQ options in one or two columns
-  button-style: theme          # Use theme-aware Check, Reset, and Hint buttons
   check-page: false           # Set true to check the entire page at once with one control set.
   score: false                 # Set true to show earned and possible points after checking.
   points: 1                    # Default points for each exercise
 ```
-
-
-## Batch, Page, and Score Checking
-
-By default, every exercise gets its own Check and Reset controls. If you wrap multiple exercises in a `.check-batch` container, they are checked together as a batch using one set of controls. You do not need to configure any special mode to write batches.
-
-```markdown
----
-quarto-exercises:
-  score: true
----
-
-::: {.check-batch}
-::: {.exercise shuffle=true points=2}
-First question.
-:::
-
-::: {.exercise reveal=false points=3}
-Second question.
-:::
-:::
-```
-Since `.check-batch` renders as a standard container `div`, you can style it using standard CSS or inline styles to add borders, boxes, margins, or background colors around the entire batch:
-
-::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;"}
-::: {.exercise points=2}
-Which character is a hobbit?
-
-::: {.answer correct=true}
-Frodo Baggins
-:::
-
-::: {.answer}
-Legolas
-:::
-:::
-
-::: {.exercise points=1}
-Complete the name: [Samwise]{.blank answer="Samwise"} Gamgee.
-:::
-:::
-
-Set `check-page: true` to place one Check Page and Reset Page control after all exercises in the document.
-
-Set `score: true` to show earned and possible points after checking.
-
-Scoring units:
-- one MCQ group = 1 unit
-- one inline blank = 1 unit
-- one inline choose = 1 unit
-- each blank or choose inside a code cloze = 1 unit
-
-An exercise’s points value is split evenly across its scoring units. Standalone blanks, chooses, and code clozes are worth 1 point unless they specify points.
-
-The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
-
-## Visual Style
-
-The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto's light and dark themes, Bootstrap themes, custom themes, and `theme: none`.
-
-```yaml
-quarto-exercises:
-  question-boxes: true
-  option-columns: 2
-  button-style: theme
-```
-
-### Question boxes
-
-Set `question-boxes: true` to place each `.exercise` in a subtle bordered box with padding and a theme-aware background. The default is `false`, so existing documents keep their current layout. Use `question-boxes="true"` or `question-boxes="false"` on an individual `.exercise` to override the document setting.
-
-```markdown
-::: {.exercise question-boxes="true"}
-Which answer is correct?
-
-::: {.answer correct=true}
-This one.
-:::
-
-::: {.answer}
-Not this one.
-:::
-:::
-```
-
-::: {.exercise question-boxes="true"}
-Which answer is correct?
-
-::: {.answer correct=true}
-This one.
-:::
-
-::: {.answer}
-Not this one.
-:::
-:::
-
-Only the exercise container is boxed. Standalone inline blanks and dropdowns are unchanged.
-
-### Two-column multiple choice
-
-Set `option-columns: 2` to use a multi-column grid (supporting 2, 3, or 4 columns) for multiple-choice options. It preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens the grid collapses to one column. The default is `1`.
-
-```markdown
-::: {.exercise option-columns="2"}
-Choose all that apply.
-
-::: {.answer correct=true}
-First answer
-:::
-
-::: {.answer}
-Second answer
-:::
-
-::: {.answer correct=true}
-Third answer
-:::
-
-::: {.answer}
-Fourth answer
-:::
-:::
-```
-
-::: {.exercise option-columns="2"}
-Choose all that apply.
-
-::: {.answer correct=true}
-First answer
-:::
-
-::: {.answer}
-Second answer
-:::
-
-::: {.answer correct=true}
-Third answer
-:::
-
-::: {.answer}
-Fourth answer
-:::
-:::
-
-`option-columns` accepts values from `1` to `4`. An unsupported value produces an extension warning and falls back to one column.
-
-### Theme-aware buttons
-
-`button-style: theme` is the default. It makes Check the primary action and styles Reset and Hint as matching secondary actions. The extension first uses Quarto/Bootstrap CSS variables such as `--bs-primary`, `--bs-body-bg`, and `--bs-border-color`; when those variables are unavailable, it falls back to the extension's own colors and borders. Focus rings remain visible in either case.
-
-Set `button-style: plain` to keep the existing neutral button appearance. This option is document-wide.
-
-Authors can still override any extension class in their document stylesheet, including `.quarto-exercise-boxed`, `.quarto-exercise-options-cols-2`, `.quarto-exercise-check-btn`, `.quarto-exercise-reset-btn`, and `.quarto-exercise-hint-btn`.
-
-### Custom CSS Styling
-
-Since the extension outputs clean semantic HTML with dedicated class hooks, you can apply custom CSS or inline styles directly to any exercise, batch, or answer choice container.
-
-For instance, you can style a `.check-batch` with a custom border or background:
-
-```markdown
-::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}
-::: {.exercise}
-...
-:::
-:::
-```
-
-You can even style individual exercises using custom CSS rules. Add these rules to your stylesheet:
-
-```css
-.fancy-card {
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-  color: #fff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-.fancy-card .quarto-exercise-answer {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin: 0.5rem 0;
-  color: #fff;
-  transition: background 0.2s;
-}
-.fancy-card .quarto-exercise-answer:hover {
-  background: rgba(255,255,255,0.2);
-}
-```
-
-Then apply the class to your exercise:
-
-```markdown
-::: {.exercise .fancy-card}
-Which is the highest peak in Middle-earth?
-
-::: {.answer correct=true}
-Celebdil
-:::
-
-::: {.answer}
-Caradhras
-:::
-:::
-```
-
-Rendered result:
-
-::: {.exercise style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-bottom: 2rem;"}
-Which is the highest peak in Middle-earth?
-
-::: {.answer correct=true style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px; margin: 0.5rem 0; color: #fff; transition: background 0.2s;"}
-Celebdil
-:::
-
-::: {.answer style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px; margin: 0.5rem 0; color: #fff; transition: background 0.2s;"}
-Caradhras
-:::
-:::
-
 
 
 ## Multiple Choice Exercises
@@ -509,5 +285,408 @@ fellowship = {
 
 ::: {.explanation}
 This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
+:::
+:::
+
+
+
+## Batch, Page, and Score Checking
+
+By default, every exercise gets its own Check and Reset controls. If you wrap multiple exercises in a `.check-batch` container, they are checked together as a batch using one set of controls.
+
+```markdown
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;"}
+::: {.exercise points=2}
+Which character is a hobbit?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+
+::: {.exercise points=1}
+Complete the name: [Samwise]{.blank answer="Samwise"} Gamgee.
+:::
+:::
+```
+Since `.check-batch` renders as a standard container `div`, you can style it using standard CSS or inline styles to add borders, boxes, margins, or background colors around the entire batch:
+
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;"}
+::: {.exercise points=2}
+Which character is a hobbit?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+
+::: {.exercise points=1}
+Complete the name: [Samwise]{.blank answer="Samwise"} Gamgee.
+:::
+:::
+
+Set `check-page: true` to place one Check Page and Reset Page control after all exercises in the document.
+
+Set `score: true` to show earned and possible points after checking.
+
+Standalone blanks, chooses, and code clozes are worth 1 point unless they specify `points`.
+
+The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
+
+## Visual Style
+
+The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto's light and dark themes, Bootstrap themes, custom themes, and `theme: none`.
+
+### Question boxes
+
+Set `question-boxes: true` to place each `.exercise` in a subtle bordered box with padding and a theme-aware background. The default is `false`, so existing documents keep their current layout. Use `question-boxes="true"` or `question-boxes="false"` on an individual `.exercise` to override the document setting.
+
+```markdown
+::: {.exercise question-boxes="true"}
+Which answer is correct?
+
+::: {.answer correct=true}
+This one.
+:::
+
+::: {.answer}
+Not this one.
+:::
+:::
+```
+
+::: {.exercise question-boxes="true"}
+Which answer is correct?
+
+::: {.answer correct=true}
+This one.
+:::
+
+::: {.answer}
+Not this one.
+:::
+:::
+
+Only the exercise container is boxed. Standalone inline blanks and dropdowns are unchanged.
+
+### Multiple-column MCQ
+
+Set `option-columns` to the number of columns you want for multiple-choice options. Authors can choose any positive number of columns appropriate for their content. The grid preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens it collapses to one column. The default is `1`.
+
+```markdown
+::: {.exercise option-columns="2"}
+Choose all that apply.
+
+::: {.answer correct=true}
+First answer
+:::
+
+::: {.answer}
+Second answer
+:::
+
+::: {.answer correct=true}
+Third answer
+:::
+
+::: {.answer}
+Fourth answer
+:::
+:::
+```
+
+::: {.exercise option-columns="2"}
+Choose all that apply.
+
+::: {.answer correct=true}
+First answer
+:::
+
+::: {.answer}
+Second answer
+:::
+
+::: {.answer correct=true}
+Third answer
+:::
+
+::: {.answer}
+Fourth answer
+:::
+:::
+
+To place independent exercises beside each other, use Quarto's standard column layout. Each exercise keeps its own controls:
+
+```markdown
+::::: {.columns}
+:::: {.column}
+::: {.exercise}
+Which character is a dwarf?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+::::
+
+:::: {.column}
+::: {.exercise}
+Which pair are hobbits?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Gimli and Legolas
+:::
+:::
+::::
+:::::
+```
+
+::::: {.columns}
+:::: {.column}
+::: {.exercise}
+Which character is a dwarf?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+::::
+
+:::: {.column}
+::: {.exercise}
+Which pair are hobbits?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Gimli and Legolas
+:::
+:::
+::::
+:::::
+
+For exercises checked as one batch, put `option-columns` on `.check-batch`. It arranges the exercises into that many columns while retaining one shared set of batch controls:
+
+```markdown
+::: {.check-batch option-columns="2"}
+::: {.exercise}
+What does Gimli carry?
+
+::: {.answer correct=true}
+An axe
+:::
+
+::: {.answer}
+A bow
+:::
+:::
+
+::: {.exercise}
+What kind of being is Treebeard?
+
+::: {.answer correct=true}
+An Ent
+:::
+
+::: {.answer}
+A hobbit
+:::
+:::
+:::
+```
+
+::: {.check-batch option-columns="2"}
+::: {.exercise}
+What does Gimli carry?
+
+::: {.answer correct=true}
+An axe
+:::
+
+::: {.answer}
+A bow
+:::
+:::
+
+::: {.exercise}
+What kind of being is Treebeard?
+
+::: {.answer correct=true}
+An Ent
+:::
+
+::: {.answer}
+A hobbit
+:::
+:::
+:::
+
+On narrow screens, both the answer-choice grid and the batch grid collapse to one column.
+
+### Custom CSS Styling
+
+Since the extension outputs semantic HTML with dedicated class hooks, you can apply inline styles to exercise and batch containers or target exercises, batches, and generated answer choices from a stylesheet.
+
+To restyle the controls, override `.quarto-exercise-check-btn`, `.quarto-exercise-reset-btn`, or `.quarto-exercise-hint-btn` in your stylesheet.
+
+For instance, you can style a `.check-batch` with a custom border or background:
+
+```markdown
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}
+::: {.exercise}
+Which hobbit is usually paired with Merry?
+
+::: {.answer correct=true}
+Pippin
+:::
+
+::: {.answer}
+Sam
+:::
+:::
+
+::: {.exercise}
+Who is the dwarf in the Fellowship?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+:::
+```
+
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}
+::: {.exercise}
+Which hobbit is usually paired with Merry?
+
+::: {.answer correct=true}
+Pippin
+:::
+
+::: {.answer}
+Sam
+:::
+:::
+
+::: {.exercise}
+Who is the dwarf in the Fellowship?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+:::
+
+You can also style individual exercises. This example mixes the active theme's primary and body colors, so the card automatically changes with the site's light and dark themes.
+
+```css
+.fancy-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 18%, var(--bs-body-bg, #fff)),
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 32%, var(--bs-body-bg, #fff))
+  );
+  color: var(--bs-body-color, inherit);
+  padding: 1.5rem;
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bs-body-color, #000) 15%, transparent);
+}
+.fancy-card .quarto-exercise-answer {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 10%, var(--bs-body-bg, #fff));
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  color: inherit;
+}
+.fancy-card .quarto-exercise-answer:hover {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 20%, var(--bs-body-bg, #fff));
+}
+```
+
+```{=html}
+<style>
+.fancy-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 18%, var(--bs-body-bg, #fff)),
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 32%, var(--bs-body-bg, #fff))
+  );
+  color: var(--bs-body-color, inherit);
+  padding: 1.5rem;
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bs-body-color, #000) 15%, transparent);
+}
+.fancy-card .quarto-exercise-answer {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 10%, var(--bs-body-bg, #fff));
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  color: inherit;
+}
+.fancy-card .quarto-exercise-answer:hover {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 20%, var(--bs-body-bg, #fff));
+}
+</style>
+```
+
+Then apply the class to your exercise:
+
+```markdown
+::: {.exercise .fancy-card}
+Which two hobbits meet Treebeard?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Frodo and Sam
+:::
+:::
+```
+
+::: {.exercise .fancy-card}
+Which two hobbits meet Treebeard?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Frodo and Sam
 :::
 :::

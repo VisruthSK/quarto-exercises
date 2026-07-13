@@ -11,8 +11,6 @@ local defaults = {
   ["ignore-case"] = false,
   ["obfuscate-answers"] = true,
   ["question-boxes"] = false,
-  ["option-columns"] = 1,
-  ["button-style"] = "theme",
   ["check-page"] = false,
   score = false,
   points = 1
@@ -675,8 +673,13 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-score"] = exercise_options.score,
     ["data-points"] = exercise_options.points
   }
+  for _, class in ipairs(exercise_options.classes or {}) do
+    if class ~= "exercise" then
+      div_attrs.class = div_attrs.class .. " " .. class
+    end
+  end
   for key, value in pairs(exercise_options.attributes or {}) do
-    if key:match("^data%-") and div_attrs[key] == nil then
+    if (key:match("^data%-") or key == "style") and div_attrs[key] == nil then
       div_attrs[key] = value
     end
   end
@@ -728,8 +731,8 @@ local function render_html_exercise(data, id, exercise_options)
   end
 
   output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-actions">'))
-  local button_class = exercise_options["button-style"] == "theme" and " quarto-exercise-btn quarto-exercise-btn-primary" or ""
-  local reset_button_class = exercise_options["button-style"] == "theme" and " quarto-exercise-btn quarto-exercise-btn-secondary" or ""
+  local button_class = " quarto-exercise-btn quarto-exercise-btn-primary"
+  local reset_button_class = " quarto-exercise-btn quarto-exercise-btn-secondary"
   if not exercise_options.instant and not exercise_options.suppress_controls then
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-check-btn' .. button_class .. '">Check</button>'))
   end
@@ -1180,6 +1183,10 @@ function Meta(meta)
     for key, value in pairs(config) do
       options[key] = value
     end
+    if config["option-columns"] ~= nil then
+      warn("document", "'option-columns' is only supported on .exercise and .check-batch containers")
+      options["option-columns"] = nil
+    end
   end
 
   local check_page_val = meta["quarto-exercises.check-page"]
@@ -1264,6 +1271,10 @@ function Div(el)
   end
 
   local data = parse_exercise(el, id, has_inline)
+  local explanation = validate_explanation(string_option(el.attributes, "explanation"), id)
+  if data.explanation and explanation == "never" then
+    warn(id, "contains an .explanation block, but explanation is set to 'never'")
+  end
   if not html() then
     return render_static_exercise(data)
   end
@@ -1278,11 +1289,8 @@ function Div(el)
   end
   local suppress_controls = check_page_active or is_in_batch
 
-  local cols_str = string_option(el.attributes, "option-columns")
+  local cols_str = el.attributes["option-columns"]
   local cols_num = tonumber(cols_str)
-  if not cols_num then
-    cols_num = tonumber(options["option-columns"])
-  end
   local option_cols = 1
   if cols_num and cols_num >= 1 then
     option_cols = math.floor(cols_num)
@@ -1297,16 +1305,16 @@ function Div(el)
     reset = bool_option(el.attributes, "reset"),
     shuffle = bool_option(el.attributes, "shuffle"),
     ["reshuffle-on-reset"] = bool_option(el.attributes, "reshuffle-on-reset"),
-    explanation = validate_explanation(string_option(el.attributes, "explanation"), id),
+    explanation = explanation,
     ["feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
     ["question-boxes"] = bool_option(el.attributes, "question-boxes"),
     ["option-columns"] = option_cols,
-    ["button-style"] = validate_option(tostring(options["button-style"]), { plain = true, theme = true }, "theme", id, "button-style"),
     ["check-mode"] = runtime_check_mode,
     score = bool_option(el.attributes, "score"),
     points = tonumber(el.attributes.points or options.points) or defaults.points,
     suppress_controls = suppress_controls,
+    classes = el.classes,
     attributes = el.attributes
   })
 end
@@ -1337,6 +1345,24 @@ end
 
 local function mark_batch_exercises(el)
   if el.classes:includes("check-batch") then
+    local cols_str = el.attributes["option-columns"]
+    if cols_str ~= nil then
+      local cols_num = tonumber(cols_str)
+      if cols_num and cols_num >= 1 then
+        local cols = math.floor(cols_num)
+        el.classes:insert("quarto-exercise-batch-grid")
+        local grid_style = "--ex-batch-columns: " .. cols .. ";"
+        if el.attributes.style and el.attributes.style ~= "" then
+          local separator = el.attributes.style:match(";%s*$") and " " or "; "
+          el.attributes.style = el.attributes.style .. separator .. grid_style
+        else
+          el.attributes.style = grid_style
+        end
+      else
+        warn(id_for(el, "batch"), "unsupported option-columns '" .. tostring(cols_str) .. "', using one column")
+      end
+      el.attributes["option-columns"] = nil
+    end
     local qb_option = el.attributes["question-boxes"]
     local question_boxes_active = false
     if qb_option ~= nil then

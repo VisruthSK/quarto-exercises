@@ -105,8 +105,19 @@ body.quarto-dark {
   gap: 0.5rem 0.75rem;
 }
 
+.check-batch.quarto-exercise-batch-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ex-batch-columns, 1), minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.check-batch.quarto-exercise-batch-grid > .quarto-exercise-actions {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 640px) {
-  .quarto-exercise-choices-grid {
+  .quarto-exercise-choices-grid,
+  .check-batch.quarto-exercise-batch-grid {
     grid-template-columns: 1fr !important;
   }
 }
@@ -116,8 +127,8 @@ body.quarto-dark {
   grid-template-columns: auto 1fr;
   column-gap: 0.6rem;
   padding: 0.1rem 0;
-  border: none !important;
-  background: transparent !important;
+  border: none;
+  background: transparent;
   border-radius: var(--ex-border-radius);
   cursor: pointer;
 }
