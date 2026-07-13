@@ -366,25 +366,14 @@ quarto-exercises:
   obfuscate-answers: true # defaults to true
 ```
 
-When `obfuscate-answers` is enabled, you **must** supply a build-time environment variable containing a secret key:
-
-```bash
-export QUARTO_EXERCISES_KEY="your-secret-key"
-```
-
-If the key is missing or empty, the build will fail with a compilation error. To generate a secure random hex key:
-
-```bash
-openssl rand -hex 32
-```
+Answer obfuscation is enabled by default and requires no setup beyond Quarto and this extension. The rendered HTML stores opaque IDs, salts, and digests instead of plaintext correct answers.
 
 ### Security & Limitations
 
 > [!WARNING]
 > This feature acts as **static source obfuscation**, not server-side secure grading.
 >
-> - **Client-side Decryption**: The derived key is shipped inside the HTML to support fully offline grading. A determined student with browser DevTools can inspect the runtime JS state or extract the key to decrypt the answers.
-> - **Regex Checks**: Regex patterns are also decrypted in the browser, making them weaker and easier to inspect at runtime than finite-answer checks.
+> A determined student can still reverse engineer browser-side checking. This is obfuscation, not secure grading; it prevents casual answer scraping through view-source, HTML attributes, or obvious console inspection.
 
 ## Limitations
 

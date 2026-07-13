@@ -9,65 +9,10 @@ const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const $ = (root, selector) => root.querySelector(selector);
 const $$ = (root, selector) => Array.from(root.querySelectorAll(selector));
 
-let aesGcmKey = null;
-const decryptedCache = new WeakMap();
-
-async function getAesGcmKey() {
-  if (aesGcmKey) return aesGcmKey;
-  const keyStr = window.quartoExercisesKey;
-  if (!keyStr) return null;
-  const keyBytes = hexToBytes(keyStr);
-  aesGcmKey = await window.crypto.subtle.importKey(
-    "raw",
-    keyBytes,
-    { name: "AES-GCM" },
-    false,
-    ["decrypt"]
-  );
-  return aesGcmKey;
-}
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return bytes;
-}
-
-async function decryptPayload(exerciseId, controlId, payloadStr) {
-  // protects against static source inspection, not runtime inspection
-  const key = await getAesGcmKey();
-  if (!key) return null;
-
-  try {
-    const iv = hexToBytes(payloadStr.slice(0, 24));
-    const tag = hexToBytes(payloadStr.slice(-32));
-    const ciphertext = hexToBytes(payloadStr.slice(24, -32));
-
-    const combined = new Uint8Array(ciphertext.length + tag.length);
-    combined.set(ciphertext);
-    combined.set(tag, ciphertext.length);
-
-    const docId = window.quartoExercisesDocId || 'default-doc';
-    const aad = `${docId}:${exerciseId}:${controlId}`;
-
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv: iv,
-        additionalData: new TextEncoder().encode(aad),
-        tagLength: 128
-      },
-      key,
-      combined
-    );
-    const plaintext = new TextDecoder().decode(decryptedBuffer);
-    return JSON.parse(plaintext);
-  } catch (e) {
-    console.error("Decryption failed:", e);
-    return null;
-  }
+async function digest(salt, value) {
+  const bytes = new TextEncoder().encode(`${salt}\0${value}`);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function checkAnswer(control, submittedValue) {
@@ -77,120 +22,23 @@ async function checkAnswer(control, submittedValue) {
                     control.closest(".quarto-exercise");
   if (!container) return false;
 
-  let exerciseId = "default";
-  const parentEx = container.closest(".quarto-exercise");
-  if (parentEx) {
-    exerciseId = parentEx.dataset.id || "default";
-  } else if (container.dataset.parentId) {
-    exerciseId = container.dataset.parentId;
-  }
-
-  // MCQ answer check
   if (control.classList && control.classList.contains("quarto-exercise-answer")) {
-    if (control.dataset.correct !== undefined) {
-      return control.dataset.correct === "true";
-    }
-
-    if (decryptedCache.has(control)) {
-      return decryptedCache.get(control).correct === true;
-    }
-
-    const pba = control.dataset.pba;
-    if (!pba) return false;
-
-    const key = control.dataset.key;
-    const decrypted = await decryptPayload(exerciseId, key, pba);
-    if (decrypted) {
-      decryptedCache.set(control, decrypted);
-      return decrypted.correct === true;
+    if (control.dataset.qxDigest) {
+      return (await digest(control.dataset.qxSalt, control.dataset.key)) === control.dataset.qxDigest;
     }
     return false;
   }
 
-  // Get GCM payload for blanks/chooses or clozes
-  let decrypted = null;
-  const pba = container._payload || container.dataset.pba || container.getAttribute("data-pba");
-  if (pba) {
-    if (container.classList.contains("quarto-exercise-code-cloze-container")) {
-      // Code cloze: decrypts the entire metadata map
-      if (decryptedCache.has(container)) {
-        decrypted = decryptedCache.get(container);
-      } else {
-        const clozeId = container.dataset.parentId || container.dataset.id || container.id || exerciseId;
-        const fullClozeMeta = await decryptPayload(clozeId, container.dataset.id || container.id, pba);
-        if (fullClozeMeta && fullClozeMeta.metadata) {
-          decrypted = fullClozeMeta.metadata;
-          decryptedCache.set(container, decrypted);
-        }
-      }
-      // Get the spec for this specific token
-      if (decrypted && decrypted[control._controlId]) {
-        decrypted = decrypted[control._controlId].attrs;
-      } else {
-        decrypted = null;
-      }
-    } else {
-      // Standalone blank or choose
-      if (decryptedCache.has(container)) {
-        decrypted = decryptedCache.get(container);
-      } else {
-        decrypted = await decryptPayload(exerciseId, container.id, pba);
-        if (decrypted) {
-          decryptedCache.set(container, decrypted);
-        }
-      }
-    }
+  if (control._qx) {
+    let value = submittedValue.trim();
+    if (control._qx.ignoreCase) value = value.toLowerCase();
+    return control._qx.digests.includes(await digest(control._qx.salt, value));
   }
-
-  if (decrypted) {
-    // Obfuscated GCM path
-    if (control._kind === "blank") {
-      const matchMode = decrypted.match || "exact";
-      const answersList = decrypted.answers || decrypted.answer || [];
-      const ignoreCase = decrypted.ignoreCase || decrypted["ignore-case"] === "true";
-      const trimMode = decrypted.trim !== "false" && decrypted.trim !== false;
-      const collapseSpace = decrypted.collapseSpace || decrypted["collapse-space"] === "true";
-      return checkBlankMatch(
-        submittedValue,
-        answersList,
-        matchMode,
-        ignoreCase,
-        trimMode,
-        collapseSpace
-      );
-    }
-    if (control._kind === "choose") {
-      const expected = decrypted.answer || "";
-      let normalized = submittedValue;
-      const ignoreCase = decrypted.ignoreCase || decrypted["ignore-case"] === "true";
-      if (ignoreCase) {
-        return normalized.trim().toLowerCase() === expected.trim().toLowerCase();
-      }
-      return normalized.trim() === expected.trim();
-    }
-  } else {
-    // Non-obfuscated fallback matching (legacy / plaintext mode)
-    if (control._kind === "blank" && control._answers) {
-      return checkBlankMatch(
-        submittedValue,
-        control._answers,
-        control._attrs.match || "exact",
-        control._attrs.ignoreCase,
-        control._attrs.trim !== false,
-        control._attrs.collapseSpace
-      );
-    }
-
-    if (control._kind === "choose" && control._answer) {
-      let normalized = submittedValue;
-      let expected = control._answer;
-      if (control._attrs.ignoreCase) {
-        return normalized.trim().toLowerCase() === expected.trim().toLowerCase();
-      }
-      return normalized.trim() === expected.trim();
-    }
+  if (container.dataset.qxDigests) {
+    let value = submittedValue.trim();
+    if (container.dataset.qxIgnoreCase === "true") value = value.toLowerCase();
+    return container.dataset.qxDigests.split(" ").includes(await digest(container.dataset.qxSalt, value));
   }
-
   return false;
 }
 
@@ -528,16 +376,6 @@ function initBlank(container, onCheck) {
 
   input.dataset.initialized = "true";
 
-  if (container.dataset.sigs) {
-    try {
-      container._signatures = JSON.parse(container.dataset.sigs);
-    } catch(e){}
-    container.removeAttribute("data-sigs");
-  }
-  if (container.dataset.pba) {
-    container._payload = container.dataset.pba;
-    container.removeAttribute("data-pba");
-  }
 
   adjustInputWidth(input);
   input.addEventListener("input", () => adjustInputWidth(input));
@@ -561,8 +399,6 @@ async function verifyBlank(container, { showFeedback = false, reveal = false } =
     closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
     _controlId: container.dataset.id || container.id || "default-blank",
     _kind: "blank",
-    _signatures: container._signatures,
-    _regexPayload: container._regexPayload,
     _answers: container.dataset.answers,
     _attrs: {
       match: container.dataset.match || "exact",
@@ -581,16 +417,6 @@ async function verifyBlank(container, { showFeedback = false, reveal = false } =
   let correctText = "";
   if (isCorrect) {
     correctText = input.value;
-  } else if (reveal) {
-    let answersList = [];
-    const decrypted = decryptedCache.get(container);
-    if (decrypted) {
-      const rawAns = decrypted.answers || decrypted.answer || [];
-      answersList = Array.isArray(rawAns) ? rawAns : splitList(rawAns);
-    } else {
-      answersList = splitList(container.dataset.answers || "");
-    }
-    correctText = answersList[0] || "";
   }
   setCorrectText(container, ".quarto-exercise-blank-correct-text", correctText);
 
@@ -643,12 +469,6 @@ function initChoose(container, onCheck, { instant = false } = {}) {
 
   select.dataset.initialized = "true";
 
-  if (container.dataset.sigs) {
-    try {
-      container._signatures = JSON.parse(container.dataset.sigs);
-    } catch(e){}
-    container.removeAttribute("data-sigs");
-  }
 
   populateChoose(container);
   adjustSelectWidth(select);
@@ -676,7 +496,6 @@ async function verifyChoose(container, { showFeedback = false, reveal = false } 
     closest: (sel) => container.closest(sel) || (container.matches(sel) ? container : null),
     _controlId: container.dataset.id || container.id || "default-choose",
     _kind: "choose",
-    _signatures: container._signatures,
     _answer: container.dataset.answer,
     _attrs: {
       ignoreCase: container.dataset.ignoreCase === "true"
@@ -692,15 +511,6 @@ async function verifyChoose(container, { showFeedback = false, reveal = false } 
   let correctText = "";
   if (isCorrect) {
     correctText = select.value;
-  } else if (reveal) {
-    let expected = "";
-    const decrypted = decryptedCache.get(container);
-    if (decrypted) {
-      expected = decrypted.answer || "";
-    } else {
-      expected = container.dataset.answer || "";
-    }
-    correctText = expected;
   }
   setCorrectText(container, ".quarto-exercise-choose-correct-text", correctText);
 
@@ -1152,6 +962,7 @@ function initCodeCloze(container, onCheck) {
         el: input,
         attrs,
         token,
+        qx: info.qx,
         signatures: info.signatures,
         regexPayload: info.pba
       });
@@ -1178,6 +989,7 @@ function initCodeCloze(container, onCheck) {
         el: select,
         attrs,
         token,
+        qx: info.qx,
         signatures: info.signatures
       });
     }
@@ -1201,6 +1013,7 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
       _kind: type,
       _signatures: signatures,
       _regexPayload: regexPayload,
+      _qx: ctrl.qx,
       _answers: attrs.answer || attrs.answers || "",
       _answer: attrs.answer || "",
       _attrs: {
@@ -1221,13 +1034,7 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
       el.classList.toggle("is-incorrect", !ok);
       if (reveal && !ok) {
         let answersList = [];
-        let rawAns = attrs.answer || attrs.answers || "";
-        const decrypted = decryptedCache.get(container);
-        if (decrypted && decrypted[token]) {
-          const spec = decrypted[token].attrs;
-          rawAns = spec.answer || spec.answers || "";
-        }
-        answersList = Array.isArray(rawAns) ? rawAns : splitList(rawAns);
+        answersList = [];
         if (answersList[0]) {
           el.value = answersList[0];
           el.classList.add("is-correct");
@@ -1240,13 +1047,7 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
       el.classList.toggle("is-incorrect", !ok && el.value !== "");
       if (ok || reveal) {
         if (el._codeClozeCorrectSpan) continue;
-        let answer = attrs.answer || "";
-        const decrypted = decryptedCache.get(container);
-        if (decrypted && decrypted[token]) {
-          const spec = decrypted[token].attrs;
-          answer = spec.answer || "";
-        }
-        const selectedText = ok ? el.value : answer;
+        const selectedText = ok ? el.value : "";
         if (selectedText) {
           const span = document.createElement("span");
           span.className = "quarto-exercise-code-choose-correct";

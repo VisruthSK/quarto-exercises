@@ -240,40 +240,18 @@ end
 
 local doc_id = "default-doc"
 
-local key_script_emitted = false
-local function get_key_script()
-  if key_script_emitted then
-    return ""
-  end
-  local key = options["_page_key"]
-  if options["obfuscate-answers"] and not key then
-    return ""
-  end
-  key_script_emitted = true
-  local key_val = key or ""
-  local check_mode = options["check-page"] == true and "page" or "exercise"
-  local score_val = tostring(options["score"] == true)
-  return '<script type="text/javascript">/* protects against static source inspection, not runtime inspection */ window.quartoExercisesKey = "' .. key_val .. '"; window.quartoExercisesDocId = "' .. doc_id .. '"; window.quartoExercisesCheckMode = "' .. check_mode .. '"; window.quartoExercisesScore = ' .. score_val .. ';</script>'
-end
+local function get_key_script() return "" end
 
-local function protectAnswer(spec)
-  spec.documentId = doc_id
-  spec.key = options["_key"]
-  local json_input = json_encode(spec)
-  local filter_dir = PANDOC_SCRIPT_FILE:match("(.*[/\\])") or ""
-  local helper_path = filter_dir .. "crypto-helper.mjs"
-  local ok, output = pcall(pandoc.pipe, "node", { helper_path }, json_input)
-  if not ok then
-    error("quarto-exercises error: Failed to run crypto-helper.mjs. Make sure Node.js is installed and QUARTO_EXERCISES_KEY is set.")
-  end
-  local res = json_decode(output)
-  if not res or not res.payload then
-    error("quarto-exercises error: Failed to encrypt payload. Node stdout was: " .. tostring(output))
-  end
-  if res and res.pageKey then
-    options["_page_key"] = res.pageKey
-  end
-  return res
+local opaque_counter = 0
+local function hex(bytes)
+  return (bytes:gsub('.', function(c) return string.format('%02x', string.byte(c)) end))
+end
+local function opaque(prefix)
+  opaque_counter = opaque_counter + 1
+  return prefix .. "_" .. hex(sha256.sha256(doc_id .. ":" .. tostring(opaque_counter) .. ":" .. tostring(os.time()) .. ":" .. tostring(math.random()))):sub(1, 24)
+end
+local function digest(salt, value)
+  return hex(sha256.sha256(salt .. "\0" .. value))
 end
 
 local counter = 0
@@ -654,6 +632,7 @@ local function render_html_exercise(data, id, exercise_options)
   local output = pandoc.List()
   output:insert(pandoc.RawBlock("html", get_key_script()))
   local input_type = data.correct_count > 1 and "checkbox" or "radio"
+  local answer_salt = opaque("salt")
 
   local div_attrs = {
     class = "quarto-exercise" .. (exercise_options["question-boxes"] and " quarto-exercise-boxed" or ""),
@@ -693,22 +672,11 @@ local function render_html_exercise(data, id, exercise_options)
   if #data.answers > 0 then
     output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-' .. exercise_options["option-columns"] .. '" style="--ex-option-columns: ' .. exercise_options["option-columns"] .. ';">'))
     for _, answer in ipairs(data.answers) do
-      local answer_key = answer.key
-      local data_correct_attr = ' data-correct="' .. tostring(answer.correct) .. '"'
-      local pba_attr = ""
-      if options["obfuscate-answers"] then
-        data_correct_attr = ''
-        local res = protectAnswer({
-          id = id,
-          controlId = answer_key,
-          kind = "mc",
-          correct = answer.correct
-        })
-        pba_attr = ' data-pba="' .. res.payload .. '"'
-      end
+      local answer_key = opaque("opt")
+      local digest_attr = ' data-qx-salt="' .. answer_salt .. '" data-qx-digest="' .. digest(answer_salt, answer_key) .. '"'
       local input_id = id .. "-" .. answer_key
       output:insert(pandoc.RawBlock("html",
-        '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '"' .. data_correct_attr .. pba_attr .. '>' ..
+        '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '"' .. digest_attr .. '>' ..
         '<div class="quarto-exercise-control">' ..
         '<input id="' .. html_escape(input_id) .. '" type="' .. input_type .. '" name="' .. html_escape(id) .. '" value="' .. html_escape(answer_key) .. '" class="quarto-exercise-input" />' ..
         '<label for="' .. html_escape(input_id) .. '" class="quarto-exercise-answer-label"></label>' ..
@@ -953,17 +921,6 @@ local function process_code_cloze(el, parent_id)
   end
   el.classes:insert("quarto-exercise-code-cloze-code")
   el.attributes["lang"] = nil
-  local pba_payload = nil
-  if options["obfuscate-answers"] then
-    local res = protectAnswer({
-      id = parent_id or id,
-      controlId = id,
-      kind = "cloze",
-      metadata = metadata
-    })
-    pba_payload = res.payload
-  end
-
   local classes = { "quarto-exercise-code-cloze-container" }
   if parent_id == nil then
     classes[#classes + 1] = "quarto-exercise-code-cloze-standalone"
@@ -981,12 +938,23 @@ local function process_code_cloze(el, parent_id)
         attrs[key] = value
       end
     end
-    display_metadata[token] = { type = info.type, attrs = attrs }
+    local qx = nil
+    do
+      local salt = opaque("salt")
+      local expected = info.attrs.answers or info.attrs.answer or ""
+      local values = info.type == "blank" and split_values(expected, "|") or { expected }
+      local digests = {}
+      local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
+      for _, value in ipairs(values) do
+        local normalized = value:match("^%s*(.-)%s*$")
+        if ignore_case then normalized = string.lower(normalized) end
+        digests[#digests + 1] = digest(salt, normalized)
+      end
+      qx = { salt = salt, digests = digests, ignoreCase = ignore_case }
+    end
+    display_metadata[token] = { type = info.type, attrs = attrs, qx = qx }
   end
-  if pba_payload then
-    container_attrs["data-pba"] = pba_payload
-  end
-  container_attrs["data-cloze-metadata"] = json_encode(options["obfuscate-answers"] and display_metadata or metadata)
+  container_attrs["data-cloze-metadata"] = json_encode(display_metadata)
 
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
@@ -1067,23 +1035,18 @@ local function render_blank(el, id, parent_id)
 
   if options["obfuscate-answers"] then
     local ans_list = split_values(answer, "|")
-    local res = protectAnswer({
-      id = parent_id or "default",
-      controlId = id,
-      kind = "blank",
-      match = match,
-      answers = ans_list,
-      ignoreCase = ignore_case_val,
-      trim = trim_val,
-      collapseSpace = collapse_space_val
-    })
-    container_attrs["data-pba"] = res.payload
-  else
-    container_attrs["data-answers"] = answer
-    container_attrs["data-match"] = match
-    container_attrs["data-ignore-case"] = tostring(ignore_case_val)
-    container_attrs["data-trim"] = tostring(trim_val)
-    container_attrs["data-collapse-space"] = tostring(collapse_space_val)
+    local salt = opaque("salt")
+    local digests = {}
+    for _, value in ipairs(ans_list) do
+      local normalized = value
+      if trim_val then normalized = normalized:match("^%s*(.-)%s*$") end
+      if collapse_space_val then normalized = normalized:gsub("%s+", " ") end
+      if ignore_case_val then normalized = string.lower(normalized) end
+      digests[#digests + 1] = digest(salt, normalized)
+    end
+    container_attrs["data-qx-salt"] = salt
+    container_attrs["data-qx-digests"] = table.concat(digests, " ")
+    container_attrs["data-qx-ignore-case"] = tostring(ignore_case_val)
   end
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
@@ -1144,18 +1107,13 @@ local function render_choose(el, id, parent_id)
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
 
-  if options["obfuscate-answers"] then
-    local res = protectAnswer({
-      id = parent_id or "default",
-      controlId = id,
-      kind = "choose",
-      answer = answer,
-      ignoreCase = ignore_case_val
-    })
-    container_attrs["data-pba"] = res.payload
-  else
-    container_attrs["data-answer"] = answer
-    container_attrs["data-ignore-case"] = tostring(ignore_case_val)
+  do
+    local salt = opaque("salt")
+    local normalized = answer:match("^%s*(.-)%s*$")
+    if ignore_case_val then normalized = string.lower(normalized) end
+    container_attrs["data-qx-salt"] = salt
+    container_attrs["data-qx-digests"] = digest(salt, normalized)
+    container_attrs["data-qx-ignore-case"] = tostring(ignore_case_val)
   end
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
@@ -1173,9 +1131,13 @@ end
 
 function Meta(meta)
   if PANDOC_STATE and PANDOC_STATE.input_files and PANDOC_STATE.input_files[1] then
-    doc_id = PANDOC_STATE.input_files[1]:gsub("\\", "/")
+    -- Use only the basename (no directory, no extension) so that local filesystem
+    -- paths never appear in the rendered HTML output.
+    local full = PANDOC_STATE.input_files[1]:gsub("\\", "/")
+    local basename = full:match("([^/]+)$") or full
+    doc_id = basename:gsub("%.[^%.]+$", "")
   elseif meta.title then
-    doc_id = pandoc.utils.stringify(meta.title):gsub("\\", "/")
+    doc_id = pandoc.utils.stringify(meta.title)
   end
 
   local config = as_value(meta["quarto-exercises"])
@@ -1216,14 +1178,6 @@ function Meta(meta)
     end
   end
   options["obfuscate-answers"] = obfuscate
-
-  if obfuscate then
-    local key = os.getenv("QUARTO_EXERCISES_KEY")
-    if not key or key == "" then
-      error("quarto-exercises error: 'obfuscate-answers' is enabled (default), but the build-time environment variable 'QUARTO_EXERCISES_KEY' is missing or empty. Please set 'QUARTO_EXERCISES_KEY' (for example: 'openssl rand -hex 32') or set 'obfuscate-answers: false' in your settings.")
-    end
-    options["_key"] = key
-  end
 
   if quarto and quarto.doc and quarto.doc.add_html_dependency and html() then
     quarto.doc.add_html_dependency({

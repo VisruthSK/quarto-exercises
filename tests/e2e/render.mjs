@@ -4,14 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-const env = { ...process.env, QUARTO_EXERCISES_KEY: 'playwright-test-key-not-secret' };
-
 function run(args) {
   const result = spawnSync('quarto', args, {
     cwd: root,
     stdio: 'inherit',
     shell: process.platform === 'win32',
-    env,
   });
   if ((result.status ?? 1) !== 0) process.exit(result.status ?? 1);
 }
