@@ -343,8 +343,9 @@ Wrap the code block in an `.exercise` if it should share controls with the rest 
 
 ````markdown
 ::: {.exercise explanation="after-check"}
-> [!NOTE]
-> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
+::: {.callout-note}
+Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
+:::
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary
@@ -367,8 +368,9 @@ This program demonstrates Python dictionary property assignments: option selecti
 ````
 
 ::: {.exercise explanation="after-check"}
-> [!NOTE]
-> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
+::: {.callout-note}
+Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
+:::
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary

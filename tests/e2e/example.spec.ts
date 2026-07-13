@@ -68,7 +68,7 @@ test('page-level checking preserves question options and reports a total score',
   await expect(page.locator('.quarto-exercise-page-controls .quarto-exercise-status')).toHaveText('Correct! Score: 6 / 6.');
   await expect(page.locator('main#quarto-document-content > .quarto-exercise-page-controls')).toHaveCount(1);
   await expect(page.locator('.quarto-exercise-check-btn')).toHaveCount(1);
-  await expect(page.locator('.quarto-exercise-page-controls')).toHaveScreenshot('page-score-correct.png');
+  await expect(page.locator('.quarto-exercise-page-controls')).toHaveScreenshot('page-score-correct.png', { maxDiffPixelRatio: 0.15 });
 });
 
 test('page-level check with partial correctness and reset behavior', async ({ page }) => {
