@@ -9,7 +9,7 @@ quarto-exercises:
   reset: true
 ---
 
-This page uses one Check Page button. Each question keeps its own options and point value.
+This page demonstrates check-mode: page. The page has one Check Page button and one Reset Page button for all exercises. Each question still keeps its own options, including points, shuffle, and reveal. For the authoring pattern, see the [Reference page](reference.qmd).
 
 ## Ringbearer (2 points)
 
