@@ -4,6 +4,7 @@
 /example_files/
 /index.html
 /tests/.tmp/
+/tests/e2e/fixtures.html
 /tests/test-sandbox/
 /test-results/
 /playwright-report/
