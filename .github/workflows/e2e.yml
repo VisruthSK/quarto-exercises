@@ -7,7 +7,7 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 20
     env:
       QUARTO_EXERCISES_KEY: playwright-test-key-not-secret
