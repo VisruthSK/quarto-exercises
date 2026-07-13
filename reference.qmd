@@ -36,10 +36,10 @@ quarto-exercises:
 By default, every exercise gets its own Check and Reset controls. If you wrap multiple exercises in a `.check-batch` container, they are checked together as a batch using one set of controls. You do not need to configure any special mode to write batches.
 
 ```markdown
-
+---
 quarto-exercises:
   score: true
-
+---
 
 ::: {.check-batch}
 ::: {.exercise shuffle=true points=2}
@@ -51,7 +51,9 @@ Second question.
 :::
 :::
 ```
-::: {.check-batch}
+Since `.check-batch` renders as a standard container `div`, you can style it using standard CSS or inline styles to add borders, boxes, margins, or background colors around the entire batch:
+
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;"}
 ::: {.exercise points=2}
 Which character is a hobbit?
 
@@ -118,7 +120,7 @@ Only the exercise container is boxed. Standalone inline blanks and dropdowns are
 
 ### Two-column multiple choice
 
-Set `option-columns: 2` to use a simple two-column grid for multiple-choice options. It preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens the grid collapses to one column. The default is `1`.
+Set `option-columns: 2` to use a multi-column grid (supporting 2, 3, or 4 columns) for multiple-choice options. It preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens the grid collapses to one column. The default is `1`.
 
 ```markdown
 ::: {.exercise option-columns="2"}
@@ -162,7 +164,7 @@ Fourth answer
 :::
 :::
 
-`option-columns` accepts only `1` and `2`. An unsupported value produces an extension warning and falls back to one column.
+`option-columns` accepts values from `1` to `4`. An unsupported value produces an extension warning and falls back to one column.
 
 ### Theme-aware buttons
 
@@ -388,9 +390,6 @@ Wrap the code block in an `.exercise` if it should share controls with the rest 
 
 ````markdown
 ::: {.exercise explanation="after-check"}
-::: {.callout-note}
-Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
-:::
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary
@@ -413,9 +412,6 @@ This program demonstrates Python dictionary property assignments: option selecti
 ````
 
 ::: {.exercise explanation="after-check"}
-::: {.callout-note}
-Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
-:::
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary

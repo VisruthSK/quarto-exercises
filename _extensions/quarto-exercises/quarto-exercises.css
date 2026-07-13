@@ -99,15 +99,15 @@ body.quarto-dark {
   list-style: none;
 }
 
-.quarto-exercise-options-cols-2 {
+.quarto-exercise-choices-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--ex-option-columns, 1), minmax(0, 1fr));
   gap: 0.5rem 0.75rem;
 }
 
 @media (max-width: 640px) {
-  .quarto-exercise-options-cols-2 {
-    grid-template-columns: 1fr;
+  .quarto-exercise-choices-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 

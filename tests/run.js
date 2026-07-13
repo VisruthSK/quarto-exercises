@@ -1355,10 +1355,10 @@ Two
     assert.match(html, /quarto-exercise-hint-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
     assert.doesNotMatch(result.stderr, /unsupported/);
 
-    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns: 2', 'option-columns: 3'));
+    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns: 2', 'option-columns: invalid'));
     const invalid = runQuarto('invalid-columns.qmd');
     assert.strictEqual(invalid.success, true, invalid.stderr);
-    assert.match(invalid.stderr, /unsupported option-columns '3'/);
+    assert.match(invalid.stderr, /unsupported option-columns 'invalid'/);
 
     fs.writeFileSync(path.join(TEMP_DIR, 'plain-buttons.qmd'), qmdContent.replace('button-style: theme', 'button-style: plain'));
     renderQuarto('plain-buttons.qmd');
@@ -1636,6 +1636,30 @@ Yes
     // The exercise outside the batch should still have check/reset buttons
     const outPart = html.match(/class="quarto-exercise"[^>]*id="ex-out-batch"[\s\S]*$/)[0];
     assert.match(outPart, /quarto-exercise-check-btn/);
+  });
+
+  test('boxed check-batch gets quarto-exercise-boxed class and suppresses nested boxes', () => {
+    const qmdContent = `---
+title: "Boxed Batch"
+filters:
+  - quarto-exercises
+---
+
+::: {.check-batch question-boxes="true"}
+::: {.exercise #ex-nested-boxed}
+Nested question.
+::: {.answer correct=true}
+Yes
+:::
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'batch-boxed.qmd'), qmdContent);
+    renderQuarto('batch-boxed.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-boxed.html'), 'utf8');
+    assert.match(html, /class="check-batch[^"]*quarto-exercise-boxed/);
+    assert.doesNotMatch(html, /class="quarto-exercise[^"]*quarto-exercise-boxed[^"]*"[^>]*id="ex-nested-boxed"/);
   });
 
   test('check-page: true with standalone controls suppresses all individual buttons in HTML', () => {

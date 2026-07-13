@@ -262,7 +262,7 @@ Exercise attributes:
 - `explanation`: `correct`, `after-check`, or `never`
 - `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
 - `question-boxes`: add a subtle border and padding around each exercise
-- `option-columns`: `1` or `2` columns for multiple-choice options
+- `option-columns`: split multiple-choice options into columns (supports `1`, `2`, `3`, or `4` columns)
 - `button-style`: `theme` uses Quarto/Bootstrap variables when available; `plain` keeps the basic controls
 - `check-page`: set `true` to check the entire page at once with a single set of Check Page and Reset Page controls
 

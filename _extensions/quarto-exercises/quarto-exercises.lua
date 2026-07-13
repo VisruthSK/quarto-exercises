@@ -688,7 +688,7 @@ local function render_html_exercise(data, id, exercise_options)
   end
 
   if #data.answers > 0 then
-    output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-options-cols-' .. exercise_options["option-columns"] .. '">'))
+    output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-' .. exercise_options["option-columns"] .. '" style="--ex-option-columns: ' .. exercise_options["option-columns"] .. ';">'))
     for _, answer in ipairs(data.answers) do
       local answer_key = answer.key
       local data_correct_attr = ' data-correct="' .. tostring(answer.correct) .. '"'
@@ -1278,6 +1278,18 @@ function Div(el)
   end
   local suppress_controls = check_page_active or is_in_batch
 
+  local cols_str = string_option(el.attributes, "option-columns")
+  local cols_num = tonumber(cols_str)
+  if not cols_num then
+    cols_num = tonumber(options["option-columns"])
+  end
+  local option_cols = 1
+  if cols_num and cols_num >= 1 then
+    option_cols = math.floor(cols_num)
+  elseif cols_str ~= nil and cols_str ~= "" then
+    warn(id, "unsupported option-columns '" .. cols_str .. "', falling back to 1")
+  end
+
   return render_html_exercise(data, id, {
     instant = bool_option(el.attributes, "instant"),
     reveal = bool_option(el.attributes, "reveal"),
@@ -1289,7 +1301,7 @@ function Div(el)
     ["feedback-correct"] = string_option(el.attributes, "feedback-correct"),
     ["feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect"),
     ["question-boxes"] = bool_option(el.attributes, "question-boxes"),
-    ["option-columns"] = validate_option(tostring(string_option(el.attributes, "option-columns")), { ["1"] = true, ["2"] = true }, "1", id, "option-columns"),
+    ["option-columns"] = option_cols,
     ["button-style"] = validate_option(tostring(options["button-style"]), { plain = true, theme = true }, "theme", id, "button-style"),
     ["check-mode"] = runtime_check_mode,
     score = bool_option(el.attributes, "score"),
@@ -1325,10 +1337,24 @@ end
 
 local function mark_batch_exercises(el)
   if el.classes:includes("check-batch") then
+    local qb_option = el.attributes["question-boxes"]
+    local question_boxes_active = false
+    if qb_option ~= nil then
+      question_boxes_active = qb_option == "true"
+    else
+      question_boxes_active = options["question-boxes"] == true
+    end
+    if question_boxes_active then
+      el.classes:insert("quarto-exercise-boxed")
+    end
+
     el = el:walk({
       Div = function(sub_div)
         if sub_div.classes:includes("exercise") then
           sub_div.attributes["data-in-batch"] = "true"
+          if question_boxes_active then
+            sub_div.attributes["question-boxes"] = "false"
+          end
           return sub_div
         end
       end,
