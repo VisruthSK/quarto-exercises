@@ -5,7 +5,8 @@ on:
 
 name: test.yaml
 
-permissions: read-all
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

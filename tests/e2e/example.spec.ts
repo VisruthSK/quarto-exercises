@@ -53,6 +53,7 @@ test('inline blank, choose, and code cloze interactions work', async ({ page }) 
   const cloze = page.locator('.quarto-exercise-code-cloze-standalone');
   await cloze.locator('select').selectOption('c');
   await cloze.locator('input').fill('sum');
-  await cloze.locator('..').getByRole('button', { name: 'Check' }).click();
-  await expect(cloze.locator('..').locator('.quarto-exercise-status')).toHaveText('Correct!');
+  const clozeWrapper = page.locator('.quarto-exercise-code-cloze-wrapper').first();
+  await clozeWrapper.getByRole('button', { name: 'Check' }).click();
+  await expect(clozeWrapper.locator('.quarto-exercise-status')).toHaveText('Correct!');
 });

@@ -356,14 +356,7 @@ body.quarto-dark {
 
 ## Answer Obfuscation
 
-The extension obfuscates answer metadata in generated HTML to prevent casual answer lookup through view-source, DOM attributes, or the browser console.
-
-Obfuscation is always enabled and has no configuration option. It requires no key, environment variable, or external program. Multiple-choice answers use opaque IDs and salted digests. Blanks and choices use salted digests of normalized accepted answers. Regex blanks store an encrypted pattern payload so they keep the same matching behavior without placing the pattern in plaintext answer metadata.
-
-### Security limitations
-
-> [!WARNING]
-> This is static source obfuscation, not secure grading. Checking happens in the browser, so a determined student can reverse engineer it. Do not use the extension as the security boundary for a graded assessment.
+The extension obfuscates answer metadata in generated HTML to prevent casual answer lookup through view-source, DOM attributes, or the browser console. Checking happens in the browser, so a determined student can reverse engineer it. Do not use the extension as the security boundary for a graded assessment.
 
 ## Limitations
 
