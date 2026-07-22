@@ -1014,15 +1014,6 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
     if (type === "blank") {
       el.classList.toggle("is-correct", ok);
       el.classList.toggle("is-incorrect", !ok);
-      if (reveal && !ok) {
-        let answersList = [];
-        answersList = [];
-        if (answersList[0]) {
-          el.value = answersList[0];
-          el.classList.add("is-correct");
-          adjustCodeBlankWidthToText(el);
-        }
-      }
       if (!ok) allCorrect = false;
     } else if (type === "choose") {
       el.classList.toggle("is-correct", ok);

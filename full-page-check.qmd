@@ -1,7 +1,5 @@
 ---
 title: "Full Page Check"
-filters:
-  - quarto-exercises
 quarto-exercises:
   check-page: true
   score: true

@@ -5,6 +5,9 @@ project:
     - "*.qmd"
     - "!tests"
 
+filters:
+  - quarto-exercises
+
 theme:
   light: flatly
   dark: darkly

@@ -7,8 +7,6 @@ format:
     pdf:
         output-file: example-latex.pdf   
     docx: default
-filters:
-  - quarto-exercises
 quarto-exercises:
   instant: false
   reveal: false

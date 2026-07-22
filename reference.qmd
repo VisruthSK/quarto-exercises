@@ -1,7 +1,5 @@
 ---
 title: "Quarto Exercises Reference"
-filters:
-  - quarto-exercises
 ---
 
 This page shows how to configure and structure interactive practice exercises with the `quarto-exercises` extension.
