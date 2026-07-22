@@ -6,6 +6,7 @@
   "description": "Interactive practice exercises for Quarto HTML documents",
   "scripts": {
     "test": "node tests/run.js",
+    "coverage": "node --experimental-test-coverage tests/run.js",
     "render:e2e": "node tests/e2e/render.mjs",
     "test:e2e": "pnpm run render:e2e && playwright test",
     "test:e2e:update": "pnpm run render:e2e && playwright test --update-snapshots"

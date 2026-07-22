@@ -697,3 +697,40 @@ Merry and Pippin
 Frodo and Sam
 :::
 :::
+
+
+## Supported CSS Variables
+
+Customize exercise controls and layouts by overriding these CSS custom properties in your site stylesheet or document header:
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `--ex-accent` | `#1a73e8` | Accent color for radio buttons, checkboxes, focus rings, and hint borders. |
+| `--ex-accent-dark` | `#4285f4` | Accent color for dark mode. |
+| `--ex-correct` | `#137333` | Text, border, and status color for correct answers. |
+| `--ex-incorrect` | `#c5221f` | Text and status color for incorrect answers. |
+| `--ex-incorrect-border` | `#ea4335` | Border color for incorrect text inputs and dropdowns. |
+| `--ex-muted` | `#555` | Text color for hints, explanations, feedback, and placeholders in light mode. |
+| `--ex-muted-dark` | `#aaa` | Text color for hints and explanations in dark mode. |
+| `--ex-border-color` | `#ccc` | Border color for action buttons, containers, and code cloze inputs. |
+| `--ex-border-strong` | `#ced4da` | Border color for unselected radio buttons, checkboxes, and select dropdowns. |
+| `--ex-bg` | `transparent` | Background color for exercise containers. |
+| `--ex-control-bg` | `#f8f9fa` | Background color for action buttons, inputs, and dropdowns in light mode. |
+| `--ex-control-hover-bg` | `#e9ecef` | Hover background color for buttons and controls in light mode. |
+| `--ex-control-primary-bg` | `#e9ecef` | Background color for primary action buttons in light mode. |
+| `--ex-control-primary-hover-bg` | `#dee2e6` | Hover background color for primary action buttons in light mode. |
+| `--ex-border-radius` | `4px` | Border radius applied to buttons, select dropdowns, and input containers. |
+| `--ex-focus-ring` | `0 0 0 2px rgba(...)` | Outer box shadow applied to focused controls for keyboard navigation. |
+| `--ex-panel-border` | `#6c757d` | Left border color for explanation callouts in light mode. |
+| `--ex-panel-border-dark` | `#adb5bd` | Left border color for explanation callouts in dark mode. |
+| `--ex-select-arrow` | SVG Data URI | Dropdown arrow icon for select menus. |
+| `--ex-option-columns` | `1` | Number of columns in multiple-choice choice grids. |
+| `--ex-batch-columns` | `1` | Number of columns in batch exercise grid layouts. |
+| `--ex-button-primary-bg` | `var(--bs-primary, var(--ex-accent))` | Background color for primary check buttons. |
+| `--ex-button-primary-color` | `var(--bs-white, #fff)` | Text color for primary check buttons. |
+| `--ex-button-secondary-bg` | `var(--bs-secondary-bg, var(--ex-control-bg))` | Background color for secondary reset buttons. |
+| `--ex-button-secondary-color` | `var(--bs-body-color, inherit)` | Text color for secondary reset buttons. |
+| `--ex-button-border` | `var(--bs-border-color, var(--ex-border-color))` | Border color for action buttons. |
+| `--ex-box-bg` | `var(--bs-body-bg, transparent)` | Background color for boxed exercise containers (`.quarto-exercise-boxed`). |
+| `--ex-box-border` | `var(--bs-border-color, var(--ex-border-color))` | Border color for boxed exercise containers. |
+| `--ex-box-radius` | `var(--bs-border-radius, var(--ex-border-radius))` | Border radius for boxed exercise containers. |

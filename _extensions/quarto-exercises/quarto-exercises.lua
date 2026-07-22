@@ -134,7 +134,7 @@ function sha256.sha256(msg)
   if padding_len < 9 then
     padding_len = padding_len + 64
   end
-  
+
   local padding = string.char(0x80) .. string.rep(string.char(0), padding_len - 9)
   local bit_len = #msg * 8
   local len_str = string.char(
@@ -147,10 +147,10 @@ function sha256.sha256(msg)
     (bit_len >> 8) & 0xff,
     bit_len & 0xff
   )
-  
+
   local padded_msg = msg .. padding .. len_str
   local words = str_to_words(padded_msg)
-  
+
   for chunk_start = 1, #words, 16 do
     local w = {}
     for i = 1, 16 do w[i] = words[chunk_start + i - 1] end
@@ -159,9 +159,9 @@ function sha256.sha256(msg)
       local s1 = rrotate(w[i - 2], 17) ~ rrotate(w[i - 2], 19) ~ rshift(w[i - 2], 10)
       w[i] = (w[i - 16] + s0 + w[i - 7] + s1) & 0xffffffff
     end
-    
+
     local a, b, c, d, e, f, g, h_val = table.unpack(h)
-    
+
     for i = 1, 64 do
       local S1 = rrotate(e, 6) ~ rrotate(e, 11) ~ rrotate(e, 25)
       local ch = (e & f) ~ (~e & g)
@@ -169,7 +169,7 @@ function sha256.sha256(msg)
       local S0 = rrotate(a, 2) ~ rrotate(a, 13) ~ rrotate(a, 22)
       local maj = (a & b) ~ (a & c) ~ (b & c)
       local temp2 = (S0 + maj) & 0xffffffff
-      
+
       h_val = g
       g = f
       f = e
@@ -179,7 +179,7 @@ function sha256.sha256(msg)
       b = a
       a = (temp1 + temp2) & 0xffffffff
     end
-    
+
     h[1] = (h[1] + a) & 0xffffffff
     h[2] = (h[2] + b) & 0xffffffff
     h[3] = (h[3] + c) & 0xffffffff

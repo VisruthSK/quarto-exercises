@@ -1,14 +1,14 @@
-document.addEventListener("DOMContentLoaded", initExercises);
-
-if (window.Quarto && typeof window.Quarto.onRender === "function") {
-  window.Quarto.onRender(initExercises);
-}
-
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const UNIT_KEYS = ["exercises", "blanks", "chooses", "clozes"];
 
 const $ = (root, selector) => root.querySelector(selector);
 const $$ = (root, selector) => Array.from(root.querySelectorAll(selector));
+
+document.addEventListener("DOMContentLoaded", initExercises);
+
+if (window.Quarto && typeof window.Quarto.onRender === "function") {
+  window.Quarto.onRender(initExercises);
+}
 
 async function digest(salt, value) {
   const bytes = new TextEncoder().encode(`${salt}\0${value}`);
@@ -1001,7 +1001,7 @@ function initStandaloneCodeCloze(container) {
   const actions = container.nextElementSibling;
   const checkBtn = actions && actions.classList.contains("quarto-exercise-actions") ? $(actions, ".quarto-exercise-check-btn") : null;
   const resetBtn = actions && actions.classList.contains("quarto-exercise-actions") ? $(actions, ".quarto-exercise-reset-btn") : null;
-  
+
   const check = async () => {
     const ok = await verifyCodeCloze(container, { showFeedback: true });
     setStatus(actions ? $(actions, ".quarto-exercise-status") : null, ok ? "Correct!" : "Incorrect", ok);
@@ -1018,4 +1018,55 @@ function initStandaloneCodeCloze(container) {
       clearStatus(actions ? $(actions, ".quarto-exercise-status") : null);
     });
   }
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    digest,
+    decodePattern,
+    matchesRegex,
+    initExercises,
+    initController,
+    initCheckControllers,
+    checkAnswer,
+    canonicalize,
+    splitList,
+    makeControl,
+    checkModeFor,
+    bool,
+    shuffle,
+    labelFor,
+    setHidden,
+    setFeedback,
+    setCorrectText,
+    resetFeedback,
+    clearStatus,
+    setStatus,
+    onEnter,
+    adjustWidth,
+    adjustInputWidth,
+    adjustCodeBlankWidthToText,
+    adjustSelectWidth,
+    initBlank,
+    verifyBlank,
+    resetBlank,
+    initStandaloneBlank,
+    initChoose,
+    verifyChoose,
+    resetChoose,
+    initStandaloneChoose,
+    initExercise,
+    lockExercise,
+    exerciseParts,
+    gradeUnit,
+    verifyExercise,
+    resetExercise,
+    resetUnit,
+    parseClozeMetadata,
+    initCodeCloze,
+    verifyCodeCloze,
+    resetCodeCloze,
+    initStandaloneCodeCloze,
+    QuartoExercises: window.QuartoExercises
+  };
 }

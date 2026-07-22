@@ -16,10 +16,10 @@ const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 // Helper to prepare temp directory
 function setup() {
   if (fs.existsSync(TEMP_DIR)) {
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+    fs.rmSync(TEMP_DIR, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
   fs.mkdirSync(TEMP_DIR, { recursive: true });
-  
+
   // Copy _extensions folder into test-temp so Quarto can find the extension locally
   // Go up one level since this script is located in /tests
   const extSrc = path.join(__dirname, '..', '_extensions');
@@ -96,43 +96,244 @@ function parseCssVariables(css, selector) {
   );
 }
 
-function loadRuntime() {
+function createMockElement(tagName = 'div', attrs = {}, children = []) {
   const listeners = {};
-  const runtime = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
-  const context = {
-    console,
-    Option: function Option(text, value) {
-      return { text, value };
-    },
-    document: {
-      addEventListener(type, handler) {
-        listeners[type] = handler;
-      },
-      querySelectorAll() {
-        return [];
-      },
-      querySelector() {
-        return null;
-      },
-      createElement() {
-        return {
-          style: {},
-          textContent: '',
-          getBoundingClientRect: () => ({ width: 0 }),
-          remove() {}
-        };
-      },
-      body: {
-        appendChild() {}
+  const classListSet = new Set((attrs.class || '').split(' ').filter(Boolean));
+  const dataset = attrs.dataset || {};
+  for (const k in attrs) {
+    if (k.startsWith('data-')) {
+      const camelKey = k.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      dataset[camelKey] = attrs[k];
+    }
+  }
+
+  const el = {
+    tagName: tagName.toUpperCase(),
+    id: attrs.id || '',
+    className: attrs.class || '',
+    dataset,
+    attributes: attrs,
+    style: {},
+    children: [...children],
+    childNodes: [...children],
+    parentNode: null,
+    nextSibling: null,
+    nextElementSibling: null,
+    value: attrs.value || '',
+    type: attrs.type || '',
+    checked: attrs.checked || false,
+    disabled: attrs.disabled || false,
+    selectedIndex: 0,
+    options: children.filter(c => c.tagName === 'OPTION'),
+    hidden: attrs.hidden || false,
+    textContent: attrs.textContent || '',
+
+    classList: {
+      contains: (c) => classListSet.has(c),
+      add: (c) => { classListSet.add(c); el.className = Array.from(classListSet).join(' '); },
+      remove: (c) => { classListSet.delete(c); el.className = Array.from(classListSet).join(' '); },
+      toggle: (c, force) => {
+        const val = force !== undefined ? force : !classListSet.has(c);
+        if (val) classListSet.add(c); else classListSet.delete(c);
+        el.className = Array.from(classListSet).join(' ');
+        return val;
       }
     },
-    window: {},
-    getComputedStyle: () => ({ font: '16px serif' })
+
+    setAttribute(k, v) { attrs[k] = v; el[k] = v; if (k === 'class') { classListSet.clear(); String(v).split(' ').filter(Boolean).forEach(c => classListSet.add(c)); el.className = v; } },
+    getAttribute(k) { return attrs[k] || null; },
+    removeAttribute(k) { delete attrs[k]; delete el[k]; },
+
+    addEventListener(type, fn) {
+      if (!listeners[type]) listeners[type] = [];
+      listeners[type].push(fn);
+    },
+    dispatchEvent(event) {
+      const evt = typeof event === 'string' ? { type: event, preventDefault() {} } : { preventDefault() {}, ...event };
+      (listeners[evt.type] || []).forEach(fn => fn(evt));
+    },
+
+    querySelector(sel) {
+      return el.querySelectorAll(sel)[0] || null;
+    },
+    querySelectorAll(sel) {
+      const results = [];
+      const matchSel = (node) => {
+        if (!node) return false;
+        if (sel === 'code' && node.tagName === 'CODE') return true;
+        if (sel.startsWith('.')) {
+          const cls = sel.slice(1).split('.')[0];
+          if (node.classList && node.classList.contains(cls)) return true;
+        }
+        if (sel.startsWith('#')) {
+          if (node.id === sel.slice(1)) return true;
+        }
+        if (sel.includes('.quarto-exercise-blank-input') && node.classList && node.classList.contains('quarto-exercise-blank-input')) return true;
+        if (sel.includes('.quarto-exercise-choose-select') && node.classList && node.classList.contains('quarto-exercise-choose-select')) return true;
+        if (sel.includes('.quarto-exercise-answer') && node.classList && node.classList.contains('quarto-exercise-answer')) return true;
+        if (sel.includes('.quarto-exercise-status') && node.classList && node.classList.contains('quarto-exercise-status')) return true;
+        if (sel.includes('.quarto-exercise-actions') && node.classList && node.classList.contains('quarto-exercise-actions')) return true;
+        return false;
+      };
+
+      const walk = (n) => {
+        for (const child of n.children || []) {
+          if (matchSel(child)) results.push(child);
+          walk(child);
+        }
+      };
+      walk(el);
+      return results;
+    },
+
+    closest(sel) {
+      let cur = el;
+      while (cur) {
+        if (sel.split(', ').some(s => {
+          if (s.startsWith('.')) return cur.classList && cur.classList.contains(s.slice(1));
+          if (s.startsWith('#')) return cur.id === s.slice(1);
+          return cur.tagName === s.toUpperCase();
+        })) {
+          return cur;
+        }
+        cur = cur.parentNode;
+      }
+      return null;
+    },
+
+    matches(sel) {
+      return sel.split(', ').some(s => {
+        if (s.startsWith('.')) return el.classList && el.classList.contains(s.slice(1));
+        if (s.startsWith('#')) return el.id === s.slice(1);
+        return el.tagName === s.toUpperCase();
+      });
+    },
+
+    appendChild(child) {
+      if (!child) return child;
+      child.parentNode = el;
+      el.children.push(child);
+      el.childNodes.push(child);
+      if (child.tagName === 'OPTION') el.options.push(child);
+      return child;
+    },
+
+    replaceChildren(...newChildren) {
+      el.children = [];
+      el.childNodes = [];
+      el.options = [];
+      for (const c of newChildren) el.appendChild(c);
+    },
+
+    insertBefore(newNode, refNode) {
+      newNode.parentNode = el;
+      const idx = el.children.indexOf(refNode);
+      if (idx >= 0) el.children.splice(idx, 0, newNode);
+      else el.children.push(newNode);
+      return newNode;
+    },
+
+    replaceChild(newChild, oldChild) {
+      const idx = el.children.indexOf(oldChild);
+      if (idx >= 0) {
+        newChild.parentNode = el;
+        el.children[idx] = newChild;
+      }
+      return oldChild;
+    },
+
+    remove() {
+      if (el.parentNode) {
+        const idx = el.parentNode.children.indexOf(el);
+        if (idx >= 0) el.parentNode.children.splice(idx, 1);
+      }
+    },
+
+    getBoundingClientRect() {
+      return { width: 100, height: 40, top: 0, left: 0, right: 100, bottom: 40 };
+    }
   };
-  context.window = context;
-  vm.createContext(context);
-  vm.runInContext(runtime, context);
-  return context;
+
+  Object.defineProperty(el, 'innerHTML', {
+    get() { return el.textContent; },
+    set(html) {
+      el.children = [];
+      el.childNodes = [];
+      if (html.includes('quarto-exercise-check-btn')) {
+        const btn = createMockElement('button', { class: 'quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary' });
+        btn.parentNode = el;
+        el.children.push(btn);
+        el.childNodes.push(btn);
+      }
+      if (html.includes('quarto-exercise-reset-btn')) {
+        const btn = createMockElement('button', { class: 'quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary' });
+        btn.parentNode = el;
+        el.children.push(btn);
+        el.childNodes.push(btn);
+      }
+      if (html.includes('quarto-exercise-status')) {
+        const span = createMockElement('span', { class: 'quarto-exercise-status' });
+        span.parentNode = el;
+        el.children.push(span);
+        el.childNodes.push(span);
+      }
+    }
+  });
+
+  children.forEach(c => { c.parentNode = el; });
+  return el;
+}
+
+function loadRuntime() {
+  const listeners = {};
+  delete require.cache[require.resolve('../_extensions/quarto-exercises/quarto-exercises.js')];
+
+  global.Option = function Option(text, value) {
+    return createMockElement('option', { value, textContent: text });
+  };
+  global.document = {
+    addEventListener(type, handler) {
+      listeners[type] = handler;
+    },
+    querySelectorAll() { return []; },
+    querySelector() { return null; },
+    createElement(tag) {
+      return createMockElement(tag);
+    },
+    createTreeWalker(root, filter) {
+      let foundNode = null;
+      const walk = (n) => {
+        if (foundNode) return;
+        if (n.textContent && n.textContent.includes('QEXCLOZEP')) {
+          foundNode = n;
+          return;
+        }
+        for (const c of n.children || []) walk(c);
+      };
+      walk(root);
+      let step = 0;
+      return {
+        nextNode() {
+          if (step === 0 && foundNode) {
+            step++;
+            this.currentNode = foundNode;
+            return true;
+          }
+          return false;
+        }
+      };
+    },
+    createTextNode(text) {
+      return { textContent: text, parentNode: null };
+    },
+    body: createMockElement('body')
+  };
+  global.window = global;
+  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.getComputedStyle = () => ({ font: '16px serif', letterSpacing: 'normal', wordSpacing: 'normal', textTransform: 'none', fontVariant: 'normal', fontFeatureSettings: 'normal' });
+
+  const exportsObj = require('../_extensions/quarto-exercises/quarto-exercises.js');
+  return { ...exportsObj, document: global.document, window: global.window, listeners, createMockElement };
 }
 
 function visualFixture() {
@@ -385,6 +586,550 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(canonicalize(" Frodo ", { trim: false }), " Frodo ");
   });
 
+  test('JS unit tests for internal utility and evaluation functions', async () => {
+    const runtime = loadRuntime();
+    const {
+      bool,
+      labelFor,
+      setHidden,
+      setFeedback,
+      setCorrectText,
+      resetFeedback,
+      clearStatus,
+      setStatus,
+      onEnter,
+      checkModeFor,
+      makeControl,
+      checkAnswer,
+      gradeUnit,
+      parseClozeMetadata,
+      QuartoExercises,
+      digest
+    } = runtime;
+
+    // 1. bool helper
+    assert.strictEqual(bool(null), false);
+    assert.strictEqual(bool(undefined, true), true);
+    assert.strictEqual(bool("true"), true);
+    assert.strictEqual(bool("false"), false);
+
+    // 2. labelFor helper
+    assert.strictEqual(labelFor(0), "A");
+    assert.strictEqual(labelFor(25), "Z");
+    assert.strictEqual(labelFor(26), "AA");
+    assert.strictEqual(labelFor(27), "AB");
+
+    // 3. DOM element state helpers (null-safety and attribute toggling)
+    setHidden(null, true);
+    setFeedback(null, "text", "correct");
+    setCorrectText({ querySelector: () => null }, ".selector", "val");
+    resetFeedback(null);
+    clearStatus(null);
+    setStatus(null, "text", true);
+
+    const mockFeedback = { textContent: "", classList: { remove: () => {}, toggle: () => {} }, hidden: false };
+    resetFeedback(mockFeedback);
+    assert.strictEqual(mockFeedback.textContent, "");
+    assert.strictEqual(mockFeedback.hidden, true);
+
+    const mockStatus = { textContent: "", classList: { remove: () => {}, toggle: () => {} } };
+    clearStatus(mockStatus);
+    assert.strictEqual(mockStatus.textContent, "");
+
+    // 4. onEnter listener
+    let enterTriggered = false;
+    let keyHandler = null;
+    const mockInput = {
+      addEventListener(event, fn) { if (event === "keydown") keyHandler = fn; },
+      closest() { return null; }
+    };
+    onEnter(mockInput, () => { enterTriggered = true; });
+    keyHandler({ key: "Space", preventDefault() {} });
+    assert.strictEqual(enterTriggered, false);
+    keyHandler({ key: "Enter", preventDefault() {} });
+    assert.strictEqual(enterTriggered, true);
+
+    // 5. checkModeFor resolution
+    const mockBlankControl = {
+      closest(sel) {
+        if (sel.includes("quarto-exercise-blank-container")) return { dataset: { checkMode: "page" } };
+        return null;
+      }
+    };
+    assert.strictEqual(checkModeFor(mockBlankControl), "page");
+
+    const mockExControl = {
+      closest(sel) {
+        if (sel.includes("quarto-exercise")) return { dataset: { checkMode: "batch" } };
+        return null;
+      }
+    };
+    assert.strictEqual(checkModeFor(mockExControl), "batch");
+
+    const mockBatchControl = {
+      closest(sel) {
+        if (sel.includes("check-batch")) return {};
+        return null;
+      }
+    };
+    assert.strictEqual(checkModeFor(mockBatchControl), "batch");
+
+    const mockDefaultControl = { closest() { return null; } };
+    assert.strictEqual(checkModeFor(mockDefaultControl), "exercise");
+
+    // 6. makeControl defaults and dataset id fallback
+    const mockContainerId = { dataset: { id: "custom-id" }, closest() { return null; }, matches() { return false; } };
+    const ctrl1 = makeControl(mockContainerId, "blank");
+    assert.strictEqual(ctrl1._controlId, "custom-id");
+
+    const mockContainerNoId = { dataset: {}, id: "fallback-id", closest() { return null; }, matches() { return false; } };
+    const ctrl2 = makeControl(mockContainerNoId, "choose");
+    assert.strictEqual(ctrl2._controlId, "fallback-id");
+
+    const mockContainerDefault = { dataset: {}, closest() { return null; }, matches() { return false; } };
+    const ctrl3 = makeControl(mockContainerDefault, "code");
+    assert.strictEqual(ctrl3._controlId, "default-code");
+
+    // 7. checkAnswer edge cases & hash validation
+    assert.strictEqual(await checkAnswer(mockDefaultControl, "val"), false);
+
+    const salt = "test-salt";
+    const targetVal = "answer123";
+    const hashed = await digest(salt, targetVal);
+
+    const qxCtrl = {
+      closest() { return { dataset: {} }; },
+      _qx: { salt, digests: [hashed], trim: true, collapseSpace: true, ignoreCase: true }
+    };
+    assert.strictEqual(await checkAnswer(qxCtrl, "  Answer123  "), true);
+    assert.strictEqual(await checkAnswer(qxCtrl, "wrong"), false);
+
+    // Container fallback dataset checking
+    const containerWithDataset = {
+      dataset: { qxSalt: salt, qxDigests: hashed, qxIgnoreCase: "true", qxTrim: "true", qxCollapseSpace: "true" }
+    };
+    const ctrlWithContainerDataset = {
+      closest() { return containerWithDataset; }
+    };
+    assert.strictEqual(await checkAnswer(ctrlWithContainerDataset, "answer123"), true);
+
+    // Regex matching validation
+    const { decodePattern, matchesRegex } = runtime;
+    const pattern = "^hello$";
+    const patternBytes = new TextEncoder().encode(pattern);
+    const keyBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt)));
+    const encodedBytes = new Uint8Array(patternBytes.length);
+    for (let i = 0; i < patternBytes.length; i++) {
+      encodedBytes[i] = patternBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    const encodedHex = [...encodedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
+
+    const decoded = await decodePattern(salt, encodedHex);
+    assert.strictEqual(decoded, pattern);
+
+    const regexMeta = { salt, regex: encodedHex, ignoreCase: true, trim: true, collapseSpace: true };
+    assert.strictEqual(await matchesRegex("hello", regexMeta), true);
+    assert.strictEqual(await matchesRegex("world", regexMeta), false);
+
+    const qxRegexCtrl = {
+      closest() { return { dataset: {} }; },
+      _qx: regexMeta
+    };
+    assert.strictEqual(await checkAnswer(qxRegexCtrl, "  Hello  "), true);
+
+    // 8. parseClozeMetadata
+    assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: '{"key":"val"}' } })), JSON.stringify({ key: "val" }));
+    assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: 'invalid json' } })), JSON.stringify({}));
+
+    // 9. gradeUnit unknown unit class fallback
+    const unknownUnit = { classList: { contains: () => false } };
+    const result = await gradeUnit(unknownUnit);
+    assert.strictEqual(JSON.stringify(result), JSON.stringify({ earned: 0, possible: 0, correct: false }));
+
+    // 10. QuartoExercises public API safety
+    assert.strictEqual(await QuartoExercises.checkExercise("#nonexistent-ex-id"), false);
+    QuartoExercises.resetExercise("#nonexistent-ex-id");
+  });
+
+  test('JS DOM runtime unit tests for all controls and controllers', async () => {
+    function createMockElement(tagName = 'div', attrs = {}, children = []) {
+      const listeners = {};
+      const classListSet = new Set((attrs.class || '').split(' ').filter(Boolean));
+      const dataset = attrs.dataset || {};
+      for (const k in attrs) {
+        if (k.startsWith('data-')) {
+          const camelKey = k.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+          dataset[camelKey] = attrs[k];
+        }
+      }
+
+      const el = {
+        tagName: tagName.toUpperCase(),
+        id: attrs.id || '',
+        className: attrs.class || '',
+        dataset,
+        attributes: attrs,
+        style: {},
+        children: [...children],
+        childNodes: [...children],
+        parentNode: null,
+        nextSibling: null,
+        nextElementSibling: null,
+        value: attrs.value || '',
+        type: attrs.type || '',
+        checked: attrs.checked || false,
+        disabled: attrs.disabled || false,
+        selectedIndex: 0,
+        options: children.filter(c => c.tagName === 'OPTION'),
+        hidden: attrs.hidden || false,
+        textContent: attrs.textContent || '',
+
+        classList: {
+          contains: (c) => classListSet.has(c),
+          add: (c) => { classListSet.add(c); el.className = Array.from(classListSet).join(' '); },
+          remove: (c) => { classListSet.delete(c); el.className = Array.from(classListSet).join(' '); },
+          toggle: (c, force) => {
+            const val = force !== undefined ? force : !classListSet.has(c);
+            if (val) classListSet.add(c); else classListSet.delete(c);
+            el.className = Array.from(classListSet).join(' ');
+            return val;
+          }
+        },
+
+        setAttribute(k, v) { attrs[k] = v; el[k] = v; },
+        getAttribute(k) { return attrs[k] || null; },
+        removeAttribute(k) { delete attrs[k]; delete el[k]; },
+
+        addEventListener(type, fn) {
+          if (!listeners[type]) listeners[type] = [];
+          listeners[type].push(fn);
+        },
+        dispatchEvent(event) {
+          const evt = typeof event === 'string' ? { type: event, preventDefault() {} } : { preventDefault() {}, ...event };
+          (listeners[evt.type] || []).forEach(fn => fn(evt));
+        },
+
+        querySelector(sel) {
+          return el.querySelectorAll(sel)[0] || null;
+        },
+        querySelectorAll(sel) {
+          const results = [];
+          const matchSel = (node) => {
+            if (sel === 'code' && node.tagName === 'CODE') return true;
+            if (sel.startsWith('.')) {
+              const cls = sel.slice(1).split('.')[0];
+              if (node.classList && node.classList.contains(cls)) return true;
+            }
+            if (sel.startsWith('#')) {
+              if (node.id === sel.slice(1)) return true;
+            }
+            if (sel.includes('.quarto-exercise-blank-input') && node.classList && node.classList.contains('quarto-exercise-blank-input')) return true;
+            if (sel.includes('.quarto-exercise-choose-select') && node.classList && node.classList.contains('quarto-exercise-choose-select')) return true;
+            if (sel.includes('.quarto-exercise-answer') && node.classList && node.classList.contains('quarto-exercise-answer')) return true;
+            if (sel.includes('.quarto-exercise-status') && node.classList && node.classList.contains('quarto-exercise-status')) return true;
+            if (sel.includes('.quarto-exercise-actions') && node.classList && node.classList.contains('quarto-exercise-actions')) return true;
+            return false;
+          };
+
+          const walk = (n) => {
+            for (const child of n.children || []) {
+              if (matchSel(child)) results.push(child);
+              walk(child);
+            }
+          };
+          walk(el);
+          return results;
+        },
+
+        closest(sel) {
+          let cur = el;
+          while (cur) {
+            if (sel.split(', ').some(s => {
+              if (s.startsWith('.')) return cur.classList && cur.classList.contains(s.slice(1));
+              if (s.startsWith('#')) return cur.id === s.slice(1);
+              return cur.tagName === s.toUpperCase();
+            })) {
+              return cur;
+            }
+            cur = cur.parentNode;
+          }
+          return null;
+        },
+
+        matches(sel) {
+          return sel.split(', ').some(s => {
+            if (s.startsWith('.')) return el.classList && el.classList.contains(s.slice(1));
+            if (s.startsWith('#')) return el.id === s.slice(1);
+            return el.tagName === s.toUpperCase();
+          });
+        },
+
+        appendChild(child) {
+          child.parentNode = el;
+          el.children.push(child);
+          el.childNodes.push(child);
+          if (child.tagName === 'OPTION') el.options.push(child);
+          return child;
+        },
+
+        replaceChildren(...newChildren) {
+          el.children = [];
+          el.childNodes = [];
+          el.options = [];
+          for (const c of newChildren) el.appendChild(c);
+        },
+
+        insertBefore(newNode, refNode) {
+          newNode.parentNode = el;
+          const idx = el.children.indexOf(refNode);
+          if (idx >= 0) el.children.splice(idx, 0, newNode);
+          else el.children.push(newNode);
+          return newNode;
+        },
+
+        replaceChild(newChild, oldChild) {
+          const idx = el.children.indexOf(oldChild);
+          if (idx >= 0) {
+            newChild.parentNode = el;
+            el.children[idx] = newChild;
+          }
+          return oldChild;
+        },
+
+        remove() {
+          if (el.parentNode) {
+            const idx = el.parentNode.children.indexOf(el);
+            if (idx >= 0) el.parentNode.children.splice(idx, 1);
+          }
+        },
+
+        getBoundingClientRect() {
+          return { width: 100, height: 40, top: 0, left: 0, right: 100, bottom: 40 };
+        }
+      };
+
+      children.forEach(c => { c.parentNode = el; });
+      return el;
+    }
+
+    const runtime = loadRuntime();
+    const {
+      initExercises,
+      initController,
+      initCheckControllers,
+      initBlank,
+      verifyBlank,
+      resetBlank,
+      initStandaloneBlank,
+      initChoose,
+      verifyChoose,
+      resetChoose,
+      initStandaloneChoose,
+      initExercise,
+      gradeUnit,
+      verifyExercise,
+      resetExercise,
+      lockExercise,
+      resetUnit,
+      initCodeCloze,
+      verifyCodeCloze,
+      resetCodeCloze,
+      initStandaloneCodeCloze,
+      digest
+    } = runtime;
+
+    const salt = "salt-dom-test";
+    const hashedAns = await digest(salt, "hobbit");
+
+    // 1. Standalone Blank Container Test
+    const blankInput = createMockElement("input", { class: "quarto-exercise-blank-input" });
+    const blankCorrectText = createMockElement("span", { class: "quarto-exercise-blank-correct-text", hidden: true });
+    const blankFeedback = createMockElement("span", { class: "quarto-exercise-blank-feedback", hidden: true });
+    const blankCheckBtn = createMockElement("button", { class: "quarto-exercise-blank-check-btn" });
+    const blankContainer = createMockElement("span", {
+      class: "quarto-exercise-blank-container",
+      id: "blank-1",
+      "data-feedback-correct": "Correct!",
+      "data-feedback-incorrect": "Wrong!",
+      "data-qx-salt": salt,
+      "data-qx-digests": hashedAns,
+      "data-qx-ignore-case": "true",
+      "data-qx-trim": "true"
+    }, [blankInput, blankCorrectText, blankCheckBtn, blankFeedback]);
+
+    initStandaloneBlank(blankContainer);
+    blankInput.value = "  Hobbit  ";
+    blankInput.dispatchEvent("input");
+    blankInput.dispatchEvent("blur");
+    blankInput.dispatchEvent({ type: "keydown", key: "Enter", preventDefault() {} });
+    blankCheckBtn.dispatchEvent("click");
+    assert.strictEqual(await verifyBlank(blankContainer, { showFeedback: true }), true);
+    assert.strictEqual(blankContainer.classList.contains("is-correct"), true);
+    assert.strictEqual(blankInput.classList.contains("is-correct"), true);
+
+    resetBlank(blankContainer);
+    assert.strictEqual(blankContainer.classList.contains("is-correct"), false);
+    assert.strictEqual(blankInput.value, "");
+
+    // 2. Standalone Choose Container Test
+    const chooseSelect = createMockElement("select", { class: "quarto-exercise-choose-select" });
+    const chooseCorrectText = createMockElement("span", { class: "quarto-exercise-choose-correct-text", hidden: true });
+    const chooseFeedback = createMockElement("span", { class: "quarto-exercise-choose-feedback", hidden: true });
+    const chooseCheckBtn = createMockElement("button", { class: "quarto-exercise-choose-check-btn" });
+    const chooseContainer = createMockElement("span", {
+      class: "quarto-exercise-choose-container",
+      id: "choose-1",
+      "data-options": "hobbit|wizard|elf",
+      "data-shuffle": "true",
+      "data-feedback-correct": "Correct!",
+      "data-feedback-incorrect": "Wrong!",
+      "data-qx-salt": salt,
+      "data-qx-digests": hashedAns,
+      "data-qx-ignore-case": "true"
+    }, [chooseSelect, chooseCorrectText, chooseCheckBtn, chooseFeedback]);
+
+    initStandaloneChoose(chooseContainer);
+    chooseSelect.value = "hobbit";
+    chooseSelect.dispatchEvent("change");
+    chooseCheckBtn.dispatchEvent("click");
+    assert.strictEqual(await verifyChoose(chooseContainer, { showFeedback: true }), true);
+
+    resetChoose(chooseContainer);
+    assert.strictEqual(chooseSelect.selectedIndex, 0);
+
+    // 3. Exercise Container Test (MCQ + Blank + Choose)
+    const mcqInput1 = createMockElement("input", { type: "radio", class: "quarto-exercise-input", value: "opt1", name: "ex1" });
+    const mcqLabel1 = createMockElement("label", { class: "quarto-exercise-answer-label" });
+    const mcqState1 = createMockElement("span", { class: "quarto-exercise-answer-state" });
+    const mcqFeedback1 = createMockElement("div", { class: "quarto-exercise-feedback", hidden: true });
+    const mcqAnswer1 = createMockElement("div", { class: "quarto-exercise-answer", "data-key": "opt1" }, [mcqInput1, mcqLabel1, mcqState1, mcqFeedback1]);
+
+    const exCheckBtn = createMockElement("button", { class: "quarto-exercise-check-btn" });
+    const exResetBtn = createMockElement("button", { class: "quarto-exercise-reset-btn" });
+    const exHintBtn = createMockElement("button", { class: "quarto-exercise-hint-btn" });
+    const exHint = createMockElement("div", { class: "quarto-exercise-hint", hidden: true });
+    const exExplanation = createMockElement("div", { class: "quarto-exercise-explanation", hidden: true });
+    const exStatus = createMockElement("span", { class: "quarto-exercise-status" });
+    const exChoices = createMockElement("div", { class: "quarto-exercise-choices" }, [mcqAnswer1]);
+
+    const exContainer = createMockElement("div", {
+      class: "quarto-exercise",
+      id: "ex-1",
+      "data-type": "radio",
+      "data-instant": "true",
+      "data-reveal": "true",
+      "data-lock": "true",
+      "data-shuffle": "true",
+      "data-explanation-policy": "correct",
+      "data-feedback-correct": "Great!",
+      "data-feedback-incorrect": "Try again!",
+      "data-qx-salt": salt,
+      "data-qx-correct": hashedAns
+    }, [exChoices, exCheckBtn, exResetBtn, exHintBtn, exHint, exExplanation, exStatus]);
+
+    initExercise(exContainer);
+
+    // Simulate clicking MCQ answer wrapper & hint button
+    mcqAnswer1.dispatchEvent({ type: "click", target: mcqAnswer1 });
+    mcqInput1.checked = true;
+    mcqInput1.dispatchEvent("change");
+    exHintBtn.dispatchEvent("click");
+    exCheckBtn.dispatchEvent("click");
+
+    // Grade unit & verify Exercise
+    const res = await gradeUnit(exContainer, { showFeedback: true, reveal: true });
+    assert.strictEqual(res.correct, false);
+
+    lockExercise(exContainer, { answers: [mcqAnswer1], blanks: [], chooses: [], checkButton: exCheckBtn, resetButton: exResetBtn });
+    assert.strictEqual(exContainer.classList.contains("is-locked"), true);
+
+    exResetBtn.dispatchEvent("click");
+    resetExercise(exContainer, { answers: [mcqAnswer1], blanks: [], chooses: [], codeClozes: [], explanation: exExplanation, status: exStatus, hintPanel: exHint, checkButton: exCheckBtn, resetButton: exResetBtn });
+    assert.strictEqual(exContainer.classList.contains("is-locked"), false);
+    assert.strictEqual(mcqInput1.checked, false);
+
+    // 4. Code Cloze Container Test with Choose & Blank controls
+    const textNodeToken = { textContent: "QEXCLOZEP000001 QEXCLOZEP000002", parentNode: null };
+    const codeNode = createMockElement("code");
+    codeNode.children = [textNodeToken];
+    textNodeToken.parentNode = codeNode;
+
+    const clozeMetadata = JSON.stringify({
+      "QEXCLOZEP000001": {
+        type: "blank",
+        attrs: { answer: "hobbit" },
+        qx: { salt, digests: [hashedAns], trim: true, collapseSpace: true, ignoreCase: true }
+      },
+      "QEXCLOZEP000002": {
+        type: "choose",
+        attrs: { options: "hobbit|wizard" },
+        qx: { salt, digests: [hashedAns], trim: true, collapseSpace: true, ignoreCase: true }
+      }
+    });
+    const clozeContainer = createMockElement("div", {
+      class: "quarto-exercise-code-cloze-container quarto-exercise-code-cloze-standalone",
+      id: "cloze-1",
+      "data-cloze-metadata": clozeMetadata
+    }, [codeNode]);
+
+    const clozeCheckBtnNode = createMockElement("button", { class: "quarto-exercise-check-btn" });
+    const clozeResetBtnNode = createMockElement("button", { class: "quarto-exercise-reset-btn" });
+    const clozeStatusNode = createMockElement("span", { class: "quarto-exercise-status" });
+    const clozeActions = createMockElement("div", { class: "quarto-exercise-actions" }, [
+      clozeCheckBtnNode,
+      clozeResetBtnNode,
+      clozeStatusNode
+    ]);
+
+    const clozeWrapper = createMockElement("div", { class: "quarto-exercise-code-cloze-wrapper" }, [clozeContainer, clozeActions]);
+    clozeContainer.nextElementSibling = clozeActions;
+
+    initStandaloneCodeCloze(clozeContainer);
+    assert.strictEqual(clozeContainer._clozeControls.length, 2);
+
+    const clozeInput = clozeContainer._clozeControls[0].el;
+    const clozeSelect = clozeContainer._clozeControls[1].el;
+    clozeInput.value = "hobbit";
+    clozeSelect.value = "hobbit";
+    clozeCheckBtnNode.dispatchEvent("click");
+
+    assert.strictEqual(await verifyCodeCloze(clozeContainer, { showFeedback: true, reveal: true }), true);
+
+    clozeResetBtnNode.dispatchEvent("click");
+    resetCodeCloze(clozeContainer);
+    assert.strictEqual(clozeInput.value, "");
+
+    // 5. Controller (Page / Batch) Test & window.Quarto onRender
+    global.window.Quarto = { onRender(fn) { fn(); } };
+    const pageContainer = createMockElement("main", { id: "quarto-document-content" }, [exContainer, blankContainer, chooseContainer, clozeContainer]);
+    initController("page", pageContainer);
+    assert.strictEqual(pageContainer.dataset.controllerInitialized, "true");
+
+    const controllerActionsNode = pageContainer.querySelector(".quarto-exercise-actions");
+    if (controllerActionsNode) {
+      const pageCheck = controllerActionsNode.querySelector(".quarto-exercise-check-btn");
+      const pageReset = controllerActionsNode.querySelector(".quarto-exercise-reset-btn");
+      if (pageCheck) pageCheck.dispatchEvent("click");
+      if (pageReset) pageReset.dispatchEvent("click");
+    }
+
+    const batchContainerNode = createMockElement("div", { class: "check-batch" }, [exContainer, blankContainer]);
+    initController("batch", batchContainerNode);
+
+    // Test initCheckControllers DOM modes
+    global.document.body = createMockElement("body", { "data-check-mode": "page" }, [pageContainer]);
+    initCheckControllers();
+
+    global.document.body = createMockElement("body", {}, [batchContainerNode]);
+    initCheckControllers();
+
+    initExercises();
+    resetUnit(blankContainer);
+    resetUnit(chooseContainer);
+    resetUnit(clozeContainer);
+    resetUnit(exContainer);
+  });
+
   test('Code cloze blank sizing resizes to typed text and toggles underline', () => {
     const context = loadRuntime();
     const { adjustCodeBlankWidthToText } = context;
@@ -481,7 +1226,7 @@ He is short and has hairy feet.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'mc.qmd'), qmdContent);
     renderQuarto('mc.qmd');
-    
+
     const htmlPath = path.join(TEMP_DIR, 'mc.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -532,7 +1277,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'blank.qmd'), qmdContent);
     renderQuarto('blank.qmd');
-    
+
     const htmlPath = path.join(TEMP_DIR, 'blank.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -797,7 +1542,7 @@ fellowship = {
       const lastBlank = page.locator('.quarto-exercise-code-blank').nth(1);
       await page.waitForFunction(el => el.classList.contains('is-correct'), await lastBlank.elementHandle());
       assert.strictEqual(await lastBlank.evaluate(el => el.classList.contains('is-correct')), true);
-      
+
       const statusLoc = page.locator('.quarto-exercise-status');
       await page.waitForFunction(el => el.textContent === 'Correct!', await statusLoc.elementHandle());
       assert.strictEqual(await statusLoc.textContent(), 'Correct!');
@@ -845,9 +1590,9 @@ Learners can never see this.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'warnings.qmd'), qmdContent);
     const result = renderQuarto('warnings.qmd');
-    
+
     const stderrLog = result.stderr + result.stdout;
-    
+
     assert.match(stderrLog, /has no correct answers/);
     assert.match(stderrLog, /has no \.answer blocks or inline blanks\/choices/);
     assert.match(stderrLog, /match="regex" with no answer/);
@@ -879,7 +1624,7 @@ The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'fallback.qmd'), qmdContent);
     renderQuarto('fallback.qmd', 'markdown');
-    
+
     const mdPath = path.join(TEMP_DIR, 'fallback.md');
     const md = fs.readFileSync(mdPath, 'utf8');
 
@@ -975,7 +1720,7 @@ Legolas
 
   test('JS click interaction simulation', () => {
     let dispatchCount = 0;
-    
+
     const mockInput = {
       type: 'radio',
       checked: false,
@@ -1978,7 +2723,7 @@ x = {{blank answer="1"}}
       assert.strictEqual(correctState.statusText, 'Correct!');
       assert.strictEqual(checkboxWrongState.correctFeedbackVisible, true, `${mode} selected correct checkbox feedback should show`);
       assert.strictEqual(checkboxWrongState.wrongFeedbackVisible, true, `${mode} selected wrong checkbox feedback should show`);
-      
+
       if (mode === 'dark') {
         assert.match(checkboxWrongState.frodoBg, /rgb\(129, 201, 149\)/, `${mode} correct checked checkbox background`);
         assert.match(checkboxWrongState.legolasBg, /rgb\(242, 139, 130\)/, `${mode} incorrect checked checkbox background`);
@@ -2138,7 +2883,7 @@ Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
     fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
     const buildRes = runQuarto('tdd-leak.qmd');
     assert.strictEqual(buildRes.success, true, "Build should succeed");
-    
+
     // Assert no data-processed or has no .answer block warnings are present
     assert.doesNotMatch(buildRes.stderr + buildRes.stdout, /data-processed/);
     assert.doesNotMatch(buildRes.stderr + buildRes.stdout, /has no \.answer blocks/);
