@@ -27,4 +27,11 @@ website:
         text: Reference
       - href: full-page-check.qmd
         text: Full Page Check
-
+    tools:
+      - icon: github
+        href: https://github.com/VisruthSK/quarto-exercises
+        aria-label: quarto-exercises source code
+        target: _blank
+  repo-url: https://github.com/VisruthSK/quarto-exercises 
+  repo-actions: [source, issue]
+  repo-link-target: _blank
