@@ -427,12 +427,16 @@ local function validate_explanation(value, id)
   return value
 end
 
-local function validate_option(value, allowed, default, id, name)
-  if allowed[value] then
-    return value
+local function compute_digests(values, trim, collapse_space, ignore_case, salt)
+  local digests = {}
+  for _, value in ipairs(values) do
+    local normalized = value
+    if trim then normalized = normalized:match("^%s*(.-)%s*$") end
+    if collapse_space then normalized = normalized:gsub("%s+", " ") end
+    if ignore_case then normalized = string.lower(normalized) end
+    digests[#digests + 1] = digest(salt, normalized)
   end
-  warn(id, "unsupported " .. name .. " '" .. tostring(value) .. "'")
-  return default
+  return digests
 end
 
 local function split_values(value, delimiter)
@@ -953,21 +957,15 @@ local function process_code_cloze(el, parent_id)
       local salt = opaque("salt")
       local expected = info.attrs.answers or info.attrs.answer or ""
       local values = info.type == "blank" and split_values(expected, "|") or { expected }
-      local digests = {}
       local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
       local trim = normalize_bool(info.attrs.trim) ~= "false"
       local collapse_space = normalize_bool(info.attrs["collapse-space"]) == "true"
       local regex = nil
+      local digests = {}
       if info.type == "blank" and info.attrs.match == "regex" then
         regex = encode_pattern(salt, expected)
       else
-        for _, value in ipairs(values) do
-          local normalized = value
-          if trim then normalized = normalized:match("^%s*(.-)%s*$") end
-          if collapse_space then normalized = normalized:gsub("%s+", " ") end
-          if ignore_case then normalized = string.lower(normalized) end
-          digests[#digests + 1] = digest(salt, normalized)
-        end
+        digests = compute_digests(values, trim, collapse_space, ignore_case, salt)
       end
       qx = { salt = salt, digests = digests, regex = regex, ignoreCase = ignore_case, trim = trim, collapseSpace = collapse_space }
     end
@@ -1051,14 +1049,7 @@ local function render_blank(el, id, parent_id)
       container_attrs["data-qx-regex"] = encode_pattern(salt, answer)
     else
       local ans_list = split_values(answer, "|")
-      local digests = {}
-      for _, value in ipairs(ans_list) do
-        local normalized = value
-        if trim_val then normalized = normalized:match("^%s*(.-)%s*$") end
-        if collapse_space_val then normalized = normalized:gsub("%s+", " ") end
-        if ignore_case_val then normalized = string.lower(normalized) end
-        digests[#digests + 1] = digest(salt, normalized)
-      end
+      local digests = compute_digests(ans_list, trim_val, collapse_space_val, ignore_case_val, salt)
       container_attrs["data-qx-digests"] = table.concat(digests, " ")
     end
     container_attrs["data-qx-salt"] = salt
@@ -1125,10 +1116,9 @@ local function render_choose(el, id, parent_id)
 
   do
     local salt = opaque("salt")
-    local normalized = answer:match("^%s*(.-)%s*$")
-    if ignore_case_val then normalized = string.lower(normalized) end
+    local digests = compute_digests({ answer }, true, false, ignore_case_val, salt)
     container_attrs["data-qx-salt"] = salt
-    container_attrs["data-qx-digests"] = digest(salt, normalized)
+    container_attrs["data-qx-digests"] = table.concat(digests, " ")
     container_attrs["data-qx-ignore-case"] = tostring(ignore_case_val)
   end
 
