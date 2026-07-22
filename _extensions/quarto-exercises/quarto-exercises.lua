@@ -824,6 +824,16 @@ local function should_suppress_controls(parent_id, el_attributes)
   return (parent_id ~= nil) or check_page_active or in_batch
 end
 
+local function add_standalone_controller_attrs(container_attrs, el_attributes)
+  container_attrs["data-points"] = string_option(el_attributes, "points")
+  if options["check-page"] == true then
+    container_attrs["data-check-mode"] = "page"
+  end
+  if bool_option(el_attributes, "score") then
+    container_attrs["data-score"] = "true"
+  end
+end
+
 local function process_code_cloze(el, parent_id)
   el.attributes["data-cloze-processed"] = nil
   local text = el.text
@@ -971,9 +981,7 @@ local function process_code_cloze(el, parent_id)
   else
     container_attrs["id"] = id
     container_attrs["data-id"] = id
-    container_attrs["data-points"] = string_option(el.attributes, "points")
-    container_attrs["data-check-mode"] = options["check-page"] == true and "page" or "exercise"
-    container_attrs["data-score"] = tostring(bool_option(el.attributes, "score"))
+    add_standalone_controller_attrs(container_attrs, el.attributes)
   end
 
   local container = pandoc.Div({ el }, container_attrs)
@@ -1030,9 +1038,7 @@ local function render_blank(el, id, parent_id)
     ["data-feedback-incorrect"] = attr_or_empty(el.attributes, "feedback-incorrect")
   }
   if parent_id == nil then
-    container_attrs["data-points"] = string_option(el.attributes, "points")
-    container_attrs["data-check-mode"] = options["check-page"] == true and "page" or "exercise"
-    container_attrs["data-score"] = tostring(bool_option(el.attributes, "score"))
+    add_standalone_controller_attrs(container_attrs, el.attributes)
   end
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])) == "true"
@@ -1112,9 +1118,7 @@ local function render_choose(el, id, parent_id)
     ["data-feedback-incorrect"] = string_option(el.attributes, "feedback-incorrect")
   }
   if parent_id == nil then
-    container_attrs["data-points"] = string_option(el.attributes, "points")
-    container_attrs["data-check-mode"] = options["check-page"] == true and "page" or "exercise"
-    container_attrs["data-score"] = tostring(bool_option(el.attributes, "score"))
+    add_standalone_controller_attrs(container_attrs, el.attributes)
   end
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"

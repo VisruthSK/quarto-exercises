@@ -5,6 +5,7 @@ if (window.Quarto && typeof window.Quarto.onRender === "function") {
 }
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const UNIT_KEYS = ["exercises", "blanks", "chooses", "clozes"];
 
 const $ = (root, selector) => root.querySelector(selector);
 const $$ = (root, selector) => Array.from(root.querySelectorAll(selector));
@@ -26,11 +27,7 @@ async function decodePattern(salt, encoded) {
 
 async function matchesRegex(value, metadata) {
   const pattern = await decodePattern(metadata.salt, metadata.regex);
-  try {
-    return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
-  } catch {
-    return false;
-  }
+  return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
 }
 
 function canonicalize(value, rules = {}) {
@@ -120,6 +117,14 @@ function findCheckableUnits(root) {
   return { exercises, blanks, chooses, clozes };
 }
 
+function unitList(units) {
+  return UNIT_KEYS.flatMap(key => units[key]);
+}
+
+function gradeControllerUnit(unit) {
+  return gradeUnit(unit, { showFeedback: true, reveal: bool(unit.dataset.reveal) });
+}
+
 function initController(kind, root) {
   if (root.dataset.controllerInitialized) return;
   root.dataset.controllerInitialized = "true";
@@ -139,12 +144,7 @@ function initController(kind, root) {
   const status = $(actions, ".quarto-exercise-status");
 
   $(actions, ".quarto-exercise-check-btn").addEventListener("click", async () => {
-    const results = await Promise.all([
-      ...units.exercises.map(ex => gradeUnit(ex, { showFeedback: true, reveal: bool(ex.dataset.reveal) })),
-      ...units.blanks.map(b => gradeUnit(b, { showFeedback: true })),
-      ...units.chooses.map(c => gradeUnit(c, { showFeedback: true })),
-      ...units.clozes.map(cc => gradeUnit(cc, { showFeedback: true }))
-    ]);
+    const results = await Promise.all(unitList(units).map(gradeControllerUnit));
 
     const allCorrect = results.every(res => res.correct);
     const totalEarned = results.reduce((sum, res) => sum + res.earned, 0);
@@ -153,12 +153,7 @@ function initController(kind, root) {
     const roundedEarned = Math.round(totalEarned * 100) / 100;
     const roundedPossible = Math.round(totalPossible * 100) / 100;
 
-    const showScore = [
-      ...units.exercises,
-      ...units.blanks,
-      ...units.chooses,
-      ...units.clozes
-    ].some(unit => bool(unit.dataset.score));
+    const showScore = unitList(units).some(unit => bool(unit.dataset.score));
     status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${roundedEarned} / ${roundedPossible}.` : "");
     status.classList.toggle("is-correct", allCorrect);
     status.classList.toggle("is-incorrect", !allCorrect);
@@ -195,16 +190,11 @@ function initController(kind, root) {
 
 function initCheckControllers() {
   const documentUnits = findCheckableUnits(document);
-  const pageMode = [
-    ...documentUnits.exercises,
-    ...documentUnits.blanks,
-    ...documentUnits.chooses,
-    ...documentUnits.clozes
-  ].some(unit => unit.dataset.checkMode === "page");
+  const pageMode = unitList(documentUnits).some(unit => unit.dataset.checkMode === "page");
   if (pageMode) {
     const content = document.querySelector("main#quarto-document-content, main.content, main") || document.body;
     const units = findCheckableUnits(content);
-    if (units.exercises.length > 0 || units.blanks.length > 0 || units.chooses.length > 0 || units.clozes.length > 0) {
+    if (unitList(units).length > 0) {
       initController("page", content);
     }
   } else {
