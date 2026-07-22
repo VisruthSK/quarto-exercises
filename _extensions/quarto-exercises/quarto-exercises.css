@@ -271,19 +271,14 @@ body.quarto-dark {
   color: var(--ex-incorrect);
 }
 
-.quarto-exercise-answer.is-correct .quarto-exercise-control,
-.quarto-exercise-answer.is-incorrect .quarto-exercise-control {
-  grid-column: 1;
-  grid-row: 1;
-  opacity: 0;
-}
-
 .quarto-exercise-answer:is(.is-correct, .is-incorrect):has(.quarto-exercise-input:focus-visible)::before {
   outline: 2px solid var(--ex-accent);
   outline-offset: 2px;
 }
 
-.quarto-exercise-sr-only {
+.quarto-exercise-sr-only,
+.quarto-exercise-answer.is-correct .quarto-exercise-control,
+.quarto-exercise-answer.is-incorrect .quarto-exercise-control {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;

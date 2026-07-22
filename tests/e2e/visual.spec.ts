@@ -30,7 +30,7 @@ const screenshotMask = readFileSync('tests/e2e/screenshot-mask.css', 'utf8');
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 async function goto(page: any, url: string) {
-  await page.goto(url, { waitUntil: 'load' });
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.addStyleTag({ content: screenshotMask });
 }
 
