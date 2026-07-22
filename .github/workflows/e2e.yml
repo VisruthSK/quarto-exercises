@@ -16,8 +16,6 @@ jobs:
   e2e:
     runs-on: windows-latest
     timeout-minutes: 20
-    env:
-      QUARTO_EXERCISES_KEY: playwright-test-key-not-secret
     steps:
       - uses: actions/checkout@v7
 

@@ -36,6 +36,18 @@ test('single and multiple choice check and reset', async ({ page }) => {
   await expect(multiple.locator('.quarto-exercise-status')).toHaveText('Not quite.');
 });
 
+test('checked choices stay keyboard-accessible after checking', async ({ page }) => {
+  const single = page.locator('[data-testid="mcq-single"]');
+  await single.getByText('Frodo Baggins').click();
+  await single.getByRole('button', { name: 'Check' }).click();
+
+  const selected = single.locator('input:checked');
+  await selected.focus();
+  await expect(selected).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(single.locator('input').nth(1)).toBeChecked();
+});
+
 test('inline blank, choose, and code cloze interactions work', async ({ page }) => {
   const blanks = page.locator('.quarto-exercise-blank-container');
   await blanks.nth(0).locator('input').fill('Wrong');
