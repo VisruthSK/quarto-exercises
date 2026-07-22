@@ -218,31 +218,268 @@ local function encode_pattern(salt, pattern)
 end
 
 local function validate_regex(pattern, id)
-  local depth = 0
-  local in_class = false
-  local escaped = false
+  local function fail(reason)
+    local err_msg = "quarto-exercises error: exercise: #" .. tostring(id or "unknown") .. " invalid regular expression"
+    if reason and reason ~= "" then err_msg = err_msg .. " (" .. reason .. ")" end
+    io.stderr:write(err_msg .. "\n")
+    os.exit(1)
+  end
 
-  for i = 1, #pattern do
-    local char = pattern:sub(i, i)
-    if escaped then
-      escaped = false
-    elseif char == "\\" then
-      escaped = true
-    elseif in_class then
-      if char == "]" then in_class = false end
-    elseif char == "[" then
-      in_class = true
-    elseif char == "(" then
-      depth = depth + 1
-    elseif char == ")" then
-      depth = depth - 1
-      if depth < 0 then break end
+  if not pattern or pattern == "" then
+    return
+  end
+
+  if io.popen then
+    local cmd = 'node -e "try { new RegExp(process.argv[1]); process.exit(0); } catch (e) { console.error(e.message); process.exit(1); }" ' .. string.format("%q", pattern) .. ' 2>&1'
+    local pfile = io.popen(cmd)
+    if pfile then
+      local output = pfile:read("*a")
+      local success = pfile:close()
+      if success == nil or success == false or (type(success) == "boolean" and not success) then
+        fail(output and output:match("[^\n]+") or "invalid JavaScript regular expression")
+        return
+      end
     end
   end
 
-  if escaped or in_class or depth ~= 0 then
-    io.stderr:write("quarto-exercises error: exercise: #" .. id .. " invalid regular expression\n")
-    os.exit(1)
+  local len = #pattern
+  local i = 1
+  local depth = 0
+  local last_was_atom = false
+  local last_was_quantifier = false
+
+  local function char_at(pos)
+    return pattern:sub(pos, pos)
+  end
+
+  while i <= len do
+    local c = char_at(i)
+
+    if c == "\\" then
+      if i == len then
+        fail("dangling backslash")
+      end
+      local next_c = char_at(i + 1)
+      if next_c == "x" then
+        if i + 3 > len or not pattern:sub(i + 2, i + 3):match("^[0-9a-fA-F]+$") then
+          fail("invalid hex escape \\x")
+        end
+        i = i + 4
+      elseif next_c == "u" then
+        if i + 5 > len or not pattern:sub(i + 2, i + 5):match("^[0-9a-fA-F]+$") then
+          fail("invalid unicode escape \\u")
+        end
+        i = i + 6
+      else
+        i = i + 2
+      end
+      last_was_atom = true
+      last_was_quantifier = false
+
+    elseif c == "[" then
+      i = i + 1
+      if i <= len and char_at(i) == "^" then
+        i = i + 1
+      end
+
+      local class_start = i
+      local in_range = false
+      local prev_code = nil
+      local prev_is_class_escape = false
+
+      while i <= len do
+        local cc = char_at(i)
+        if cc == "\\" then
+          if i == len then
+            fail("dangling backslash in character class")
+          end
+          local ncc = char_at(i + 1)
+          local code = nil
+          local is_class_escape = false
+          if ncc:match("^[dDwWsS]$") then
+            is_class_escape = true
+            i = i + 2
+          elseif ncc == "n" then code = 10; i = i + 2
+          elseif ncc == "r" then code = 13; i = i + 2
+          elseif ncc == "t" then code = 9; i = i + 2
+          elseif ncc == "f" then code = 12; i = i + 2
+          elseif ncc == "v" then code = 11; i = i + 2
+          elseif ncc == "0" then code = 0; i = i + 2
+          elseif ncc == "x" then
+            if i + 3 <= len and pattern:sub(i + 2, i + 3):match("^[0-9a-fA-F]+$") then
+              code = tonumber(pattern:sub(i + 2, i + 3), 16)
+              i = i + 4
+            else
+              fail("invalid hex escape in character class")
+            end
+          elseif ncc == "u" then
+            if i + 5 <= len and pattern:sub(i + 2, i + 5):match("^[0-9a-fA-F]+$") then
+              code = tonumber(pattern:sub(i + 2, i + 5), 16)
+              i = i + 6
+            else
+              fail("invalid unicode escape in character class")
+            end
+          else
+            code = string.byte(ncc)
+            i = i + 2
+          end
+
+          if in_range then
+            if prev_is_class_escape or is_class_escape then
+              fail("invalid class range")
+            end
+            if prev_code and code and prev_code > code then
+              fail("range out of order in character class")
+            end
+            in_range = false
+            prev_code = nil
+            prev_is_class_escape = false
+          else
+            prev_code = code
+            prev_is_class_escape = is_class_escape
+          end
+
+        elseif cc == "]" and i > class_start then
+          break
+        elseif cc == "-" and not in_range and i > class_start and char_at(i + 1) ~= "]" then
+          if prev_is_class_escape then
+            fail("invalid class range")
+          end
+          in_range = true
+          i = i + 1
+        else
+          local code = string.byte(cc)
+          if in_range then
+            if prev_is_class_escape then
+              fail("invalid class range")
+            end
+            if prev_code and prev_code > code then
+              fail("range out of order in character class")
+            end
+            in_range = false
+            prev_code = nil
+            prev_is_class_escape = false
+          else
+            prev_code = code
+            prev_is_class_escape = false
+          end
+          i = i + 1
+        end
+      end
+
+      if i > len or char_at(i) ~= "]" then
+        fail("unclosed character class")
+      end
+      i = i + 1
+      last_was_atom = true
+      last_was_quantifier = false
+
+    elseif c == "(" then
+      depth = depth + 1
+      i = i + 1
+      last_was_atom = false
+      last_was_quantifier = false
+
+      if i <= len and char_at(i) == "?" then
+        i = i + 1
+        if i > len then
+          fail("invalid group structure")
+        end
+        local gc = char_at(i)
+        if gc == ":" or gc == "=" or gc == "!" then
+          i = i + 1
+        elseif gc == "<" then
+          i = i + 1
+          if i <= len and (char_at(i) == "=" or char_at(i) == "!") then
+            i = i + 1
+          else
+            local name_start = i
+            while i <= len and char_at(i) ~= ">" do
+              i = i + 1
+            end
+            if i > len or i == name_start then
+              fail("invalid group name")
+            end
+            i = i + 1
+          end
+        else
+          fail("invalid group syntax")
+        end
+      end
+
+    elseif c == ")" then
+      depth = depth - 1
+      if depth < 0 then
+        fail("unmatched closing parenthesis")
+      end
+      i = i + 1
+      last_was_atom = true
+      last_was_quantifier = false
+
+    elseif c == "|" then
+      i = i + 1
+      last_was_atom = false
+      last_was_quantifier = false
+
+    elseif c == "*" or c == "+" or c == "?" or c == "{" then
+      if c == "{" then
+        local sub = pattern:sub(i)
+        local n_str, comma, m_str, rest = sub:match("^{([0-9]+)(,?)([0-9]*)}()")
+        if n_str then
+          if not last_was_atom then
+            fail("nothing to repeat")
+          end
+          if last_was_quantifier then
+            fail("multiple quantifiers")
+          end
+          local n = tonumber(n_str)
+          if comma == "," and m_str ~= "" then
+            local m = tonumber(m_str)
+            if n > m then
+              fail("numbers out of order in {} quantifier")
+            end
+          end
+          i = i + rest - 1
+          if i <= len and char_at(i) == "?" then
+            i = i + 1
+          end
+          last_was_atom = true
+          last_was_quantifier = true
+        else
+          i = i + 1
+          last_was_atom = true
+          last_was_quantifier = false
+        end
+      else
+        if last_was_quantifier then
+          if c == "?" then
+            i = i + 1
+            last_was_quantifier = true
+            last_was_atom = true
+          else
+            fail("nothing to repeat")
+          end
+        elseif not last_was_atom then
+          fail("nothing to repeat")
+        else
+          i = i + 1
+          if i <= len and char_at(i) == "?" then
+            i = i + 1
+          end
+          last_was_atom = true
+          last_was_quantifier = true
+        end
+      end
+
+    else
+      i = i + 1
+      last_was_atom = true
+      last_was_quantifier = false
+    end
+  end
+
+  if depth ~= 0 then
+    fail("unclosed group")
   end
 end
 
@@ -963,6 +1200,7 @@ local function process_code_cloze(el, parent_id)
       local regex = nil
       local digests = {}
       if info.type == "blank" and info.attrs.match == "regex" then
+        validate_regex(expected, id)
         regex = encode_pattern(salt, expected)
       else
         digests = compute_digests(values, trim, collapse_space, ignore_case, salt)

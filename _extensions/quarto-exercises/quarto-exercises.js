@@ -27,7 +27,12 @@ async function decodePattern(salt, encoded) {
 
 async function matchesRegex(value, metadata) {
   const pattern = await decodePattern(metadata.salt, metadata.regex);
-  return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
+  try {
+    return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
+  } catch (err) {
+    console.warn("Invalid regex pattern in exercise metadata", err);
+    return false;
+  }
 }
 
 function canonicalize(value, rules = {}) {
@@ -1009,10 +1014,12 @@ function initStandaloneCodeCloze(container) {
 
   initCodeCloze(container, check);
 
-  if (checkBtn) {
+  if (checkBtn && !checkBtn.dataset.initialized) {
+    checkBtn.dataset.initialized = "true";
     checkBtn.addEventListener("click", check);
   }
-  if (resetBtn) {
+  if (resetBtn && !resetBtn.dataset.initialized) {
+    resetBtn.dataset.initialized = "true";
     resetBtn.addEventListener("click", () => {
       resetCodeCloze(container);
       clearStatus(actions ? $(actions, ".quarto-exercise-status") : null);

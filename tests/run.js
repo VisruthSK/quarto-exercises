@@ -16,7 +16,11 @@ const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 // Helper to prepare temp directory
 function setup() {
   if (fs.existsSync(TEMP_DIR)) {
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    try {
+      fs.rmSync(TEMP_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch (err) {
+      // Ignore transient file lock EPERM on Windows
+    }
   }
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 
@@ -737,6 +741,17 @@ test.describe('Quarto Exercises Extension Tests', () => {
     };
     assert.strictEqual(await checkAnswer(qxRegexCtrl, "  Hello  "), true);
 
+    // Invalid regex handling
+    const invalidPattern = "[z-a]"; // Invalid character range
+    const invalidPatternBytes = new TextEncoder().encode(invalidPattern);
+    const invalidEncodedBytes = new Uint8Array(invalidPatternBytes.length);
+    for (let i = 0; i < invalidPatternBytes.length; i++) {
+      invalidEncodedBytes[i] = invalidPatternBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    const invalidEncodedHex = [...invalidEncodedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    const invalidRegexMeta = { salt, regex: invalidEncodedHex, ignoreCase: true, trim: true, collapseSpace: true };
+    assert.strictEqual(await matchesRegex("test", invalidRegexMeta), false);
+
     // 8. parseClozeMetadata
     assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: '{"key":"val"}' } })), JSON.stringify({ key: "val" }));
     assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: 'invalid json' } })), JSON.stringify({}));
@@ -1086,6 +1101,11 @@ test.describe('Quarto Exercises Extension Tests', () => {
 
     initStandaloneCodeCloze(clozeContainer);
     assert.strictEqual(clozeContainer._clozeControls.length, 2);
+    assert.strictEqual(clozeCheckBtnNode.dataset.initialized, "true");
+    assert.strictEqual(clozeResetBtnNode.dataset.initialized, "true");
+
+    // Calling initStandaloneCodeCloze again should not duplicate listener initialization
+    initStandaloneCodeCloze(clozeContainer);
 
     const clozeInput = clozeContainer._clozeControls[0].el;
     const clozeSelect = clozeContainer._clozeControls[1].el;
@@ -2535,18 +2555,20 @@ quarto-exercises:
   });
 
   test('invalid JavaScript regex patterns fail during rendering', () => {
-    const qmdContent = `---
+    for (const badPattern of ['[', '*', '(?', '[z-a]', 'a{5,1}']) {
+      const qmdContent = `---
 title: "Invalid regex"
 filters:
   - quarto-exercises
 ---
 
-[\`bad\`]{.blank answer="[" match="regex"}.
+[\`bad\`]{.blank answer="${badPattern}" match="regex"}.
 `;
-    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-regex.qmd'), qmdContent);
-    const result = runQuarto('invalid-regex.qmd');
-    assert.strictEqual(result.success, false, 'invalid regex should be an authoring error');
-    assert.match(result.stderr + result.stdout, /invalid regular expression/);
+      fs.writeFileSync(path.join(TEMP_DIR, 'invalid-regex.qmd'), qmdContent);
+      const result = runQuarto('invalid-regex.qmd');
+      assert.strictEqual(result.success, false, `invalid regex '${badPattern}' should be an authoring error`);
+      assert.match(result.stderr + result.stdout, /invalid regular expression/);
+    }
   });
 
   test('check-batch shows global scores for standalone controls', async () => {
