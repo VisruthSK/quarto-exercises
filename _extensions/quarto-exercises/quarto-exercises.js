@@ -26,7 +26,11 @@ async function decodePattern(salt, encoded) {
 
 async function matchesRegex(value, metadata) {
   const pattern = await decodePattern(metadata.salt, metadata.regex);
-  return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
+  try {
+    return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
+  } catch {
+    return false;
+  }
 }
 
 function canonicalize(value, rules = {}) {
@@ -38,7 +42,8 @@ function canonicalize(value, rules = {}) {
 }
 
 function checkModeFor(control) {
-  return control.closest(".quarto-exercise")?.dataset.checkMode ||
+  return control.closest(".quarto-exercise-blank-container, .quarto-exercise-choose-container, .quarto-exercise-code-cloze-container")?.dataset.checkMode ||
+    control.closest(".quarto-exercise")?.dataset.checkMode ||
     (control.closest(".check-batch") ? "batch" : "exercise");
 }
 
@@ -148,7 +153,12 @@ function initController(kind, root) {
     const roundedEarned = Math.round(totalEarned * 100) / 100;
     const roundedPossible = Math.round(totalPossible * 100) / 100;
 
-    const showScore = units.exercises.some(ex => bool(ex.dataset.score));
+    const showScore = [
+      ...units.exercises,
+      ...units.blanks,
+      ...units.chooses,
+      ...units.clozes
+    ].some(unit => bool(unit.dataset.score));
     status.textContent = (allCorrect ? "Correct!" : "Not quite.") + (showScore ? ` Score: ${roundedEarned} / ${roundedPossible}.` : "");
     status.classList.toggle("is-correct", allCorrect);
     status.classList.toggle("is-incorrect", !allCorrect);
@@ -158,25 +168,12 @@ function initController(kind, root) {
     units.exercises.forEach(ex => resetExercise(ex, exerciseParts(ex)));
 
     units.blanks.forEach(b => {
-      const input = $(b, ".quarto-exercise-blank-input");
-      if (input) {
-        input.value = "";
-        input.classList.remove("is-correct", "is-incorrect");
-        adjustInputWidth(input);
-      }
-      setCorrectText(b, ".quarto-exercise-blank-correct-text", "");
-      resetFeedback($(b, ".quarto-exercise-blank-feedback"));
+      resetBlank(b);
       b._earnedPoints = 0;
     });
 
     units.chooses.forEach(c => {
-      const select = $(c, ".quarto-exercise-choose-select");
-      if (select) {
-        select.value = "";
-        select.classList.remove("is-correct", "is-incorrect");
-        adjustSelectWidth(select);
-      }
-      resetFeedback($(c, ".quarto-exercise-choose-feedback"));
+      resetChoose(c);
       c._earnedPoints = 0;
     });
 
@@ -197,7 +194,13 @@ function initController(kind, root) {
 }
 
 function initCheckControllers() {
-  const pageMode = $$(document, ".quarto-exercise").some(ex => ex.dataset.checkMode === "page");
+  const documentUnits = findCheckableUnits(document);
+  const pageMode = [
+    ...documentUnits.exercises,
+    ...documentUnits.blanks,
+    ...documentUnits.chooses,
+    ...documentUnits.clozes
+  ].some(unit => unit.dataset.checkMode === "page");
   if (pageMode) {
     const content = document.querySelector("main#quarto-document-content, main.content, main") || document.body;
     const units = findCheckableUnits(content);

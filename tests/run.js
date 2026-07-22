@@ -1747,6 +1747,96 @@ x = {{blank answer="1"}}
     assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
   });
 
+  test('check-page grades, scores, and resets standalone-only controls', async () => {
+    const qmdContent = `---
+title: "Standalone page checking"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-page: true
+  score: true
+---
+
+[Gandalf]{.blank #page-blank answer="Gandalf" points=2}.
+
+[Rivendell|Edoras]{.choose #page-choose answer="Rivendell" points=3}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-page-checking.qmd'), qmdContent);
+    renderQuarto('standalone-page-checking.qmd');
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'standalone-page-checking.html')).href, { waitUntil: 'load' });
+      const controls = page.locator('.quarto-exercise-page-controls');
+      assert.strictEqual(await controls.count(), 1, 'standalone-only documents should receive page controls');
+
+      await page.locator('#page-blank input').fill('Gandalf');
+      await page.locator('#page-choose select').selectOption('Rivendell');
+      await controls.locator('.quarto-exercise-check-btn').click();
+      assert.strictEqual(await controls.locator('.quarto-exercise-status').textContent(), 'Correct! Score: 5 / 5.');
+      assert.strictEqual(await page.locator('#page-blank').evaluate(el => el.classList.contains('is-correct')), true);
+      assert.strictEqual(await page.locator('#page-choose').evaluate(el => el.classList.contains('is-correct')), true);
+
+      await controls.locator('.quarto-exercise-reset-btn').click();
+      assert.strictEqual(await page.locator('#page-blank input').inputValue(), '');
+      assert.strictEqual(await page.locator('#page-choose select').inputValue(), '');
+      assert.strictEqual(await page.locator('#page-blank').evaluate(el => el.classList.contains('is-correct')), false);
+      assert.strictEqual(await page.locator('#page-choose').evaluate(el => el.classList.contains('is-correct')), false);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('invalid JavaScript regex patterns fail during rendering', () => {
+    const qmdContent = `---
+title: "Invalid regex"
+filters:
+  - quarto-exercises
+---
+
+[\`bad\`]{.blank answer="[" match="regex"}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-regex.qmd'), qmdContent);
+    const result = runQuarto('invalid-regex.qmd');
+    assert.strictEqual(result.success, false, 'invalid regex should be an authoring error');
+    assert.match(result.stderr + result.stdout, /invalid regular expression/);
+  });
+
+  test('check-batch shows global scores for standalone controls', async () => {
+    const qmdContent = `---
+title: "Standalone batch score"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  score: true
+---
+
+::: {.check-batch}
+[Gandalf]{.blank #batch-blank answer="Gandalf" points=2}.
+
+[Rivendell|Edoras]{.choose #batch-choose answer="Rivendell" points=3}.
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-batch-score.qmd'), qmdContent);
+    renderQuarto('standalone-batch-score.qmd');
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'standalone-batch-score.html')).href, { waitUntil: 'load' });
+      const batch = page.locator('.check-batch');
+      await page.locator('#batch-blank input').fill('Gandalf');
+      await page.locator('#batch-choose select').selectOption('Rivendell');
+      await batch.locator('.quarto-exercise-check-btn').click();
+      assert.strictEqual(await batch.locator('.quarto-exercise-status').textContent(), 'Correct! Score: 5 / 5.');
+    } finally {
+      await browser.close();
+    }
+  });
+
   test('check-batch with standalone controls inside .check-batch suppresses their buttons by default', () => {
     const qmdContent = `---
 title: "Batch Standalone"

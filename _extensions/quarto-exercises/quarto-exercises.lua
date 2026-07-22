@@ -217,6 +217,35 @@ local function encode_pattern(salt, pattern)
   return table.concat(bytes)
 end
 
+local function validate_regex(pattern, id)
+  local depth = 0
+  local in_class = false
+  local escaped = false
+
+  for i = 1, #pattern do
+    local char = pattern:sub(i, i)
+    if escaped then
+      escaped = false
+    elseif char == "\\" then
+      escaped = true
+    elseif in_class then
+      if char == "]" then in_class = false end
+    elseif char == "[" then
+      in_class = true
+    elseif char == "(" then
+      depth = depth + 1
+    elseif char == ")" then
+      depth = depth - 1
+      if depth < 0 then break end
+    end
+  end
+
+  if escaped or in_class or depth ~= 0 then
+    io.stderr:write("quarto-exercises error: exercise: #" .. id .. " invalid regular expression\n")
+    os.exit(1)
+  end
+end
+
 local counter = 0
 local alphabet = {}
 for i = 65, 90 do
@@ -824,6 +853,9 @@ local function process_code_cloze(el, parent_id)
         if not attrs.answer and not attrs.answers then
           warn(id, "blank with no answer")
         end
+        if attrs.match == "regex" and attrs.answer then
+          validate_regex(attrs.answer, id)
+        end
       elseif control_type == "choose" then
         if not attrs.answer then
           warn(id, "choose with no answer")
@@ -940,6 +972,8 @@ local function process_code_cloze(el, parent_id)
     container_attrs["id"] = id
     container_attrs["data-id"] = id
     container_attrs["data-points"] = string_option(el.attributes, "points")
+    container_attrs["data-check-mode"] = options["check-page"] == true and "page" or "exercise"
+    container_attrs["data-score"] = tostring(bool_option(el.attributes, "score"))
   end
 
   local container = pandoc.Div({ el }, container_attrs)
@@ -982,6 +1016,9 @@ local function render_blank(el, id, parent_id)
   end
 
   local answer = el.attributes.answers or el.attributes.answer or ""
+  if match == "regex" and el.attributes.answer then
+    validate_regex(el.attributes.answer, id)
+  end
   if not html() then
     return pandoc.Str("________")
   end
@@ -994,6 +1031,8 @@ local function render_blank(el, id, parent_id)
   }
   if parent_id == nil then
     container_attrs["data-points"] = string_option(el.attributes, "points")
+    container_attrs["data-check-mode"] = options["check-page"] == true and "page" or "exercise"
+    container_attrs["data-score"] = tostring(bool_option(el.attributes, "score"))
   end
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or tostring(options["ignore-case"])) == "true"
@@ -1074,6 +1113,8 @@ local function render_choose(el, id, parent_id)
   }
   if parent_id == nil then
     container_attrs["data-points"] = string_option(el.attributes, "points")
+    container_attrs["data-check-mode"] = options["check-page"] == true and "page" or "exercise"
+    container_attrs["data-score"] = tostring(bool_option(el.attributes, "score"))
   end
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
