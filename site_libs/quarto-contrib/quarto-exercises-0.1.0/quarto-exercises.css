@@ -19,6 +19,7 @@
   --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
   --ex-panel-border: #6c757d;
   --ex-panel-border-dark: #adb5bd;
+  --ex-select-arrow: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23666' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
 }
 
 body.quarto-dark {
@@ -38,6 +39,7 @@ body.quarto-dark {
   --ex-control-primary-hover-bg: #4f5357;
   --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);
   --ex-panel-border: #9aa0a6;
+  --ex-select-arrow: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23aaa' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
 }
 
 .quarto-exercise {
@@ -46,6 +48,21 @@ body.quarto-dark {
   color: inherit;
   box-sizing: border-box;
   background: var(--ex-bg);
+  --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
+  --ex-button-primary-color: var(--bs-white, #fff);
+  --ex-button-secondary-bg: var(--bs-secondary-bg, var(--ex-control-bg));
+  --ex-button-secondary-color: var(--bs-body-color, inherit);
+  --ex-button-border: var(--bs-border-color, var(--ex-border-color));
+  --ex-box-bg: var(--bs-body-bg, transparent);
+  --ex-box-border: var(--bs-border-color, var(--ex-border-color));
+  --ex-box-radius: var(--bs-border-radius, var(--ex-border-radius));
+}
+
+.quarto-exercise-boxed {
+  padding: 1rem;
+  border: 1px solid var(--ex-box-border);
+  border-radius: var(--ex-box-radius);
+  background: var(--ex-box-bg);
 }
 
 .quarto-exercise [hidden],
@@ -84,13 +101,41 @@ body.quarto-dark {
   list-style: none;
 }
 
+.quarto-exercise-choices-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ex-option-columns, 1), minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+}
+
+.check-batch.quarto-exercise-batch-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ex-batch-columns, 1), minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.check-batch.quarto-exercise-batch-grid > .quarto-exercise,
+.check-batch.quarto-exercise-batch-grid > .quarto-exercise-actions {
+  margin: 0;
+}
+
+.check-batch.quarto-exercise-batch-grid > .quarto-exercise-actions {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .quarto-exercise-choices-grid,
+  .check-batch.quarto-exercise-batch-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .quarto-exercise-answer {
   display: grid;
   grid-template-columns: auto 1fr;
   column-gap: 0.6rem;
   padding: 0.1rem 0;
-  border: none !important;
-  background: transparent !important;
+  border: none;
+  background: transparent;
   border-radius: var(--ex-border-radius);
   cursor: pointer;
 }
@@ -209,6 +254,42 @@ body.quarto-dark {
   color: var(--ex-incorrect) !important;
 }
 
+.quarto-exercise-answer.is-correct::before,
+.quarto-exercise-answer.is-incorrect::before {
+  grid-column: 1;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.quarto-exercise-answer.is-correct::before {
+  content: "✓";
+  color: var(--ex-correct);
+}
+
+.quarto-exercise-answer.is-incorrect::before {
+  content: "×";
+  color: var(--ex-incorrect);
+}
+
+.quarto-exercise-answer:is(.is-correct, .is-incorrect):has(.quarto-exercise-input:focus-visible)::before {
+  outline: 2px solid var(--ex-accent);
+  outline-offset: 2px;
+}
+
+.quarto-exercise-sr-only,
+.quarto-exercise-answer.is-correct .quarto-exercise-control,
+.quarto-exercise-answer.is-incorrect .quarto-exercise-control {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 /* Feedback Styling (Indented below the choice content, no margins, no padding) */
 .quarto-exercise-feedback {
   font-size: 0.88em;
@@ -231,7 +312,12 @@ body.quarto-dark {
 .quarto-exercise-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin: 1rem 0;
+  --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
+  --ex-button-primary-color: var(--bs-white, #fff);
+  --ex-button-secondary-bg: var(--bs-secondary, #6c757d);
+  --ex-button-secondary-color: #fff;
+  --ex-button-border: var(--bs-border-color, var(--ex-border-color));
 }
 
 .quarto-exercise-check-btn,
@@ -253,6 +339,45 @@ body.quarto-dark {
 .quarto-exercise-hint-btn:hover,
 .quarto-exercise-blank-check-btn:hover {
   background-color: var(--ex-control-hover-bg);
+}
+
+.quarto-exercise-btn {
+  border-color: var(--ex-button-border);
+}
+
+.quarto-exercise-btn-primary {
+  background: var(--ex-button-primary-bg);
+  border-color: var(--ex-button-primary-bg);
+  color: var(--ex-button-primary-color);
+}
+
+.quarto-exercise-btn-primary:hover {
+  background-color: var(--ex-button-primary-bg) !important;
+  color: var(--ex-button-primary-color) !important;
+  opacity: 0.85;
+}
+
+.quarto-exercise-btn-secondary,
+.quarto-exercise-hint-btn.quarto-exercise-btn-secondary {
+  background: var(--ex-button-secondary-bg);
+  color: var(--ex-button-secondary-color);
+}
+
+.quarto-exercise-btn-secondary:hover,
+.quarto-exercise-hint-btn.quarto-exercise-btn-secondary:hover {
+  background-color: var(--ex-button-secondary-bg) !important;
+  color: var(--ex-button-secondary-color) !important;
+  opacity: 0.85;
+}
+
+body.quarto-dark .quarto-exercise-reset-btn,
+body.quarto-dark .quarto-exercise-hint-btn {
+  border-color: transparent !important;
+}
+
+.quarto-exercise-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ex-focus-ring);
 }
 
 /* Hint Panel - Blue left border highlight */
@@ -419,13 +544,13 @@ body.quarto-dark .quarto-exercise-explanation {
   line-height: inherit;
   border: 1px solid var(--ex-border-strong);
   border-radius: var(--ex-border-radius);
-  background-color: transparent;
-  color: inherit;
+  background-color: var(--bs-body-bg, var(--ex-control-bg));
+  color: var(--bs-body-color, inherit);
   cursor: pointer;
   box-sizing: border-box;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 10 10'%3E%3Cpath fill='%23666' d='M1 3h8l-4 4z'/%3E%3C/svg%3E");
+  background-image: var(--ex-select-arrow);
   background-repeat: no-repeat;
   background-position: right 0.4rem center;
   outline: none;
@@ -433,6 +558,12 @@ body.quarto-dark .quarto-exercise-explanation {
 
 .quarto-exercise-choose-select:focus {
   border-color: var(--ex-accent);
+}
+
+.quarto-exercise-choose-select option,
+.quarto-exercise-code-choose option {
+  background-color: var(--bs-body-bg, var(--ex-control-bg));
+  color: var(--bs-body-color, inherit);
 }
 
 .quarto-exercise-choose-check-btn,
@@ -526,7 +657,8 @@ body.quarto-dark .quarto-exercise-explanation {
 .quarto-exercise-code-choose {
   cursor: pointer;
   outline: none;
-  background: transparent;
+  background-color: var(--bs-body-bg, var(--ex-control-bg));
+  color: var(--bs-body-color, inherit);
 }
 
 .quarto-exercise-code-choose:focus {
@@ -545,4 +677,3 @@ body.quarto-dark .quarto-exercise-explanation {
   border-color: var(--ex-incorrect);
   color: var(--ex-incorrect);
 }
-

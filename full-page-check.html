@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>quarto-exercises</title>
+<title>Full Page Check – quarto-exercises</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -22,41 +22,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -295,7 +260,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -307,7 +272,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text">Reference</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./full-page-check.html"> 
+    <a class="nav-link active" href="./full-page-check.html" aria-current="page"> 
 <span class="menu-text">Full Page Check</span></a>
   </li>  
 </ul>
@@ -328,11 +293,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
-  <li><a href="#minimal-example" id="toc-minimal-example" class="nav-link" data-scroll-target="#minimal-example">Minimal Example</a></li>
-  <li><a href="#routing" id="toc-routing" class="nav-link" data-scroll-target="#routing">Routing</a></li>
+  <li><a href="#ringbearer-2-points" id="toc-ringbearer-2-points" class="nav-link active" data-scroll-target="#ringbearer-2-points">Ringbearer (2 points)</a></li>
+  <li><a href="#fellowship-3-points" id="toc-fellowship-3-points" class="nav-link" data-scroll-target="#fellowship-3-points">Fellowship (3 points)</a></li>
+  <li><a href="#inline-answer-1-point" id="toc-inline-answer-1-point" class="nav-link" data-scroll-target="#inline-answer-1-point">Inline answer (1 point)</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/VisruthSK/quarto-exercises/blob/main/index.qmd" target="_blank" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/VisruthSK/quarto-exercises/issues/new" target="_blank" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/VisruthSK/quarto-exercises/blob/main/full-page-check.qmd" target="_blank" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/VisruthSK/quarto-exercises/issues/new" target="_blank" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -340,7 +305,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">quarto-exercises</h1>
+<h1 class="title">Full Page Check</h1>
 </div>
 
 
@@ -357,38 +322,54 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><code>quarto-exercises</code> is a Quarto extension for small interactive practice questions in HTML documents.</p>
-<p>Use it to add multiple-choice questions, inline blanks, and dropdown choices to Quarto pages. Blanks and choices also work inside syntax-highlighted code blocks.</p>
-<section id="install" class="level2">
-<h2 class="anchored" data-anchor-id="install">Install</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> add VisruthSK/quarto-exercises</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Enable the filter in a document or project:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filters</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> quarto-exercises</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This page demonstrates <code>check-page: true</code>. The page has one Check Page button and one Reset Page button for all exercises. Each question keeps its own options, including <code>points</code>, <code>shuffle</code>, and <code>reveal</code>. See the <a href="./reference.html">Reference page</a> for the authoring pattern.</p>
+<section id="ringbearer-2-points" class="level2">
+<h2 class="anchored" data-anchor-id="ringbearer-2-points">Ringbearer (2 points)</h2>
+<div class="quarto-exercise" data-check-mode="page" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-1" data-instant="false" data-lock="false" data-points="2" data-qx-correct="0804bb1437c4ec5a42946892b8ac53c699487d3787476f80231e2e69e47ec40a" data-qx-salt="salt_e59546dde164147186356dac" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="true" data-shuffle="true" data-testid="page-ring" data-type="radio" id="ex-1">
+<p>Who carried the One Ring out of the Shire?</p>
+<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
+<div class="quarto-exercise-answer" data-key="opt_54129581260d9813f4adeae6"><div class="quarto-exercise-control"><input id="ex-1-opt_54129581260d9813f4adeae6" type="radio" name="ex-1" value="opt_54129581260d9813f4adeae6" class="quarto-exercise-input"><label for="ex-1-opt_54129581260d9813f4adeae6" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
+<p>Frodo Baggins</p>
+</div><span class="quarto-exercise-answer-state quarto-exercise-sr-only"></span>
+</div>
+<div class="quarto-exercise-answer" data-key="opt_9d80a05706370546a98b9f91"><div class="quarto-exercise-control"><input id="ex-1-opt_9d80a05706370546a98b9f91" type="radio" name="ex-1" value="opt_9d80a05706370546a98b9f91" class="quarto-exercise-input"><label for="ex-1-opt_9d80a05706370546a98b9f91" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
+<p>Boromir</p>
+</div><span class="quarto-exercise-answer-state quarto-exercise-sr-only"></span>
+</div>
+</div></fieldset>
+<div class="quarto-exercise-actions">
+<span class="quarto-exercise-status" aria-live="polite"></span></div>
+</div>
 </section>
-<section id="minimal-example" class="level2">
-<h2 class="anchored" data-anchor-id="minimal-example">Minimal Example</h2>
-<p>Add this markup to your document to render a simple multiple-choice exercise:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Who carried the One Ring?</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>Frodo</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>Boromir</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="fellowship-3-points" class="level2">
+<h2 class="anchored" data-anchor-id="fellowship-3-points">Fellowship (3 points)</h2>
+<div class="quarto-exercise" data-check-mode="page" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-2" data-instant="false" data-lock="false" data-points="3" data-qx-correct="d2c8381e606528108fdcbc75cb0d172674dd7350f8dcac5faba4bef4cfe58202 e0823a54dad17af810e0d61526077a15e7699745c599dee6877bf35d5135d0a6" data-qx-salt="salt_8338bb66d78b1fceeef01e9d" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="true" data-shuffle="false" data-testid="page-fellowship" data-type="checkbox" id="ex-2">
+<p>Select all hobbits in the Fellowship.</p>
+<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
+<div class="quarto-exercise-answer" data-key="opt_af1f931ec5c547af83efde41"><div class="quarto-exercise-control"><input id="ex-2-opt_af1f931ec5c547af83efde41" type="checkbox" name="ex-2" value="opt_af1f931ec5c547af83efde41" class="quarto-exercise-input"><label for="ex-2-opt_af1f931ec5c547af83efde41" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
+<p>Frodo Baggins</p>
+</div><span class="quarto-exercise-answer-state quarto-exercise-sr-only"></span>
+</div>
+<div class="quarto-exercise-answer" data-key="opt_b1d2b5b05c7b36a011a34a1b"><div class="quarto-exercise-control"><input id="ex-2-opt_b1d2b5b05c7b36a011a34a1b" type="checkbox" name="ex-2" value="opt_b1d2b5b05c7b36a011a34a1b" class="quarto-exercise-input"><label for="ex-2-opt_b1d2b5b05c7b36a011a34a1b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
+<p>Samwise Gamgee</p>
+</div><span class="quarto-exercise-answer-state quarto-exercise-sr-only"></span>
+</div>
+<div class="quarto-exercise-answer" data-key="opt_851240cddfccac0376205675"><div class="quarto-exercise-control"><input id="ex-2-opt_851240cddfccac0376205675" type="checkbox" name="ex-2" value="opt_851240cddfccac0376205675" class="quarto-exercise-input"><label for="ex-2-opt_851240cddfccac0376205675" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
+<p>Legolas Greenleaf</p>
+</div><span class="quarto-exercise-answer-state quarto-exercise-sr-only"></span>
+</div>
+</div></fieldset>
+<div class="quarto-exercise-actions">
+<span class="quarto-exercise-status" aria-live="polite"></span></div>
+</div>
 </section>
-<section id="routing" class="level2">
-<h2 class="anchored" data-anchor-id="routing">Routing</h2>
-<ul>
-<li>Use <a href="./example.html">Example</a> to see rendered exercises.</li>
-<li>Use <a href="./reference.html">Reference</a> to write your own. Start here when writing exercises. It covers syntax, options, checking modes, scoring, and styling.</li>
-<li>Use <a href="./full-page-check.html">Full Page Check</a> to see page-level checking and scoring.</li>
-<li>Use <a href="https://github.com/VisruthSK/quarto-exercises#readme">GitHub README</a> for package documentation and more details.</li>
-</ul>
+<section id="inline-answer-1-point" class="level2">
+<h2 class="anchored" data-anchor-id="inline-answer-1-point">Inline answer (1 point)</h2>
+<div class="quarto-exercise" data-check-mode="page" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-3" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="true" data-shuffle="false" data-testid="page-blank" data-type="radio" id="ex-3">
+<p>The wizard who guides the Fellowship is <span class="quarto-exercise-blank-container" data-feedback-correct="Correct!" data-feedback-incorrect="" data-qx-collapse-space="false" data-qx-digests="17437ca40d29e35aaaab89a1ba97472828d83510b3f16d7d543f747f99500845" data-qx-ignore-case="false" data-qx-salt="salt_4a9abc9379e76ce790637e21" data-qx-trim="true" id="blank-4"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<div class="quarto-exercise-actions">
+<span class="quarto-exercise-status" aria-live="polite"></span></div>
+</div>
 
 
 </section>
@@ -812,4 +793,4 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/VisruthSK/quarto-exercises/blob/main/index.qmd" target="_blank" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/VisruthSK/quarto-exercises/issues/new" target="_blank" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/VisruthSK/quarto-exercises/blob/main/full-page-check.qmd" target="_blank" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/VisruthSK/quarto-exercises/issues/new" target="_blank" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
