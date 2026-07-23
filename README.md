@@ -65,7 +65,7 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 :::
 ```
 
-Use `key` when you want stable answer identifiers in the generated HTML. Without it, the extension assigns `a`, `b`, `c`, and so on.
+The optional `key` attribute gives an answer a stable authoring identifier for duplicate-key validation. It is not written to the generated HTML. The extension assigns every rendered choice a random-looking opaque ID.
 
 ## Feedback, Hints, and Explanations
 
@@ -153,10 +153,6 @@ The extension parses pipe-separated text as options. Spaces around `|` are part 
 Is this correct? [`yes/no`]{.choose options="yes/no|maybe|unknown" answer="yes/no"}.
 ```
 
-```markdown
-Choose the literal token: [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-```
-
 An `.exercise` can group blanks and choices under one Check and Reset control:
 
 ```markdown
@@ -237,11 +233,14 @@ quarto-exercises:
   reset: true
   shuffle: false
   reshuffle-on-reset: false
-  show-answers: false
   explanation: correct
   feedback-correct: "Correct!"
   feedback-incorrect: "Not quite."
   ignore-case: false
+  question-boxes: false
+  check-page: false
+  score: false
+  points: 1
 ```
 
 Per-exercise overrides:
@@ -254,14 +253,49 @@ Question content here...
 
 Exercise attributes:
 
-- `shuffle`: randomize answer choices
-- `reshuffle-on-reset`: shuffle again after Reset
-- `instant`: check after each change instead of showing a Check button
-- `reveal`: reveal correct answers after checking
-- `lock`: disable controls after a correct answer
-- `reset`: show the Reset button
+- `shuffle`: Set true to randomize answer choices
+- `reshuffle-on-reset`: Set true to shuffle again after Reset
+- `instant`: Set true to check after each change instead of showing a Check button
+- `reveal`: Set true to reveal correct answers after checking
+- `lock`: Set true to disable controls after a correct answer
+- `reset`: Set true to show the Reset button
 - `explanation`: `correct`, `after-check`, or `never`
 - `feedback-correct` and `feedback-incorrect`: status text for the whole exercise
+- `question-boxes`: Set true to add a subtle border and padding around each exercise
+- `option-columns`: on an `.exercise`, choose any positive number of answer-choice columns; on a `.check-batch`, choose the number of exercise columns
+- `points`: Set the exercise's value when scoring is enabled
+
+The global-only `check-page` option checks the entire page with one Check Page and Reset Page control. The global-only `score` option includes earned and possible points in check results.
+
+Correct and incorrect choices are indicated with a check or X as well as color. Put a `.feedback` Div inside an `.answer` to show option-specific feedback after the learner checks that option.
+
+```markdown
+::: {.exercise question-boxes="true" option-columns="2"}
+Which answer is correct?
+
+::: {.answer correct=true}
+The correct answer.
+
+::: {.feedback}
+Exactly right.
+:::
+:::
+:::
+```
+
+By default, every exercise gets its own Check and Reset controls. If you wrap multiple exercises in a `.check-batch` container, they are checked together as a batch using one set of controls. You do not need to configure any special mode to write batches. Set `check-page: true` to check the entire page at once; each `.exercise` still keeps its own options such as `shuffle` and `reveal`.
+
+```markdown
+::: {.check-batch}
+::: {.exercise shuffle="true"}
+Question one.
+:::
+
+::: {.exercise reveal="false"}
+Question two.
+:::
+:::
+```
 
 ## Non-HTML Output
 
@@ -269,13 +303,6 @@ For formats such as PDF, DOCX, Typst, and Markdown, the filter removes the inter
 
 - multiple-choice exercises become lettered lists
 - blanks, choices, and code cloze controls become underlines
-- `show-answers: true` prints answer keys and explanations
-
-Example answer key:
-
-```markdown
-Answer: A, C
-```
 
 ## Styling
 
@@ -327,9 +354,13 @@ body.quarto-dark {
 }
 ```
 
+## Answer Obfuscation
+
+The extension obfuscates answer metadata in generated HTML to prevent casual answer lookup through view-source, DOM attributes, or the browser console. Checking happens in the browser, so a determined student can reverse engineer it. Do not use the extension as the security boundary for a graded assessment.
+
 ## Limitations
 
-- The correct answers and feedback are stored in the HTML source.
+- Visible option content and authored feedback remain in the HTML source; correctness metadata is obfuscated.
 - Inline blanks or choices inside `.answer` blocks are not supported.
 - Regex blanks match after input normalization. By default, leading and trailing whitespace are trimmed before the regex runs; if `collapse-space=true`, repeated whitespace is also collapsed to one space.
 - Long text inputs are capped at `380px` and scroll horizontally.

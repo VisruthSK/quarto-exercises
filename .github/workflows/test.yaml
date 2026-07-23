@@ -1,11 +1,12 @@
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
 
 name: test.yaml
 
-permissions: read-all
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,6 +29,10 @@ jobs:
           cache: pnpm
 
       - uses: quarto-dev/quarto-actions/setup@v2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tinytex: true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -37,11 +42,3 @@ jobs:
 
       - name: Run tests
         run: pnpm test
-
-      - name: Upload visual snapshots
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: visual-snapshots
-          path: tests/.tmp/visual/*.png
-          if-no-files-found: ignore

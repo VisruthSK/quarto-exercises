@@ -8,6 +8,7 @@ const { spawnSync } = require('child_process');
 const assert = require('assert');
 const test = require('node:test');
 const vm = require('vm');
+const { pathToFileURL } = require('url');
 
 const TEMP_DIR = path.join(__dirname, '.tmp', 'test-sandbox');
 const quote = value => `"${String(value).replace(/"/g, '""')}"`;
@@ -15,10 +16,14 @@ const quote = value => `"${String(value).replace(/"/g, '""')}"`;
 // Helper to prepare temp directory
 function setup() {
   if (fs.existsSync(TEMP_DIR)) {
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+    try {
+      fs.rmSync(TEMP_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch (err) {
+      // Ignore transient file lock EPERM on Windows
+    }
   }
   fs.mkdirSync(TEMP_DIR, { recursive: true });
-  
+
   // Copy _extensions folder into test-temp so Quarto can find the extension locally
   // Go up one level since this script is located in /tests
   const extSrc = path.join(__dirname, '..', '_extensions');
@@ -40,11 +45,20 @@ function copyFolderSync(from, to) {
 }
 
 // Helper to run quarto render and capture stdout/stderr
-function runQuarto(fileName, format = 'html') {
+function runQuarto(fileName, format = 'html', extraEnv = {}) {
   const filePath = path.join(TEMP_DIR, fileName);
-  const res = spawnSync(`quarto render ${quote(filePath)} --to ${quote(format)}`, {
+  const targetEnv = { ...extraEnv };
+  const mergedEnv = { ...process.env, ...targetEnv };
+  for (const k in mergedEnv) {
+    if (mergedEnv[k] === undefined || mergedEnv[k] === '') {
+      delete mergedEnv[k];
+    }
+  }
+  const cmd = `quarto render ${quote(filePath)} --to ${quote(format)}`;
+  const res = spawnSync(cmd, {
     encoding: 'utf8',
-    shell: true
+    shell: true,
+    env: mergedEnv
   });
   return {
     stdout: res.stdout || '',
@@ -54,8 +68,8 @@ function runQuarto(fileName, format = 'html') {
   };
 }
 
-function renderQuarto(fileName, format = 'html') {
-  const result = runQuarto(fileName, format);
+function renderQuarto(fileName, format = 'html', extraEnv = {}) {
+  const result = runQuarto(fileName, format, extraEnv);
   assert.strictEqual(result.success, true, result.stderr || result.stdout);
   return result;
 }
@@ -71,6 +85,7 @@ function parseLuaDefaults(lua) {
     const raw = match[3];
     if (raw === 'true') out[key] = true;
     else if (raw === 'false') out[key] = false;
+    else if (/^\d+$/.test(raw)) out[key] = Number(raw);
     else out[key] = raw.replace(/^"(.*)"$/, '$1');
   }
   return out;
@@ -85,43 +100,244 @@ function parseCssVariables(css, selector) {
   );
 }
 
-function loadRuntime() {
+function createMockElement(tagName = 'div', attrs = {}, children = []) {
   const listeners = {};
-  const runtime = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
-  const context = {
-    console,
-    Option: function Option(text, value) {
-      return { text, value };
-    },
-    document: {
-      addEventListener(type, handler) {
-        listeners[type] = handler;
-      },
-      querySelectorAll() {
-        return [];
-      },
-      querySelector() {
-        return null;
-      },
-      createElement() {
-        return {
-          style: {},
-          textContent: '',
-          getBoundingClientRect: () => ({ width: 0 }),
-          remove() {}
-        };
-      },
-      body: {
-        appendChild() {}
+  const classListSet = new Set((attrs.class || '').split(' ').filter(Boolean));
+  const dataset = attrs.dataset || {};
+  for (const k in attrs) {
+    if (k.startsWith('data-')) {
+      const camelKey = k.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      dataset[camelKey] = attrs[k];
+    }
+  }
+
+  const el = {
+    tagName: tagName.toUpperCase(),
+    id: attrs.id || '',
+    className: attrs.class || '',
+    dataset,
+    attributes: attrs,
+    style: {},
+    children: [...children],
+    childNodes: [...children],
+    parentNode: null,
+    nextSibling: null,
+    nextElementSibling: null,
+    value: attrs.value || '',
+    type: attrs.type || '',
+    checked: attrs.checked || false,
+    disabled: attrs.disabled || false,
+    selectedIndex: 0,
+    options: children.filter(c => c.tagName === 'OPTION'),
+    hidden: attrs.hidden || false,
+    textContent: attrs.textContent || '',
+
+    classList: {
+      contains: (c) => classListSet.has(c),
+      add: (c) => { classListSet.add(c); el.className = Array.from(classListSet).join(' '); },
+      remove: (c) => { classListSet.delete(c); el.className = Array.from(classListSet).join(' '); },
+      toggle: (c, force) => {
+        const val = force !== undefined ? force : !classListSet.has(c);
+        if (val) classListSet.add(c); else classListSet.delete(c);
+        el.className = Array.from(classListSet).join(' ');
+        return val;
       }
     },
-    window: {},
-    getComputedStyle: () => ({ font: '16px serif' })
+
+    setAttribute(k, v) { attrs[k] = v; el[k] = v; if (k === 'class') { classListSet.clear(); String(v).split(' ').filter(Boolean).forEach(c => classListSet.add(c)); el.className = v; } },
+    getAttribute(k) { return attrs[k] || null; },
+    removeAttribute(k) { delete attrs[k]; delete el[k]; },
+
+    addEventListener(type, fn) {
+      if (!listeners[type]) listeners[type] = [];
+      listeners[type].push(fn);
+    },
+    dispatchEvent(event) {
+      const evt = typeof event === 'string' ? { type: event, preventDefault() {} } : { preventDefault() {}, ...event };
+      (listeners[evt.type] || []).forEach(fn => fn(evt));
+    },
+
+    querySelector(sel) {
+      return el.querySelectorAll(sel)[0] || null;
+    },
+    querySelectorAll(sel) {
+      const results = [];
+      const matchSel = (node) => {
+        if (!node) return false;
+        if (sel === 'code' && node.tagName === 'CODE') return true;
+        if (sel.startsWith('.')) {
+          const cls = sel.slice(1).split('.')[0];
+          if (node.classList && node.classList.contains(cls)) return true;
+        }
+        if (sel.startsWith('#')) {
+          if (node.id === sel.slice(1)) return true;
+        }
+        if (sel.includes('.quarto-exercise-blank-input') && node.classList && node.classList.contains('quarto-exercise-blank-input')) return true;
+        if (sel.includes('.quarto-exercise-choose-select') && node.classList && node.classList.contains('quarto-exercise-choose-select')) return true;
+        if (sel.includes('.quarto-exercise-answer') && node.classList && node.classList.contains('quarto-exercise-answer')) return true;
+        if (sel.includes('.quarto-exercise-status') && node.classList && node.classList.contains('quarto-exercise-status')) return true;
+        if (sel.includes('.quarto-exercise-actions') && node.classList && node.classList.contains('quarto-exercise-actions')) return true;
+        return false;
+      };
+
+      const walk = (n) => {
+        for (const child of n.children || []) {
+          if (matchSel(child)) results.push(child);
+          walk(child);
+        }
+      };
+      walk(el);
+      return results;
+    },
+
+    closest(sel) {
+      let cur = el;
+      while (cur) {
+        if (sel.split(', ').some(s => {
+          if (s.startsWith('.')) return cur.classList && cur.classList.contains(s.slice(1));
+          if (s.startsWith('#')) return cur.id === s.slice(1);
+          return cur.tagName === s.toUpperCase();
+        })) {
+          return cur;
+        }
+        cur = cur.parentNode;
+      }
+      return null;
+    },
+
+    matches(sel) {
+      return sel.split(', ').some(s => {
+        if (s.startsWith('.')) return el.classList && el.classList.contains(s.slice(1));
+        if (s.startsWith('#')) return el.id === s.slice(1);
+        return el.tagName === s.toUpperCase();
+      });
+    },
+
+    appendChild(child) {
+      if (!child) return child;
+      child.parentNode = el;
+      el.children.push(child);
+      el.childNodes.push(child);
+      if (child.tagName === 'OPTION') el.options.push(child);
+      return child;
+    },
+
+    replaceChildren(...newChildren) {
+      el.children = [];
+      el.childNodes = [];
+      el.options = [];
+      for (const c of newChildren) el.appendChild(c);
+    },
+
+    insertBefore(newNode, refNode) {
+      newNode.parentNode = el;
+      const idx = el.children.indexOf(refNode);
+      if (idx >= 0) el.children.splice(idx, 0, newNode);
+      else el.children.push(newNode);
+      return newNode;
+    },
+
+    replaceChild(newChild, oldChild) {
+      const idx = el.children.indexOf(oldChild);
+      if (idx >= 0) {
+        newChild.parentNode = el;
+        el.children[idx] = newChild;
+      }
+      return oldChild;
+    },
+
+    remove() {
+      if (el.parentNode) {
+        const idx = el.parentNode.children.indexOf(el);
+        if (idx >= 0) el.parentNode.children.splice(idx, 1);
+      }
+    },
+
+    getBoundingClientRect() {
+      return { width: 100, height: 40, top: 0, left: 0, right: 100, bottom: 40 };
+    }
   };
-  context.window = context;
-  vm.createContext(context);
-  vm.runInContext(runtime, context);
-  return context;
+
+  Object.defineProperty(el, 'innerHTML', {
+    get() { return el.textContent; },
+    set(html) {
+      el.children = [];
+      el.childNodes = [];
+      if (html.includes('quarto-exercise-check-btn')) {
+        const btn = createMockElement('button', { class: 'quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary' });
+        btn.parentNode = el;
+        el.children.push(btn);
+        el.childNodes.push(btn);
+      }
+      if (html.includes('quarto-exercise-reset-btn')) {
+        const btn = createMockElement('button', { class: 'quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary' });
+        btn.parentNode = el;
+        el.children.push(btn);
+        el.childNodes.push(btn);
+      }
+      if (html.includes('quarto-exercise-status')) {
+        const span = createMockElement('span', { class: 'quarto-exercise-status' });
+        span.parentNode = el;
+        el.children.push(span);
+        el.childNodes.push(span);
+      }
+    }
+  });
+
+  children.forEach(c => { c.parentNode = el; });
+  return el;
+}
+
+function loadRuntime() {
+  const listeners = {};
+  delete require.cache[require.resolve('../_extensions/quarto-exercises/quarto-exercises.js')];
+
+  global.Option = function Option(text, value) {
+    return createMockElement('option', { value, textContent: text });
+  };
+  global.document = {
+    addEventListener(type, handler) {
+      listeners[type] = handler;
+    },
+    querySelectorAll() { return []; },
+    querySelector() { return null; },
+    createElement(tag) {
+      return createMockElement(tag);
+    },
+    createTreeWalker(root, filter) {
+      let foundNode = null;
+      const walk = (n) => {
+        if (foundNode) return;
+        if (n.textContent && n.textContent.includes('QEXCLOZEP')) {
+          foundNode = n;
+          return;
+        }
+        for (const c of n.children || []) walk(c);
+      };
+      walk(root);
+      let step = 0;
+      return {
+        nextNode() {
+          if (step === 0 && foundNode) {
+            step++;
+            this.currentNode = foundNode;
+            return true;
+          }
+          return false;
+        }
+      };
+    },
+    createTextNode(text) {
+      return { textContent: text, parentNode: null };
+    },
+    body: createMockElement('body')
+  };
+  global.window = global;
+  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.getComputedStyle = () => ({ font: '16px serif', letterSpacing: 'normal', wordSpacing: 'normal', textTransform: 'none', fontVariant: 'normal', fontFeatureSettings: 'normal' });
+
+  const exportsObj = require('../_extensions/quarto-exercises/quarto-exercises.js');
+  return { ...exportsObj, document: global.document, window: global.window, listeners, createMockElement };
 }
 
 function visualFixture() {
@@ -139,10 +355,14 @@ body {
   font: 16px/1.5 system-ui, sans-serif;
   color: #202124;
   background: #fff;
+  --bs-body-color: #202124;
+  --bs-body-bg: #fff;
 }
 body.quarto-dark {
   color: #e8eaed;
   background: #202124;
+  --bs-body-color: #e8eaed;
+  --bs-body-bg: #202124;
 }
 main {
   max-width: 760px;
@@ -157,27 +377,33 @@ ${css}
 </head>
 <body>
 <main>
-<div class="quarto-exercise" id="visual-ex" data-id="visual-ex" data-type="radio" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<div class="quarto-exercise" id="visual-ex" data-id="visual-ex" data-type="radio" data-qx-salt="s1" data-qx-correct="b9f833b1ea3f44fb47f4a201df30f9f33d73acf9d444307e17817ae981fd77e3" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Choose the code fragment that returns the mean.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
-<div class="quarto-exercise-answer" data-key="a" data-correct="false"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
-<div class="quarto-exercise-answer" data-key="b" data-correct="true"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
+<div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
+<div class="quarto-exercise-answer" data-key="b"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
 </div></fieldset>
-<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer="Rivendell" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-ignore-case="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answers="Gandalf" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-qx-salt="s2" data-qx-digests="6a4e1f66a7a3226d4929cadb9ae166f19bc891064321ee91cd8138a9f0030d8b" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-qx-salt="s3" data-qx-digests="717918c208983cba7e2bfdab7854d7b3673fb5ed04059513e32a0dd0be2aab2d" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><button type="button" class="quarto-exercise-hint-btn">Hint</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 <div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
 </div>
-<p>Standalone blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
-<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-answers="Moria" data-match="exact" data-ignore-case="false" data-trim="true" data-collapse-space="false" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
-<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<p>Standalone blank: <span class="quarto-exercise-blank-container" data-qx-salt="s4" data-qx-digests="0186fe0a5aa2e9c5bd1a8bf7a6d5b951a06720d7ffd17a14ce9d9c94a55db846" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-qx-salt="s4" data-qx-digests="0186fe0a5aa2e9c5bd1a8bf7a6d5b951a06720d7ffd17a14ce9d9c94a55db846" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<div class="sourceCode"><pre><code><span>member = </span><select class="quarto-exercise-code-choose"><option value="">Choose...</option><option value="Gimli">Gimli</option><option value="Legolas">Legolas</option></select></code></pre></div>
+<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-qx-salt="s5" data-qx-correct="28c36f1054b6b9b77f71f7465a03cedfe216fbb4d2ca6f452dedc101c64926d9 66f8d9609638cd8653a3e5b1e8ede4c38ba467221810c4ea5513c1a4da1a0d3a" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Select all hobbits.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
-<div class="quarto-exercise-answer" data-key="frodo" data-correct="true"><div class="quarto-exercise-control"><input id="checkbox-ex-frodo" type="checkbox" name="checkbox-ex" value="frodo" class="quarto-exercise-input"><label for="checkbox-ex-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Frodo</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Frodo is a hobbit.</div></div>
-<div class="quarto-exercise-answer" data-key="sam" data-correct="true"><div class="quarto-exercise-control"><input id="checkbox-ex-sam" type="checkbox" name="checkbox-ex" value="sam" class="quarto-exercise-input"><label for="checkbox-ex-sam" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Sam</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Sam is a hobbit.</div></div>
-<div class="quarto-exercise-answer" data-key="legolas" data-correct="false"><div class="quarto-exercise-control"><input id="checkbox-ex-legolas" type="checkbox" name="checkbox-ex" value="legolas" class="quarto-exercise-input"><label for="checkbox-ex-legolas" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Legolas</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Legolas is an elf.</div></div>
+<div class="quarto-exercise-answer" data-key="frodo"><div class="quarto-exercise-control"><input id="checkbox-ex-frodo" type="checkbox" name="checkbox-ex" value="frodo" class="quarto-exercise-input"><label for="checkbox-ex-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Frodo</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Frodo is a hobbit.</div></div>
+<div class="quarto-exercise-answer" data-key="sam"><div class="quarto-exercise-control"><input id="checkbox-ex-sam" type="checkbox" name="checkbox-ex" value="sam" class="quarto-exercise-input"><label for="checkbox-ex-sam" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Sam</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Sam is a hobbit.</div></div>
+<div class="quarto-exercise-answer" data-key="legolas"><div class="quarto-exercise-control"><input id="checkbox-ex-legolas" type="checkbox" name="checkbox-ex" value="legolas" class="quarto-exercise-input"><label for="checkbox-ex-legolas" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Legolas</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Legolas is an elf.</div></div>
 </div></fieldset>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
+</div>
+<div class="check-batch quarto-exercise-batch-grid" id="visual-batch" style="--ex-batch-columns: 2;">
+<div class="quarto-exercise"><p>What does Gimli carry?</p></div>
+<div class="quarto-exercise"><p>What kind of being is Treebeard?</p></div>
+<div class="quarto-exercise-actions"><button type="button">Check</button><button type="button">Reset</button></div>
 </div>
 </main>
 <script>${js}</script>
@@ -191,10 +417,43 @@ async function runVisualMode(playwright, mode) {
     viewport: { width: 900, height: 720 },
     colorScheme: mode
   });
-  await page.setContent(visualFixture(), { waitUntil: 'load' });
+  const fixturePath = path.join(TEMP_DIR, 'visual', `${mode}-fixture.html`);
+  fs.writeFileSync(fixturePath, visualFixture());
+  await page.goto(pathToFileURL(fixturePath).href, { waitUntil: 'load' });
   if (mode === 'dark') {
     await page.evaluate(() => document.body.classList.add('quarto-dark'));
   }
+
+  const chooseStates = await page.evaluate(() => {
+    const body = getComputedStyle(document.body);
+    return ['.quarto-exercise-choose-select', '.quarto-exercise-code-choose'].map(selector => {
+      const select = document.querySelector(selector);
+      const option = select.options[0];
+      return {
+        selector,
+        selectColor: getComputedStyle(select).color,
+        selectBackground: getComputedStyle(select).backgroundColor,
+        optionColor: getComputedStyle(option).color,
+        optionBackground: getComputedStyle(option).backgroundColor,
+        bodyColor: body.color,
+        bodyBackground: body.backgroundColor
+      };
+    });
+  });
+
+  const batchGridState = await page.evaluate(() => {
+    const batch = document.querySelector('#visual-batch');
+    const exercises = Array.from(batch.querySelectorAll(':scope > .quarto-exercise'));
+    const actions = batch.querySelector(':scope > .quarto-exercise-actions');
+    const exerciseBottom = Math.max(...exercises.map(exercise => exercise.getBoundingClientRect().bottom));
+    return {
+      columns: getComputedStyle(batch).gridTemplateColumns.split(' ').length,
+      gap: parseFloat(getComputedStyle(batch).rowGap),
+      visualGap: actions.getBoundingClientRect().top - exerciseBottom,
+      exerciseBottomMargins: exercises.map(exercise => parseFloat(getComputedStyle(exercise).marginBottom)),
+      actionsTopMargin: parseFloat(getComputedStyle(actions).marginTop)
+    };
+  });
 
   const standaloneBlankState = await page.evaluate(() => {
     const blank = document.querySelector('main > p .quarto-exercise-blank-container');
@@ -307,7 +566,7 @@ async function runVisualMode(playwright, mode) {
   }));
 
   await browser.close();
-  return { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong };
+  return { batchGridState, chooseStates, standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong };
 }
 
 test.describe('Quarto Exercises Extension Tests', () => {
@@ -316,8 +575,8 @@ test.describe('Quarto Exercises Extension Tests', () => {
     setup();
   });
 
-  test('JS unit tests for production matching logic', () => {
-    const { checkBlankMatch, splitList } = loadRuntime();
+  test('JS unit tests for canonicalization and escaped lists', () => {
+    const { canonicalize, splitList } = loadRuntime();
     const list = value => Array.from(splitList(value));
 
     assert.deepStrictEqual(list("red|green|blue"), ["red", "green", "blue"]);
@@ -325,32 +584,570 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.deepStrictEqual(list("C:\\\\Temp|D:\\\\Data"), ["C:\\Temp", "D:\\Data"]);
     assert.deepStrictEqual(list("literal\\\\\\|pipe|plain"), ["literal\\|pipe", "plain"]);
 
-    // Exact match
-    assert.strictEqual(checkBlankMatch("Gandalf", "Gandalf", "exact", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("gandalf", "Gandalf", "exact", false, true, false), false);
-    assert.strictEqual(checkBlankMatch("gandalf", "Gandalf", "exact", true, true, false), true);
-    
-    // Trim/Collapse spaces
-    assert.strictEqual(checkBlankMatch("  Gandalf  ", "Gandalf", "exact", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Gandalf The Grey", "Gandalf  The   Grey", "exact", false, true, true), true);
+    assert.strictEqual(canonicalize("  Gandalf  ", {}), "Gandalf");
+    assert.strictEqual(canonicalize("Gandalf  The   Grey", { collapseSpace: true }), "Gandalf The Grey");
+    assert.strictEqual(canonicalize("  FRODO  ", { ignoreCase: true }), "frodo");
+    assert.strictEqual(canonicalize(" Frodo ", { trim: false }), " Frodo ");
+  });
 
-    // One of multiple
-    assert.strictEqual(checkBlankMatch("Frodo Baggins", "Frodo|Frodo Baggins", "one-of", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Samwise", "Frodo|Frodo Baggins", "one-of", false, true, false), false);
-    assert.strictEqual(checkBlankMatch(" Frodo ", " Frodo |Sam", "one-of", false, false, false), true);
-    assert.strictEqual(checkBlankMatch("Frodo", " Frodo |Sam", "one-of", false, false, false), false);
+  test('JS unit tests for internal utility and evaluation functions', async () => {
+    const runtime = loadRuntime();
+    const {
+      bool,
+      labelFor,
+      setHidden,
+      setFeedback,
+      setCorrectText,
+      resetFeedback,
+      clearStatus,
+      setStatus,
+      onEnter,
+      checkModeFor,
+      makeControl,
+      checkAnswer,
+      gradeUnit,
+      parseClozeMetadata,
+      QuartoExercises,
+      digest
+    } = runtime;
 
-    // Regex
-    assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("the fellowship of the ring", "^The\\s+Fellowship\\s+of\\s+the\\s+Ring$", "regex", true, true, false), true);
-    assert.strictEqual(checkBlankMatch("Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
-    assert.strictEqual(checkBlankMatch("The Fellowship of the Ring", "^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$", "regex", true, true, false), true);
-    assert.strictEqual(checkBlankMatch("Frodo, Sam", "^Frodo,\\s+Sam$", "regex", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("Frodo", "^Frodo,\\s+Sam$", "regex", false, true, false), false);
+    // 1. bool helper
+    assert.strictEqual(bool(null), false);
+    assert.strictEqual(bool(undefined, true), true);
+    assert.strictEqual(bool("true"), true);
+    assert.strictEqual(bool("false"), false);
 
-    // Escaped delimiter values
-    assert.strictEqual(checkBlankMatch("yes|no", "yes\\|no|maybe", "one-of", false, true, false), true);
-    assert.strictEqual(checkBlankMatch("yes", "yes\\|no|maybe", "one-of", false, true, false), false);
+    // 2. labelFor helper
+    assert.strictEqual(labelFor(0), "A");
+    assert.strictEqual(labelFor(25), "Z");
+    assert.strictEqual(labelFor(26), "AA");
+    assert.strictEqual(labelFor(27), "AB");
+
+    // 3. DOM element state helpers (null-safety and attribute toggling)
+    setHidden(null, true);
+    setFeedback(null, "text", "correct");
+    setCorrectText({ querySelector: () => null }, ".selector", "val");
+    resetFeedback(null);
+    clearStatus(null);
+    setStatus(null, "text", true);
+
+    const mockFeedback = { textContent: "", classList: { remove: () => {}, toggle: () => {} }, hidden: false };
+    resetFeedback(mockFeedback);
+    assert.strictEqual(mockFeedback.textContent, "");
+    assert.strictEqual(mockFeedback.hidden, true);
+
+    const mockStatus = { textContent: "", classList: { remove: () => {}, toggle: () => {} } };
+    clearStatus(mockStatus);
+    assert.strictEqual(mockStatus.textContent, "");
+
+    // 4. onEnter listener
+    let enterTriggered = false;
+    let keyHandler = null;
+    const mockInput = {
+      addEventListener(event, fn) { if (event === "keydown") keyHandler = fn; },
+      closest() { return null; }
+    };
+    onEnter(mockInput, () => { enterTriggered = true; });
+    keyHandler({ key: "Space", preventDefault() {} });
+    assert.strictEqual(enterTriggered, false);
+    keyHandler({ key: "Enter", preventDefault() {} });
+    assert.strictEqual(enterTriggered, true);
+
+    // 5. checkModeFor resolution
+    const mockBlankControl = {
+      closest(sel) {
+        if (sel.includes("quarto-exercise-blank-container")) return { dataset: { checkMode: "page" } };
+        return null;
+      }
+    };
+    assert.strictEqual(checkModeFor(mockBlankControl), "page");
+
+    const mockExControl = {
+      closest(sel) {
+        if (sel.includes("quarto-exercise")) return { dataset: { checkMode: "batch" } };
+        return null;
+      }
+    };
+    assert.strictEqual(checkModeFor(mockExControl), "batch");
+
+    const mockBatchControl = {
+      closest(sel) {
+        if (sel.includes("check-batch")) return {};
+        return null;
+      }
+    };
+    assert.strictEqual(checkModeFor(mockBatchControl), "batch");
+
+    const mockDefaultControl = { closest() { return null; } };
+    assert.strictEqual(checkModeFor(mockDefaultControl), "exercise");
+
+    // 6. makeControl defaults and dataset id fallback
+    const mockContainerId = { dataset: { id: "custom-id" }, closest() { return null; }, matches() { return false; } };
+    const ctrl1 = makeControl(mockContainerId, "blank");
+    assert.strictEqual(ctrl1._controlId, "custom-id");
+
+    const mockContainerNoId = { dataset: {}, id: "fallback-id", closest() { return null; }, matches() { return false; } };
+    const ctrl2 = makeControl(mockContainerNoId, "choose");
+    assert.strictEqual(ctrl2._controlId, "fallback-id");
+
+    const mockContainerDefault = { dataset: {}, closest() { return null; }, matches() { return false; } };
+    const ctrl3 = makeControl(mockContainerDefault, "code");
+    assert.strictEqual(ctrl3._controlId, "default-code");
+
+    // 7. checkAnswer edge cases & hash validation
+    assert.strictEqual(await checkAnswer(mockDefaultControl, "val"), false);
+
+    const salt = "test-salt";
+    const targetVal = "answer123";
+    const hashed = await digest(salt, targetVal);
+
+    const qxCtrl = {
+      closest() { return { dataset: {} }; },
+      _qx: { salt, digests: [hashed], trim: true, collapseSpace: true, ignoreCase: true }
+    };
+    assert.strictEqual(await checkAnswer(qxCtrl, "  Answer123  "), true);
+    assert.strictEqual(await checkAnswer(qxCtrl, "wrong"), false);
+
+    // Container fallback dataset checking
+    const containerWithDataset = {
+      dataset: { qxSalt: salt, qxDigests: hashed, qxIgnoreCase: "true", qxTrim: "true", qxCollapseSpace: "true" }
+    };
+    const ctrlWithContainerDataset = {
+      closest() { return containerWithDataset; }
+    };
+    assert.strictEqual(await checkAnswer(ctrlWithContainerDataset, "answer123"), true);
+
+    // Regex matching validation
+    const { decodePattern, matchesRegex } = runtime;
+    const pattern = "^hello$";
+    const patternBytes = new TextEncoder().encode(pattern);
+    const keyBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt)));
+    const encodedBytes = new Uint8Array(patternBytes.length);
+    for (let i = 0; i < patternBytes.length; i++) {
+      encodedBytes[i] = patternBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    const encodedHex = [...encodedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
+
+    const decoded = await decodePattern(salt, encodedHex);
+    assert.strictEqual(decoded, pattern);
+
+    const regexMeta = { salt, regex: encodedHex, ignoreCase: true, trim: true, collapseSpace: true };
+    assert.strictEqual(await matchesRegex("hello", regexMeta), true);
+    assert.strictEqual(await matchesRegex("world", regexMeta), false);
+
+    const qxRegexCtrl = {
+      closest() { return { dataset: {} }; },
+      _qx: regexMeta
+    };
+    assert.strictEqual(await checkAnswer(qxRegexCtrl, "  Hello  "), true);
+
+    // Invalid regex handling
+    const invalidPattern = "[z-a]"; // Invalid character range
+    const invalidPatternBytes = new TextEncoder().encode(invalidPattern);
+    const invalidEncodedBytes = new Uint8Array(invalidPatternBytes.length);
+    for (let i = 0; i < invalidPatternBytes.length; i++) {
+      invalidEncodedBytes[i] = invalidPatternBytes[i] ^ keyBytes[i % keyBytes.length];
+    }
+    const invalidEncodedHex = [...invalidEncodedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    const invalidRegexMeta = { salt, regex: invalidEncodedHex, ignoreCase: true, trim: true, collapseSpace: true };
+    assert.strictEqual(await matchesRegex("test", invalidRegexMeta), false);
+
+    // 8. parseClozeMetadata
+    assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: '{"key":"val"}' } })), JSON.stringify({ key: "val" }));
+    assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: 'invalid json' } })), JSON.stringify({}));
+
+    // 9. gradeUnit unknown unit class fallback
+    const unknownUnit = { classList: { contains: () => false } };
+    const result = await gradeUnit(unknownUnit);
+    assert.strictEqual(JSON.stringify(result), JSON.stringify({ earned: 0, possible: 0, correct: false }));
+
+    // 10. QuartoExercises public API safety
+    assert.strictEqual(await QuartoExercises.checkExercise("#nonexistent-ex-id"), false);
+    QuartoExercises.resetExercise("#nonexistent-ex-id");
+  });
+
+  test('JS DOM runtime unit tests for all controls and controllers', async () => {
+    function createMockElement(tagName = 'div', attrs = {}, children = []) {
+      const listeners = {};
+      const classListSet = new Set((attrs.class || '').split(' ').filter(Boolean));
+      const dataset = attrs.dataset || {};
+      for (const k in attrs) {
+        if (k.startsWith('data-')) {
+          const camelKey = k.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+          dataset[camelKey] = attrs[k];
+        }
+      }
+
+      const el = {
+        tagName: tagName.toUpperCase(),
+        id: attrs.id || '',
+        className: attrs.class || '',
+        dataset,
+        attributes: attrs,
+        style: {},
+        children: [...children],
+        childNodes: [...children],
+        parentNode: null,
+        nextSibling: null,
+        nextElementSibling: null,
+        value: attrs.value || '',
+        type: attrs.type || '',
+        checked: attrs.checked || false,
+        disabled: attrs.disabled || false,
+        selectedIndex: 0,
+        options: children.filter(c => c.tagName === 'OPTION'),
+        hidden: attrs.hidden || false,
+        textContent: attrs.textContent || '',
+
+        classList: {
+          contains: (c) => classListSet.has(c),
+          add: (c) => { classListSet.add(c); el.className = Array.from(classListSet).join(' '); },
+          remove: (c) => { classListSet.delete(c); el.className = Array.from(classListSet).join(' '); },
+          toggle: (c, force) => {
+            const val = force !== undefined ? force : !classListSet.has(c);
+            if (val) classListSet.add(c); else classListSet.delete(c);
+            el.className = Array.from(classListSet).join(' ');
+            return val;
+          }
+        },
+
+        setAttribute(k, v) { attrs[k] = v; el[k] = v; },
+        getAttribute(k) { return attrs[k] || null; },
+        removeAttribute(k) { delete attrs[k]; delete el[k]; },
+
+        addEventListener(type, fn) {
+          if (!listeners[type]) listeners[type] = [];
+          listeners[type].push(fn);
+        },
+        dispatchEvent(event) {
+          const evt = typeof event === 'string' ? { type: event, preventDefault() {} } : { preventDefault() {}, ...event };
+          (listeners[evt.type] || []).forEach(fn => fn(evt));
+        },
+
+        querySelector(sel) {
+          return el.querySelectorAll(sel)[0] || null;
+        },
+        querySelectorAll(sel) {
+          const results = [];
+          const matchSel = (node) => {
+            if (sel === 'code' && node.tagName === 'CODE') return true;
+            if (sel.startsWith('.')) {
+              const cls = sel.slice(1).split('.')[0];
+              if (node.classList && node.classList.contains(cls)) return true;
+            }
+            if (sel.startsWith('#')) {
+              if (node.id === sel.slice(1)) return true;
+            }
+            if (sel.includes('.quarto-exercise-blank-input') && node.classList && node.classList.contains('quarto-exercise-blank-input')) return true;
+            if (sel.includes('.quarto-exercise-choose-select') && node.classList && node.classList.contains('quarto-exercise-choose-select')) return true;
+            if (sel.includes('.quarto-exercise-answer') && node.classList && node.classList.contains('quarto-exercise-answer')) return true;
+            if (sel.includes('.quarto-exercise-status') && node.classList && node.classList.contains('quarto-exercise-status')) return true;
+            if (sel.includes('.quarto-exercise-actions') && node.classList && node.classList.contains('quarto-exercise-actions')) return true;
+            return false;
+          };
+
+          const walk = (n) => {
+            for (const child of n.children || []) {
+              if (matchSel(child)) results.push(child);
+              walk(child);
+            }
+          };
+          walk(el);
+          return results;
+        },
+
+        closest(sel) {
+          let cur = el;
+          while (cur) {
+            if (sel.split(', ').some(s => {
+              if (s.startsWith('.')) return cur.classList && cur.classList.contains(s.slice(1));
+              if (s.startsWith('#')) return cur.id === s.slice(1);
+              return cur.tagName === s.toUpperCase();
+            })) {
+              return cur;
+            }
+            cur = cur.parentNode;
+          }
+          return null;
+        },
+
+        matches(sel) {
+          return sel.split(', ').some(s => {
+            if (s.startsWith('.')) return el.classList && el.classList.contains(s.slice(1));
+            if (s.startsWith('#')) return el.id === s.slice(1);
+            return el.tagName === s.toUpperCase();
+          });
+        },
+
+        appendChild(child) {
+          child.parentNode = el;
+          el.children.push(child);
+          el.childNodes.push(child);
+          if (child.tagName === 'OPTION') el.options.push(child);
+          return child;
+        },
+
+        replaceChildren(...newChildren) {
+          el.children = [];
+          el.childNodes = [];
+          el.options = [];
+          for (const c of newChildren) el.appendChild(c);
+        },
+
+        insertBefore(newNode, refNode) {
+          newNode.parentNode = el;
+          const idx = el.children.indexOf(refNode);
+          if (idx >= 0) el.children.splice(idx, 0, newNode);
+          else el.children.push(newNode);
+          return newNode;
+        },
+
+        replaceChild(newChild, oldChild) {
+          const idx = el.children.indexOf(oldChild);
+          if (idx >= 0) {
+            newChild.parentNode = el;
+            el.children[idx] = newChild;
+          }
+          return oldChild;
+        },
+
+        remove() {
+          if (el.parentNode) {
+            const idx = el.parentNode.children.indexOf(el);
+            if (idx >= 0) el.parentNode.children.splice(idx, 1);
+          }
+        },
+
+        getBoundingClientRect() {
+          return { width: 100, height: 40, top: 0, left: 0, right: 100, bottom: 40 };
+        }
+      };
+
+      children.forEach(c => { c.parentNode = el; });
+      return el;
+    }
+
+    const runtime = loadRuntime();
+    const {
+      initExercises,
+      initController,
+      initCheckControllers,
+      initBlank,
+      verifyBlank,
+      resetBlank,
+      initStandaloneBlank,
+      initChoose,
+      verifyChoose,
+      resetChoose,
+      initStandaloneChoose,
+      initExercise,
+      gradeUnit,
+      verifyExercise,
+      resetExercise,
+      lockExercise,
+      resetUnit,
+      initCodeCloze,
+      verifyCodeCloze,
+      resetCodeCloze,
+      initStandaloneCodeCloze,
+      digest
+    } = runtime;
+
+    const salt = "salt-dom-test";
+    const hashedAns = await digest(salt, "hobbit");
+
+    // 1. Standalone Blank Container Test
+    const blankInput = createMockElement("input", { class: "quarto-exercise-blank-input" });
+    const blankCorrectText = createMockElement("span", { class: "quarto-exercise-blank-correct-text", hidden: true });
+    const blankFeedback = createMockElement("span", { class: "quarto-exercise-blank-feedback", hidden: true });
+    const blankCheckBtn = createMockElement("button", { class: "quarto-exercise-blank-check-btn" });
+    const blankContainer = createMockElement("span", {
+      class: "quarto-exercise-blank-container",
+      id: "blank-1",
+      "data-feedback-correct": "Correct!",
+      "data-feedback-incorrect": "Wrong!",
+      "data-qx-salt": salt,
+      "data-qx-digests": hashedAns,
+      "data-qx-ignore-case": "true",
+      "data-qx-trim": "true"
+    }, [blankInput, blankCorrectText, blankCheckBtn, blankFeedback]);
+
+    initStandaloneBlank(blankContainer);
+    blankInput.value = "  Hobbit  ";
+    blankInput.dispatchEvent("input");
+    blankInput.dispatchEvent("blur");
+    blankInput.dispatchEvent({ type: "keydown", key: "Enter", preventDefault() {} });
+    blankCheckBtn.dispatchEvent("click");
+    assert.strictEqual(await verifyBlank(blankContainer, { showFeedback: true }), true);
+    assert.strictEqual(blankContainer.classList.contains("is-correct"), true);
+    assert.strictEqual(blankInput.classList.contains("is-correct"), true);
+
+    resetBlank(blankContainer);
+    assert.strictEqual(blankContainer.classList.contains("is-correct"), false);
+    assert.strictEqual(blankInput.value, "");
+
+    // 2. Standalone Choose Container Test
+    const chooseSelect = createMockElement("select", { class: "quarto-exercise-choose-select" });
+    const chooseCorrectText = createMockElement("span", { class: "quarto-exercise-choose-correct-text", hidden: true });
+    const chooseFeedback = createMockElement("span", { class: "quarto-exercise-choose-feedback", hidden: true });
+    const chooseCheckBtn = createMockElement("button", { class: "quarto-exercise-choose-check-btn" });
+    const chooseContainer = createMockElement("span", {
+      class: "quarto-exercise-choose-container",
+      id: "choose-1",
+      "data-options": "hobbit|wizard|elf",
+      "data-shuffle": "true",
+      "data-feedback-correct": "Correct!",
+      "data-feedback-incorrect": "Wrong!",
+      "data-qx-salt": salt,
+      "data-qx-digests": hashedAns,
+      "data-qx-ignore-case": "true"
+    }, [chooseSelect, chooseCorrectText, chooseCheckBtn, chooseFeedback]);
+
+    initStandaloneChoose(chooseContainer);
+    chooseSelect.value = "hobbit";
+    chooseSelect.dispatchEvent("change");
+    chooseCheckBtn.dispatchEvent("click");
+    assert.strictEqual(await verifyChoose(chooseContainer, { showFeedback: true }), true);
+
+    resetChoose(chooseContainer);
+    assert.strictEqual(chooseSelect.selectedIndex, 0);
+
+    // 3. Exercise Container Test (MCQ + Blank + Choose)
+    const mcqInput1 = createMockElement("input", { type: "radio", class: "quarto-exercise-input", value: "opt1", name: "ex1" });
+    const mcqLabel1 = createMockElement("label", { class: "quarto-exercise-answer-label" });
+    const mcqState1 = createMockElement("span", { class: "quarto-exercise-answer-state" });
+    const mcqFeedback1 = createMockElement("div", { class: "quarto-exercise-feedback", hidden: true });
+    const mcqAnswer1 = createMockElement("div", { class: "quarto-exercise-answer", "data-key": "opt1" }, [mcqInput1, mcqLabel1, mcqState1, mcqFeedback1]);
+
+    const exCheckBtn = createMockElement("button", { class: "quarto-exercise-check-btn" });
+    const exResetBtn = createMockElement("button", { class: "quarto-exercise-reset-btn" });
+    const exHintBtn = createMockElement("button", { class: "quarto-exercise-hint-btn" });
+    const exHint = createMockElement("div", { class: "quarto-exercise-hint", hidden: true });
+    const exExplanation = createMockElement("div", { class: "quarto-exercise-explanation", hidden: true });
+    const exStatus = createMockElement("span", { class: "quarto-exercise-status" });
+    const exChoices = createMockElement("div", { class: "quarto-exercise-choices" }, [mcqAnswer1]);
+
+    const exContainer = createMockElement("div", {
+      class: "quarto-exercise",
+      id: "ex-1",
+      "data-type": "radio",
+      "data-instant": "true",
+      "data-reveal": "true",
+      "data-lock": "true",
+      "data-shuffle": "true",
+      "data-explanation-policy": "correct",
+      "data-feedback-correct": "Great!",
+      "data-feedback-incorrect": "Try again!",
+      "data-qx-salt": salt,
+      "data-qx-correct": hashedAns
+    }, [exChoices, exCheckBtn, exResetBtn, exHintBtn, exHint, exExplanation, exStatus]);
+
+    initExercise(exContainer);
+
+    // Simulate clicking MCQ answer wrapper & hint button
+    mcqAnswer1.dispatchEvent({ type: "click", target: mcqAnswer1 });
+    mcqInput1.checked = true;
+    mcqInput1.dispatchEvent("change");
+    exHintBtn.dispatchEvent("click");
+    exCheckBtn.dispatchEvent("click");
+
+    // Grade unit & verify Exercise
+    const res = await gradeUnit(exContainer, { showFeedback: true, reveal: true });
+    assert.strictEqual(res.correct, false);
+
+    lockExercise(exContainer, { answers: [mcqAnswer1], blanks: [], chooses: [], checkButton: exCheckBtn, resetButton: exResetBtn });
+    assert.strictEqual(exContainer.classList.contains("is-locked"), true);
+
+    exResetBtn.dispatchEvent("click");
+    resetExercise(exContainer, { answers: [mcqAnswer1], blanks: [], chooses: [], codeClozes: [], explanation: exExplanation, status: exStatus, hintPanel: exHint, checkButton: exCheckBtn, resetButton: exResetBtn });
+    assert.strictEqual(exContainer.classList.contains("is-locked"), false);
+    assert.strictEqual(mcqInput1.checked, false);
+
+    // 4. Code Cloze Container Test with Choose & Blank controls
+    const textNodeToken = { textContent: "QEXCLOZEP000001 QEXCLOZEP000002", parentNode: null };
+    const codeNode = createMockElement("code");
+    codeNode.children = [textNodeToken];
+    textNodeToken.parentNode = codeNode;
+
+    const clozeMetadata = JSON.stringify({
+      "QEXCLOZEP000001": {
+        type: "blank",
+        attrs: { answer: "hobbit" },
+        qx: { salt, digests: [hashedAns], trim: true, collapseSpace: true, ignoreCase: true }
+      },
+      "QEXCLOZEP000002": {
+        type: "choose",
+        attrs: { options: "hobbit|wizard" },
+        qx: { salt, digests: [hashedAns], trim: true, collapseSpace: true, ignoreCase: true }
+      }
+    });
+    const clozeContainer = createMockElement("div", {
+      class: "quarto-exercise-code-cloze-container quarto-exercise-code-cloze-standalone",
+      id: "cloze-1",
+      "data-cloze-metadata": clozeMetadata
+    }, [codeNode]);
+
+    const clozeCheckBtnNode = createMockElement("button", { class: "quarto-exercise-check-btn" });
+    const clozeResetBtnNode = createMockElement("button", { class: "quarto-exercise-reset-btn" });
+    const clozeStatusNode = createMockElement("span", { class: "quarto-exercise-status" });
+    const clozeActions = createMockElement("div", { class: "quarto-exercise-actions" }, [
+      clozeCheckBtnNode,
+      clozeResetBtnNode,
+      clozeStatusNode
+    ]);
+
+    const clozeWrapper = createMockElement("div", { class: "quarto-exercise-code-cloze-wrapper" }, [clozeContainer, clozeActions]);
+    clozeContainer.nextElementSibling = clozeActions;
+
+    initStandaloneCodeCloze(clozeContainer);
+    assert.strictEqual(clozeContainer._clozeControls.length, 2);
+    assert.strictEqual(clozeCheckBtnNode.dataset.initialized, "true");
+    assert.strictEqual(clozeResetBtnNode.dataset.initialized, "true");
+
+    // Calling initStandaloneCodeCloze again should not duplicate listener initialization
+    initStandaloneCodeCloze(clozeContainer);
+
+    const clozeInput = clozeContainer._clozeControls[0].el;
+    const clozeSelect = clozeContainer._clozeControls[1].el;
+    clozeInput.value = "hobbit";
+    clozeSelect.value = "hobbit";
+    clozeCheckBtnNode.dispatchEvent("click");
+
+    assert.strictEqual(await verifyCodeCloze(clozeContainer, { showFeedback: true, reveal: true }), true);
+
+    clozeResetBtnNode.dispatchEvent("click");
+    resetCodeCloze(clozeContainer);
+    assert.strictEqual(clozeInput.value, "");
+
+    // 5. Controller (Page / Batch) Test & window.Quarto onRender
+    global.window.Quarto = { onRender(fn) { fn(); } };
+    const pageContainer = createMockElement("main", { id: "quarto-document-content" }, [exContainer, blankContainer, chooseContainer, clozeContainer]);
+    initController("page", pageContainer);
+    assert.strictEqual(pageContainer.dataset.controllerInitialized, "true");
+
+    const controllerActionsNode = pageContainer.querySelector(".quarto-exercise-actions");
+    if (controllerActionsNode) {
+      const pageCheck = controllerActionsNode.querySelector(".quarto-exercise-check-btn");
+      const pageReset = controllerActionsNode.querySelector(".quarto-exercise-reset-btn");
+      if (pageCheck) pageCheck.dispatchEvent("click");
+      if (pageReset) pageReset.dispatchEvent("click");
+    }
+
+    const batchContainerNode = createMockElement("div", { class: "check-batch" }, [exContainer, blankContainer]);
+    initController("batch", batchContainerNode);
+
+    // Test initCheckControllers DOM modes
+    global.document.body = createMockElement("body", { "data-check-mode": "page" }, [pageContainer]);
+    initCheckControllers();
+
+    global.document.body = createMockElement("body", {}, [batchContainerNode]);
+    initCheckControllers();
+
+    initExercises();
+    resetUnit(blankContainer);
+    resetUnit(chooseContainer);
+    resetUnit(clozeContainer);
+    resetUnit(exContainer);
   });
 
   test('Code cloze blank sizing resizes to typed text and toggles underline', () => {
@@ -376,16 +1173,16 @@ test.describe('Quarto Exercises Extension Tests', () => {
           return {
             style: {},
             textContent: '',
-            getBoundingClientRect: () => ({ width: measurerWidth }),
+            getBoundingClientRect: function() {
+              const widths = { total: 48, x: 8, abcdef: 48, '': 0 };
+              return { width: widths[this.textContent] ?? this.textContent.length * 8 };
+            },
             remove: () => {}
           };
         }
         return originalCreateElement.call(context.document, tag);
       };
-      context.document.body.appendChild = (el) => {
-        const widths = { total: 48, x: 8, abcdef: 48, '': 0 };
-        measurerWidth = widths[el.textContent] ?? el.textContent.length * 8;
-      };
+      context.document.body.appendChild = (el) => {};
 
       try {
         run();
@@ -429,7 +1226,7 @@ filters:
   - quarto-exercises
 ---
 
-::: {.exercise #ex1 shuffle=true}
+::: {.exercise .fancy-card #ex1 shuffle=true style="background: navy;"}
 Select the hobbit.
 
 ::: {.answer correct=true key="frodo"}
@@ -449,25 +1246,28 @@ He is short and has hairy feet.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'mc.qmd'), qmdContent);
     renderQuarto('mc.qmd');
-    
+
     const htmlPath = path.join(TEMP_DIR, 'mc.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // 1. Single-correct question renders as radio inputs.
     assert.match(html, /type="radio"/);
-    assert.match(html, /class="quarto-exercise"/);
+    assert.match(html, /class="quarto-exercise(?:\s|\")/);
+    assert.match(html, /class="quarto-exercise fancy-card"/);
+    assert.match(html, /style="background: navy;"/);
     assert.match(html, /data-type="radio"/);
 
-    // 2. Explicit answer keys are preserved.
-    assert.match(html, /data-key="frodo"/);
-    assert.match(html, /data-key="legolas"/);
+    // 2. Author keys are replaced by opaque option IDs and correct digests.
+    assert.match(html, /data-key="opt_[a-f0-9]{24}"/);
+    assert.match(html, /data-qx-correct="[a-f0-9]{64}"/);
+    assert.doesNotMatch(html, /data-key="(?:frodo|legolas)"/);
 
     // 3. Accessibility elements present
     assert.match(html, /fieldset class="quarto-exercise-fieldset"/);
     assert.match(html, /legend class="visually-hidden"/);
 
     // 4. Hints are parsed and rendered correctly
-    assert.match(html, /class="quarto-exercise-hint-btn"/);
+    assert.match(html, /class="quarto-exercise-hint-btn(?:\s|")/);
     assert.match(html, /class="quarto-exercise-hint"/);
 
     // Answer content is block-level, not invalid paragraphs inside spans/labels.
@@ -497,7 +1297,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'blank.qmd'), qmdContent);
     renderQuarto('blank.qmd');
-    
+
     const htmlPath = path.join(TEMP_DIR, 'blank.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -505,14 +1305,15 @@ for(i in {{blank answer="seq_along(rings)"}}) {
     assert.match(html, /class="quarto-exercise-blank-input"/);
     assert.match(html, /class="quarto-exercise-blank-check-btn"/);
     assert.doesNotMatch(html, /placeholder=/);
-    assert.match(html, /data-answers="Gandalf"/);
-    assert.match(html, /data-ignore-case="true"/);
+    assert.match(html, /data-qx-digests="[a-f0-9]{64}"/);
+    assert.match(html, /data-qx-ignore-case="true"/);
+    assert.doesNotMatch(html, /data-answers=/);
     assert.match(html, /data-feedback-incorrect=""/);
 
     // Standalone choose renders as dropdown
     assert.match(html, /class="quarto-exercise-choose-select"/);
     assert.match(html, /data-options="Rivendell\|Minas Tirith\|Edoras"/);
-    assert.match(html, /data-answer="Rivendell"/);
+    assert.doesNotMatch(html, /data-answer=/);
 
     // Code cloze renders correctly
     assert.match(html, /class="[^"]*quarto-exercise-code-cloze-container/);
@@ -543,7 +1344,7 @@ The path is [Mordor| Gondor |Rohan]{.choose answer="Mordor"}.
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'pipe-choice.html'), 'utf8');
     assert.match(html, /data-options="Mordor\| Gondor \|Rohan"/);
-    assert.match(html, /data-answer="Mordor"/);
+    assert.match(html, /data-qx-digests="[a-f0-9]{64}"/);
   });
 
   test('Escaped pipe delimiters render as literal value characters', (t) => {
@@ -561,9 +1362,8 @@ Literal choice: [yes\\\\|no|maybe|unknown]{.choose answer="yes|no"}.
     renderQuarto('escaped-pipe.qmd');
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'escaped-pipe.html'), 'utf8');
-    assert.match(html, /data-answers="yes\\\|no\|maybe"/);
     assert.match(html, /data-options="yes\\\|no\|maybe\|unknown"/);
-    assert.match(html, /data-answer="yes\|no"/);
+    assert.doesNotMatch(html, /data-(?:answer|answers)=/);
   });
 
   test('Inline blanks validate exact, one-of, regex, trimming, and whitespace behavior in browser', async () => {
@@ -711,11 +1511,13 @@ book = {{blank answer="^(the\\s+)?fellowship\\s+of\\s+the\\s+ring$" match="regex
 
       await blank.fill('Fellowship of the Ring');
       await check.click();
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await blank.elementHandle());
       assert.strictEqual(await blank.evaluate(el => el.classList.contains('is-correct')), true);
 
       await page.locator('.quarto-exercise-reset-btn').click();
       await blank.fill('The Fellowship of the Ring');
       await check.click();
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await blank.elementHandle());
       assert.strictEqual(await blank.evaluate(el => el.classList.contains('is-correct')), true);
     } finally {
       await browser.close();
@@ -757,8 +1559,13 @@ fellowship = {
       await page.locator('.quarto-exercise-code-blank').nth(1).fill('Fellowship of the Ring');
       await page.locator('.quarto-exercise-check-btn').click();
 
-      assert.strictEqual(await page.locator('.quarto-exercise-code-blank').nth(1).evaluate(el => el.classList.contains('is-correct')), true);
-      assert.strictEqual(await page.locator('.quarto-exercise-status').textContent(), 'Correct!');
+      const lastBlank = page.locator('.quarto-exercise-code-blank').nth(1);
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await lastBlank.elementHandle());
+      assert.strictEqual(await lastBlank.evaluate(el => el.classList.contains('is-correct')), true);
+
+      const statusLoc = page.locator('.quarto-exercise-status');
+      await page.waitForFunction(el => el.textContent === 'Correct!', await statusLoc.elementHandle());
+      assert.strictEqual(await statusLoc.textContent(), 'Correct!');
     } finally {
       await browser.close();
     }
@@ -788,17 +1595,30 @@ No answer blocks.
 [\`Gandalf\`]{.blank}
 
 [No Answer]{.choose}
+
+::: {.exercise #hidden-explanation explanation="never"}
+Hidden explanation.
+
+::: {.answer correct=true}
+Yes
+:::
+
+::: {.explanation}
+Learners can never see this.
+:::
+:::
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'warnings.qmd'), qmdContent);
     const result = renderQuarto('warnings.qmd');
-    
+
     const stderrLog = result.stderr + result.stdout;
-    
+
     assert.match(stderrLog, /has no correct answers/);
     assert.match(stderrLog, /has no \.answer blocks or inline blanks\/choices/);
     assert.match(stderrLog, /match="regex" with no answer/);
     assert.match(stderrLog, /blank with no answer/);
     assert.match(stderrLog, /choose block with no answer/);
+    assert.match(stderrLog, /contains an \.explanation block, but explanation is set to 'never'/);
   });
 
   test('Non-HTML fallback rendering', (t) => {
@@ -806,8 +1626,6 @@ No answer blocks.
 title: "Fallback Test"
 filters:
   - quarto-exercises
-quarto-exercises:
-  show-answers: true
 ---
 
 ::: {.exercise}
@@ -826,25 +1644,23 @@ The wizard is [\`Gandalf\`]{.blank answer="Gandalf"}.
 `;
     fs.writeFileSync(path.join(TEMP_DIR, 'fallback.qmd'), qmdContent);
     renderQuarto('fallback.qmd', 'markdown');
-    
+
     const mdPath = path.join(TEMP_DIR, 'fallback.md');
     const md = fs.readFileSync(mdPath, 'utf8');
 
-    // Should render list letters and answer keys
+    // Should render list letters
     assert.match(md, /A\.\s+Frodo/);
     assert.match(md, /B\.\s+Legolas/);
-    assert.match(md, /Answer:\s+A/);
-    assert.match(md, /Gandalf/);
+    assert.doesNotMatch(md, /Answer:/);
+    assert.doesNotMatch(md, /Gandalf/);
     assert.doesNotMatch(md, /<div>/);
   });
 
-  test('Code cloze fallback renders placeholders and answer keys in non-HTML output', () => {
+  test('Code cloze fallback renders placeholders in non-HTML output', () => {
     const qmdContent = `---
 title: "Code Cloze Fallback Test"
 filters:
   - quarto-exercises
-quarto-exercises:
-  show-answers: true
 ---
 
 \`\`\`{.code-cloze lang="r"}
@@ -858,7 +1674,7 @@ total <- {{blank answer="sum"}}(x)
     const md = fs.readFileSync(path.join(TEMP_DIR, 'code-cloze-fallback.md'), 'utf8');
     assert.match(md, /x <- ________\(1, 2, 3\)/);
     assert.match(md, /total <- ________\(x\)/);
-    assert.match(md, /Answer:\s*1\. c,\s*2\. sum/);
+    assert.doesNotMatch(md, /Answer:/);
     assert.doesNotMatch(md, /\{\{choose/);
     assert.doesNotMatch(md, /\{\{blank/);
   });
@@ -889,7 +1705,7 @@ Legolas
 
     assert.doesNotMatch(log, /invalid boolean value/);
     assert.doesNotMatch(log, /has no correct answers/);
-    assert.match(html, /data-correct="true"/);
+    assert.match(html, /data-qx-correct="[a-f0-9]{64}"/);
   });
 
   test('Numeric boolean attributes are invalid and not truthy', (t) => {
@@ -918,13 +1734,13 @@ Legolas
 
     assert.match(log, /invalid boolean value for 'correct': '1'/);
     assert.match(log, /has no correct answers/);
-    assert.match(html, /data-correct="false"/);
-    assert.doesNotMatch(html, /data-correct="true"/);
+    assert.match(html, /data-qx-correct=""/);
+    assert.doesNotMatch(html, /data-correct=/);
   });
 
   test('JS click interaction simulation', () => {
     let dispatchCount = 0;
-    
+
     const mockInput = {
       type: 'radio',
       checked: false,
@@ -1104,6 +1920,8 @@ print({{blank answer="total"}})
       await blank.press('Tab');
       await select.selectOption('max');
       await check.click();
+      await page.waitForFunction(el => el.classList.contains('is-correct'), await blank.elementHandle());
+      await page.waitForFunction(el => el.classList.contains('is-incorrect'), await select.elementHandle());
       const incorrect = await getBlankState();
       assert.strictEqual(incorrect.correct, true, 'correct blank text should be marked correct');
       assert.strictEqual(
@@ -1133,7 +1951,9 @@ print({{blank answer="total"}})
       await check.click();
       await check.click();
       assert.deepStrictEqual(pageErrors, [], 'checking an already-correct code cloze should not throw');
-      assert.strictEqual(await page.locator('.quarto-exercise-status').textContent(), 'Correct!');
+      const statusLoc = page.locator('.quarto-exercise-status');
+      await page.waitForFunction(el => el.textContent === 'Correct!', await statusLoc.elementHandle());
+      assert.strictEqual(await statusLoc.textContent(), 'Correct!');
     } finally {
       await browser.close();
     }
@@ -1186,23 +2006,26 @@ Saruman
       const page = await browser.newPage({ viewport: { width: 900, height: 600 } });
       await page.goto(`file://${path.join(TEMP_DIR, 'browser-behavior.html')}`, { waitUntil: 'load' });
 
-      await page.click('#reveal-ex [data-key="legolas"]');
+      const revealFrodo = page.locator('#reveal-ex .quarto-exercise-answer', { hasText: 'Frodo' });
+      const revealLegolas = page.locator('#reveal-ex .quarto-exercise-answer', { hasText: 'Legolas' });
+      await revealLegolas.click();
       await page.click('#reveal-ex .quarto-exercise-check-btn');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-status').textContent(), 'Not quite.');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-explanation').isVisible(), true);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="frodo"]').evaluate(el => el.classList.contains('is-correct')), true);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="legolas"]').evaluate(el => el.classList.contains('is-incorrect')), true);
+      assert.strictEqual(await revealFrodo.evaluate(el => el.classList.contains('is-correct')), true);
+      assert.strictEqual(await revealLegolas.evaluate(el => el.classList.contains('is-incorrect')), true);
 
       await page.click('#reveal-ex .quarto-exercise-reset-btn');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-status').textContent(), '');
       assert.strictEqual(await page.locator('#reveal-ex .quarto-exercise-explanation').isVisible(), false);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="frodo"]').evaluate(el => el.classList.contains('is-correct')), false);
-      assert.strictEqual(await page.locator('#reveal-ex [data-key="legolas"] input').isChecked(), false);
+      assert.strictEqual(await revealFrodo.evaluate(el => el.classList.contains('is-correct')), false);
+      assert.strictEqual(await revealLegolas.locator('input').isChecked(), false);
 
-      await page.click('#lock-ex [data-key="gandalf"]');
+      const lockGandalf = page.locator('#lock-ex .quarto-exercise-answer', { hasText: 'Gandalf' });
+      await lockGandalf.click();
       await page.click('#lock-ex .quarto-exercise-check-btn');
       assert.strictEqual(await page.locator('#lock-ex').evaluate(el => el.classList.contains('is-locked')), true);
-      assert.strictEqual(await page.locator('#lock-ex [data-key="gandalf"] input').isDisabled(), true);
+      assert.strictEqual(await lockGandalf.locator('input').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-check-btn').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-reset-btn').isDisabled(), true);
       assert.strictEqual(await page.locator('#lock-ex .quarto-exercise-status').textContent(), 'Correct!');
@@ -1236,12 +2059,106 @@ Saruman
       reset: true,
       shuffle: false,
       'reshuffle-on-reset': false,
-      'show-answers': false,
       explanation: 'correct',
       'feedback-correct': 'Correct!',
       'feedback-incorrect': 'Not quite.',
-      'ignore-case': false
+      'ignore-case': false,
+      'question-boxes': false,
+      'check-page': false,
+      score: false,
+      points: 1
     });
+  });
+
+  test('Visual, answer-state, and controller APIs stay present', () => {
+    const lua = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.lua'), 'utf8');
+    const js = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.js'), 'utf8');
+    const css = fs.readFileSync(path.join(__dirname, '..', '_extensions', 'quarto-exercises', 'quarto-exercises.css'), 'utf8');
+    for (const option of ['question-boxes', 'option-columns', 'check-page']) {
+      assert.match(lua, new RegExp(`\\["${option}"\\]`));
+    }
+    assert.match(lua, /quarto-exercise-answer-state/);
+    assert.match(lua, /aria-live="polite"/);
+    assert.match(js, /function initCheckControllers/);
+    assert.match(js, /function setAnswerState/);
+    assert.match(css, /quarto-exercise-boxed/);
+    assert.match(css, /quarto-exercise-choices-grid/);
+    assert.match(css, /quarto-exercise-answer\.is-correct::before/);
+  });
+
+  test('Exercise-level visual options render scoped classes and validate columns', () => {
+    const qmdContent = `---
+title: "Visual options"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  question-boxes: true
+---
+
+::: {.exercise #global}
+Global visual options.
+
+::: {.answer correct=true}
+One
+:::
+
+::: {.answer}
+Two
+:::
+
+::: {.hint}
+Helpful hint.
+:::
+:::
+
+::: {.exercise #local-off question-boxes="false" option-columns="1"}
+Local overrides.
+
+::: {.answer correct=true}
+One
+:::
+
+::: {.answer}
+Two
+:::
+:::
+
+::: {.exercise #local-on question-boxes="true" option-columns="2"}
+Local opt-in.
+
+::: {.answer correct=true}
+One
+:::
+
+::: {.answer}
+Two
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'visual-options.qmd'), qmdContent);
+    const result = renderQuarto('visual-options.qmd');
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'visual-options.html'), 'utf8');
+    assert.match(html, /id="global"[^>]*class="quarto-exercise quarto-exercise-boxed"|class="quarto-exercise quarto-exercise-boxed"[^>]*id="global"/);
+    assert.match(html, /id="global"[\s\S]*?quarto-exercise-options-cols-1/);
+    assert.match(html, /class="quarto-exercise"[^>]*id="local-off"/);
+    assert.doesNotMatch(html, /class="quarto-exercise quarto-exercise-boxed"[^>]*id="local-off"/);
+    assert.match(html, /id="local-off"[\s\S]*?quarto-exercise-options-cols-1/);
+    assert.match(html, /id="local-on"[\s\S]*?quarto-exercise-options-cols-2/);
+    assert.match(html, /quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary/);
+    assert.match(html, /quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
+    assert.match(html, /quarto-exercise-hint-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
+    assert.doesNotMatch(result.stderr, /unsupported/);
+
+    fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns="2"', 'option-columns="invalid"'));
+    const invalid = runQuarto('invalid-columns.qmd');
+    assert.strictEqual(invalid.success, true, invalid.stderr);
+    assert.match(invalid.stderr, /unsupported option-columns 'invalid'/);
+
+    fs.writeFileSync(path.join(TEMP_DIR, 'global-columns.qmd'), qmdContent.replace('question-boxes: true', 'question-boxes: true\n  option-columns: 2'));
+    const globalColumns = renderQuarto('global-columns.qmd');
+    assert.match(globalColumns.stderr + globalColumns.stdout, /'option-columns' is only supported on \.exercise and \.check-batch containers/);
+    const globalHtml = fs.readFileSync(path.join(TEMP_DIR, 'global-columns.html'), 'utf8');
+    assert.match(globalHtml, /id="global"[\s\S]*?quarto-exercise-options-cols-1/);
   });
 
   test('Default options render into exercise, blank, and choice controls', () => {
@@ -1285,14 +2202,14 @@ Default choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.match(html, /data-explanation-policy="correct"/);
     assert.match(html, /data-feedback-correct="Correct!"/);
     assert.match(html, /data-feedback-incorrect="Not quite\."/);
-    assert.match(html, /class="quarto-exercise-check-btn"/);
-    assert.match(html, /class="quarto-exercise-reset-btn"/);
+    assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
+    assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
 
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="false"/);
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-trim="true"/);
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-collapse-space="false"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-ignore-case="false"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-trim="true"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-collapse-space="false"/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="false"/);
-    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-ignore-case="false"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-qx-ignore-case="false"/);
   });
 
   test('Global metadata overrides render into exercise, blank, and choice controls', () => {
@@ -1350,7 +2267,7 @@ Shuffled choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.doesNotMatch(html, /class="quarto-exercise-check-btn"/);
     assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
 
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-ignore-case="true"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-ignore-case="true"/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="true"/);
   });
 
@@ -1401,8 +2318,317 @@ Local explanation.
     assert.match(html, /data-explanation-policy="after-check"/);
     assert.match(html, /data-feedback-correct="Local correct"/);
     assert.match(html, /data-feedback-incorrect="Local wrong"/);
-    assert.match(html, /class="quarto-exercise-check-btn"/);
-    assert.match(html, /class="quarto-exercise-reset-btn"/);
+    assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
+    assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
+  });
+
+  test('Standalone blank, choose, and code-cloze accept points attribute', () => {
+    const qmdContent = `---
+title: "Standalone Points Test"
+filters:
+  - quarto-exercises
+---
+
+Blank: [Samwise]{.blank answer="Samwise" points=3}.
+
+Choose: [Rivendell|Edoras]{.choose answer="Rivendell" points=5}.
+
+\`\`\`{.code-cloze lang="python" points=10}
+x = {{blank answer="1"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-points.qmd'), qmdContent);
+    renderQuarto('standalone-points.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'standalone-points.html'), 'utf8');
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-points="3"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-points="5"/);
+    assert.match(html, /class="quarto-exercise-code-cloze-container[^>]*data-points="10"/);
+  });
+
+  test('Nested inline blanks and chooses do not emit Check buttons in any mode', () => {
+    const qmdContent = `---
+title: "Nested Controls Test"
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #ex-nested}
+Blank: [Samwise]{.blank answer="Samwise"}.
+
+Choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'nested-controls.qmd'), qmdContent);
+    renderQuarto('nested-controls.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'nested-controls.html'), 'utf8');
+    assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
+    assert.doesNotMatch(html, /class="quarto-exercise-blank-check-btn"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-choose-check-btn"/);
+  });
+
+  test('check-page: true suppresses individual check and reset buttons in the HTML', () => {
+    const qmdContent = `---
+title: "Page Checking Mode"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-page: true
+---
+
+::: {.exercise #ex1}
+Question 1.
+::: {.answer correct=true}
+Yes
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'page-mode.qmd'), qmdContent);
+    renderQuarto('page-mode.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'page-mode.html'), 'utf8');
+    assert.doesNotMatch(html, /class="quarto-exercise-check-btn"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
+  });
+
+  test('check-batch keeps one shared status and removes private exercise action rows', async () => {
+    const qmdContent = `---
+title: "Batch Checking Mode"
+filters:
+  - quarto-exercises
+---
+
+::: {.check-batch option-columns="2"}
+::: {.exercise #ex-in-batch}
+Inside batch.
+
+::: {.answer correct=true}
+Yes
+:::
+:::
+
+::: {.exercise #ex-in-batch-2}
+Also inside batch.
+
+::: {.answer correct=true}
+Yes
+:::
+:::
+:::
+
+::: {.exercise #ex-out-batch}
+Outside batch.
+
+::: {.answer correct=true}
+Yes
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'batch-mode.qmd'), qmdContent);
+    renderQuarto('batch-mode.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-mode.html'), 'utf8');
+    assert.match(html, /class="check-batch[^\"]*quarto-exercise-batch-grid/);
+    assert.match(html, /style="[^"]*--ex-batch-columns: 2;/);
+
+    // The exercise inside the batch should not have check/reset buttons
+    const batchPart = html.match(/class="quarto-exercise"[^>]*id="ex-in-batch"[\s\S]*?class="quarto-exercise"[^>]*id="ex-out-batch"/)[0];
+    assert.doesNotMatch(batchPart, /quarto-exercise-check-btn/);
+
+    // The exercise outside the batch should still have check/reset buttons
+    const outPart = html.match(/class="quarto-exercise"[^>]*id="ex-out-batch"[\s\S]*$/)[0];
+    assert.match(outPart, /quarto-exercise-check-btn/);
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'batch-mode.html')).href);
+      const batch = page.locator('.check-batch');
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise').count(), 2);
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise > .quarto-exercise-actions').count(), 0, 'private empty action rows should be removed');
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise .quarto-exercise-status').count(), 0, 'private exercise statuses should be removed');
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise-actions .quarto-exercise-status').count(), 1, 'batch should expose one shared status');
+
+      await page.locator('#ex-in-batch .quarto-exercise-input').check();
+      await page.locator('#ex-in-batch-2 .quarto-exercise-input').check();
+      await batch.locator(':scope > .quarto-exercise-actions .quarto-exercise-check-btn').click();
+      assert.strictEqual(await batch.locator(':scope > .quarto-exercise-actions .quarto-exercise-status').textContent(), 'Correct!');
+      assert.strictEqual(await batch.getByText('Correct!', { exact: true }).count(), 1, 'only the batch should report Correct!');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('boxed check-batch gets quarto-exercise-boxed class and suppresses nested boxes', () => {
+    const qmdContent = `---
+title: "Boxed Batch"
+filters:
+  - quarto-exercises
+---
+
+::: {.check-batch question-boxes="true"}
+::: {.exercise #ex-nested-boxed}
+Nested question.
+::: {.answer correct=true}
+Yes
+:::
+:::
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'batch-boxed.qmd'), qmdContent);
+    renderQuarto('batch-boxed.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-boxed.html'), 'utf8');
+    assert.match(html, /class="check-batch[^"]*quarto-exercise-boxed/);
+    assert.doesNotMatch(html, /class="quarto-exercise[^"]*quarto-exercise-boxed[^"]*"[^>]*id="ex-nested-boxed"/);
+  });
+
+  test('check-page: true with standalone controls suppresses all individual buttons in HTML', () => {
+    const qmdContent = `---
+title: "Page Checking Standalone"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-page: true
+---
+
+The wizard is [Gandalf]{.blank answer="Gandalf"}.
+
+Select: [One|Two]{.choose answer="One"}.
+
+\`\`\`{.code-cloze lang="python"}
+x = {{blank answer="1"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'page-standalone.qmd'), qmdContent);
+    renderQuarto('page-standalone.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'page-standalone.html'), 'utf8');
+    assert.doesNotMatch(html, /quarto-exercise-blank-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-choose-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
+  });
+
+  test('check-page grades, scores, and resets standalone-only controls', async () => {
+    const qmdContent = `---
+title: "Standalone page checking"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-page: true
+  score: true
+---
+
+[Gandalf]{.blank #page-blank answer="Gandalf" points=2}.
+
+[Rivendell|Edoras]{.choose #page-choose answer="Rivendell" points=3}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-page-checking.qmd'), qmdContent);
+    renderQuarto('standalone-page-checking.qmd');
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'standalone-page-checking.html')).href, { waitUntil: 'load' });
+      const controls = page.locator('.quarto-exercise-page-controls');
+      assert.strictEqual(await controls.count(), 1, 'standalone-only documents should receive page controls');
+
+      await page.locator('#page-blank input').fill('Gandalf');
+      await page.locator('#page-choose select').selectOption('Rivendell');
+      await controls.locator('.quarto-exercise-check-btn').click();
+      assert.strictEqual(await controls.locator('.quarto-exercise-status').textContent(), 'Correct! Score: 5 / 5.');
+      assert.strictEqual(await page.locator('#page-blank').evaluate(el => el.classList.contains('is-correct')), true);
+      assert.strictEqual(await page.locator('#page-choose').evaluate(el => el.classList.contains('is-correct')), true);
+
+      await controls.locator('.quarto-exercise-reset-btn').click();
+      assert.strictEqual(await page.locator('#page-blank input').inputValue(), '');
+      assert.strictEqual(await page.locator('#page-choose select').inputValue(), '');
+      assert.strictEqual(await page.locator('#page-blank').evaluate(el => el.classList.contains('is-correct')), false);
+      assert.strictEqual(await page.locator('#page-choose').evaluate(el => el.classList.contains('is-correct')), false);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('invalid JavaScript regex patterns fail during rendering', () => {
+    for (const badPattern of ['[', '*', '(?', '[z-a]', 'a{5,1}']) {
+      const qmdContent = `---
+title: "Invalid regex"
+filters:
+  - quarto-exercises
+---
+
+[\`bad\`]{.blank answer="${badPattern}" match="regex"}.
+`;
+      fs.writeFileSync(path.join(TEMP_DIR, 'invalid-regex.qmd'), qmdContent);
+      const result = runQuarto('invalid-regex.qmd');
+      assert.strictEqual(result.success, false, `invalid regex '${badPattern}' should be an authoring error`);
+      assert.match(result.stderr + result.stdout, /invalid regular expression/);
+    }
+  });
+
+  test('check-batch shows global scores for standalone controls', async () => {
+    const qmdContent = `---
+title: "Standalone batch score"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  score: true
+---
+
+::: {.check-batch}
+[Gandalf]{.blank #batch-blank answer="Gandalf" points=2}.
+
+[Rivendell|Edoras]{.choose #batch-choose answer="Rivendell" points=3}.
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'standalone-batch-score.qmd'), qmdContent);
+    renderQuarto('standalone-batch-score.qmd');
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'standalone-batch-score.html')).href, { waitUntil: 'load' });
+      const batch = page.locator('.check-batch');
+      await page.locator('#batch-blank input').fill('Gandalf');
+      await page.locator('#batch-choose select').selectOption('Rivendell');
+      await batch.locator('.quarto-exercise-check-btn').click();
+      assert.strictEqual(await batch.locator('.quarto-exercise-status').textContent(), 'Correct! Score: 5 / 5.');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('check-batch with standalone controls inside .check-batch suppresses their buttons by default', () => {
+    const qmdContent = `---
+title: "Batch Standalone"
+filters:
+  - quarto-exercises
+---
+
+::: {.check-batch}
+The wizard is [Gandalf]{.blank answer="Gandalf"}.
+
+Select: [One|Two]{.choose answer="One"}.
+
+\`\`\`{.code-cloze lang="python"}
+x = {{blank answer="1"}}
+\`\`\`
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'batch-standalone.qmd'), qmdContent);
+    renderQuarto('batch-standalone.qmd');
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'batch-standalone.html'), 'utf8');
+    assert.doesNotMatch(html, /quarto-exercise-blank-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-choose-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-check-btn/);
+    assert.doesNotMatch(html, /quarto-exercise-reset-btn/);
   });
 
   test('Stylesheet exposes the expected light and dark CSS defaults', () => {
@@ -1425,7 +2651,8 @@ Local explanation.
       '--ex-border-radius': '4px',
       '--ex-focus-ring': '0 0 0 2px rgba(26, 115, 232, 0.3)',
       '--ex-panel-border': '#6c757d',
-      '--ex-panel-border-dark': '#adb5bd'
+      '--ex-panel-border-dark': '#adb5bd',
+      '--ex-select-arrow': 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 10 10\'%3E%3Cpath fill=\'%23666\' d=\'M1 3h8l-4 4z\'/%3E%3C/svg%3E")'
     });
     assert.deepStrictEqual(parseCssVariables(css, 'body.quarto-dark'), {
       '--ex-accent': '#8ab4f8',
@@ -1443,7 +2670,8 @@ Local explanation.
       '--ex-control-primary-bg': '#3c4043',
       '--ex-control-primary-hover-bg': '#4f5357',
       '--ex-focus-ring': '0 0 0 2px rgba(138, 180, 248, 0.4)',
-      '--ex-panel-border': '#9aa0a6'
+      '--ex-panel-border': '#9aa0a6',
+      '--ex-select-arrow': 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 10 10\'%3E%3Cpath fill=\'%23aaa\' d=\'M1 3h8l-4 4z\'/%3E%3C/svg%3E")'
     });
   });
 
@@ -1454,7 +2682,19 @@ Local explanation.
 
     for (const mode of ['light', 'dark']) {
       const result = await runVisualMode(playwright, mode);
-      const { standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong } = result;
+      const { batchGridState, chooseStates, standaloneBlankState, hintState, incorrectState, correctState, checkboxWrongState, checkboxCorrectState, selectWidthChoose, selectWidthLong } = result;
+
+      assert.strictEqual(batchGridState.columns, 2, `${mode} batch should retain two columns`);
+      assert.ok(batchGridState.visualGap <= batchGridState.gap + 1, `${mode} batch controls should be separated by only the grid gap`);
+      assert.deepStrictEqual(batchGridState.exerciseBottomMargins, [0, 0], `${mode} batch exercises should not add margins to the grid gap`);
+      assert.strictEqual(batchGridState.actionsTopMargin, 0, `${mode} batch actions should not add a second gap`);
+
+      for (const state of chooseStates) {
+        assert.strictEqual(state.selectColor, state.bodyColor, `${mode} ${state.selector} text should use the bslib body color`);
+        assert.strictEqual(state.selectBackground, state.bodyBackground, `${mode} ${state.selector} background should use the bslib body background`);
+        assert.strictEqual(state.optionColor, state.bodyColor, `${mode} ${state.selector} options should use the bslib body color`);
+        assert.strictEqual(state.optionBackground, state.bodyBackground, `${mode} ${state.selector} options should use the bslib body background`);
+      }
 
       assert.ok(selectWidthChoose < selectWidthLong, `${mode} choose select should expand for longer selected option`);
       assert.strictEqual(standaloneBlankState.placeholder, '', `${mode} standalone blank placeholder should be empty`);
@@ -1505,7 +2745,7 @@ Local explanation.
       assert.strictEqual(correctState.statusText, 'Correct!');
       assert.strictEqual(checkboxWrongState.correctFeedbackVisible, true, `${mode} selected correct checkbox feedback should show`);
       assert.strictEqual(checkboxWrongState.wrongFeedbackVisible, true, `${mode} selected wrong checkbox feedback should show`);
-      
+
       if (mode === 'dark') {
         assert.match(checkboxWrongState.frodoBg, /rgb\(129, 201, 149\)/, `${mode} correct checked checkbox background`);
         assert.match(checkboxWrongState.legolasBg, /rgb\(242, 139, 130\)/, `${mode} incorrect checked checkbox background`);
@@ -1525,6 +2765,352 @@ Local explanation.
         assert.ok(fs.existsSync(shot), `${shot} should exist`);
         assert.ok(fs.statSync(shot).size > 1000, `${shot} should not be blank`);
       }
+    }
+  });
+
+  test('Bslib light and dark themes keep inline and code-cloze dropdowns legible', async () => {
+    const qmdContent = `---
+title: "Bslib dropdown colors"
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+filters:
+  - quarto-exercises
+---
+
+Inline choice: [Gimli|Legolas]{.choose answer="Gimli"}.
+
+\`\`\`{.code-cloze lang="r"}
+member <- {{choose answer="Gimli" options="Gimli|Legolas|Pippin"}}
+\`\`\`
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'bslib-dropdowns.qmd'), qmdContent);
+    renderQuarto('bslib-dropdowns.qmd');
+
+    const { chromium } = require('playwright');
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'bslib-dropdowns.html')).href);
+
+      const readColors = () => page.evaluate(() => {
+        const body = getComputedStyle(document.body);
+        return {
+          bodyColor: body.color,
+          bodyBackground: body.backgroundColor,
+          controls: ['.quarto-exercise-choose-select', '.quarto-exercise-code-choose'].map(selector => {
+            const select = document.querySelector(selector);
+            return {
+              selector,
+              color: getComputedStyle(select).color,
+              background: getComputedStyle(select).backgroundColor,
+              options: Array.from(select.options, option => ({
+                color: getComputedStyle(option).color,
+                background: getComputedStyle(option).backgroundColor
+              }))
+            };
+          })
+        };
+      });
+
+      const assertThemeColors = (state, mode) => {
+        for (const control of state.controls) {
+          assert.strictEqual(control.color, state.bodyColor, `${mode} ${control.selector} should use bslib body text`);
+          assert.strictEqual(control.background, state.bodyBackground, `${mode} ${control.selector} should use bslib body background`);
+          assert.ok(control.options.length >= 2, `${mode} ${control.selector} should expose its options`);
+          for (const option of control.options) {
+            assert.strictEqual(option.color, state.bodyColor, `${mode} ${control.selector} option text should use bslib body text`);
+            assert.strictEqual(option.background, state.bodyBackground, `${mode} ${control.selector} option background should use bslib body background`);
+          }
+        }
+      };
+
+      const light = await readColors();
+      assertThemeColors(light, 'light');
+      await page.evaluate(() => window.quartoToggleColorScheme());
+      await page.waitForFunction(() => document.body.classList.contains('quarto-dark'));
+      const dark = await readColors();
+      assertThemeColors(dark, 'dark');
+      assert.notStrictEqual(light.bodyColor, dark.bodyColor, 'theme toggle should change the bslib body text color');
+      assert.notStrictEqual(light.bodyBackground, dark.bodyBackground, 'theme toggle should change the bslib body background');
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('Digest obfuscation hides answers and preserves browser grading', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "TDD Leak Test"
+format:
+  html:
+    embed-resources: true
+filters:
+  - quarto-exercises
+---
+
+::: {.exercise #ex-mc-single}
+Select Sam.
+
+::: {.answer key="sam" correct=true}
+Samwise
+:::
+
+::: {.answer key="legolas"}
+Legolas
+:::
+:::
+
+::: {.exercise #ex-mc-multi}
+Select Frodo and Sam.
+
+::: {.answer key="frodo" correct=true}
+Frodo
+:::
+
+::: {.answer key="sam" correct=true}
+Sam
+:::
+
+::: {.answer key="legolas"}
+Legolas
+:::
+:::
+
+Standalone blank: [\`Gandalf\`]{.blank answer="Gandalf"}.
+
+Standalone blank multi: [\`Sam\`]{.blank answers="Samwise|Sam" match="one-of"}.
+
+Standalone regex blank: [\`1001\`]{.blank answer="^(0b)?1001$" match="regex"}.
+
+Standalone choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
+
+::: {.exercise #ex-cloze}
+\`\`\`{.code-cloze lang="python"}
+fellowship = {
+    "companion": {{blank answers='"Samwise"|"Sam"' match="one-of"}},
+    "first_book_title": {{blank answer="^(the\\\\s+)?fellowship$" match="regex"}},
+    "bearer": {{choose answer="Frodo" options="Frodo|Sam"}},
+}
+\`\`\`
+:::
+
+::: {.exercise #ex-inline}
+Inline blank: [Frodo]{.blank answer="Frodo"}.
+Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
+:::
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'tdd-leak.qmd'), qmdContent);
+    const buildRes = runQuarto('tdd-leak.qmd');
+    assert.strictEqual(buildRes.success, true, "Build should succeed");
+
+    // Assert no data-processed or has no .answer block warnings are present
+    assert.doesNotMatch(buildRes.stderr + buildRes.stdout, /data-processed/);
+    assert.doesNotMatch(buildRes.stderr + buildRes.stdout, /has no \.answer blocks/);
+
+    const htmlPath = path.join(TEMP_DIR, 'tdd-leak.html');
+    const html = fs.readFileSync(htmlPath, 'utf8');
+
+    // Make sure we don't leak answer strings or signatures/public keys in attributes/source
+    assert.doesNotMatch(html, /class="quarto-exercise-answer"[^>]*data-correct/);
+    assert.doesNotMatch(html, /class="quarto-exercise-choose-container"[^>]*data-answer=/);
+    assert.doesNotMatch(html, /class="quarto-exercise-blank-container"[^>]*data-answers=/);
+    assert.doesNotMatch(html, /"answers":/);
+    assert.doesNotMatch(html, /"correct":/);
+    assert.match(html, /data-qx-salt="salt_[a-f0-9]{24}"/);
+    assert.match(html, /data-qx-(?:correct|digests)="[a-f0-9 ]+"/);
+    assert.doesNotMatch(html, /QUARTO_EXERCISES_KEY|quartoExercisesKey|data-pba=/);
+
+    // 3. Verify grading behavior in browser
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+      page.on('pageerror', err => console.error('BROWSER ERROR:', err.message));
+      await page.goto(`file://${htmlPath}`, { waitUntil: 'load' });
+
+      const expectStatus = async (selector, text) => {
+        const loc = page.locator(selector);
+        await page.waitForFunction(
+          ([el, expected]) => el.textContent === expected,
+          [await loc.elementHandle(), text]
+        );
+        assert.strictEqual(await loc.textContent(), text);
+      };
+
+      const expectClass = async (loc, className, shouldHave = true) => {
+        await page.waitForFunction(
+          ([el, name, has]) => el.classList.contains(name) === has,
+          [await loc.elementHandle(), className, shouldHave]
+        );
+        assert.strictEqual(await loc.evaluate((el, name) => el.classList.contains(name), className), shouldHave);
+      };
+
+      // Test MCQ Single Selection
+      const legolasLabel = page.locator('#ex-mc-single .quarto-exercise-answer', { hasText: 'Legolas' });
+      await legolasLabel.click();
+      await page.click('#ex-mc-single .quarto-exercise-check-btn');
+      await expectStatus('#ex-mc-single .quarto-exercise-status', 'Not quite.');
+
+      const samLabel = page.locator('#ex-mc-single .quarto-exercise-answer', { hasText: 'Samwise' });
+      await samLabel.click();
+      await page.click('#ex-mc-single .quarto-exercise-check-btn');
+      await expectStatus('#ex-mc-single .quarto-exercise-status', 'Correct!');
+
+      // Test MCQ Multi Selection
+      const multiFrodo = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Frodo' });
+      const multiSam = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Sam' });
+      const multiLegolas = page.locator('#ex-mc-multi .quarto-exercise-answer', { hasText: 'Legolas' });
+
+      await multiFrodo.click();
+      await multiLegolas.click();
+      await page.click('#ex-mc-multi .quarto-exercise-check-btn');
+      await expectStatus('#ex-mc-multi .quarto-exercise-status', 'Not quite.');
+
+      await page.click('#ex-mc-multi .quarto-exercise-reset-btn');
+      await multiFrodo.click();
+      await multiSam.click();
+      await page.click('#ex-mc-multi .quarto-exercise-check-btn');
+      await expectStatus('#ex-mc-multi .quarto-exercise-status', 'Correct!');
+
+      // Standalone blank (Gandalf)
+      const blank1 = page.locator('.quarto-exercise-blank-container').nth(0);
+      await blank1.locator('input').fill('Wrong');
+      await blank1.locator('button').click();
+      await expectClass(blank1, 'is-correct', false);
+      await blank1.locator('input').fill('Gandalf');
+      await blank1.locator('button').click();
+      await expectClass(blank1, 'is-correct', true);
+
+      // Standalone blank multi (Samwise / Sam)
+      const blank2 = page.locator('.quarto-exercise-blank-container').nth(1);
+      await blank2.locator('input').fill('Samwise');
+      await blank2.locator('button').click();
+      await expectClass(blank2, 'is-correct', true);
+
+      // Standalone regex blank (^(0b)?1001$)
+      const blank3 = page.locator('.quarto-exercise-blank-container').nth(2);
+      await blank3.locator('input').fill('0b1001');
+      await blank3.locator('button').click();
+      await expectClass(blank3, 'is-correct', true);
+
+      // Standalone choose (Rivendell)
+      const choose1 = page.locator('.quarto-exercise-choose-container').nth(0);
+      await choose1.locator('select').selectOption('Edoras');
+      await choose1.locator('button').click();
+      await expectClass(choose1, 'is-correct', false);
+      await choose1.locator('select').selectOption('Rivendell');
+      await choose1.locator('button').click();
+      await expectClass(choose1, 'is-correct', true);
+
+      // Code Cloze
+      const clozeBlank1 = page.locator('#ex-cloze .quarto-exercise-code-blank').nth(0);
+      const clozeBlank2 = page.locator('#ex-cloze .quarto-exercise-code-blank').nth(1);
+      const clozeChoose = page.locator('#ex-cloze .quarto-exercise-code-choose');
+
+      await clozeBlank1.fill('"Sam"');
+      await clozeBlank2.fill('fellowship');
+      await clozeChoose.selectOption('Frodo');
+      await page.click('#ex-cloze .quarto-exercise-check-btn');
+      await expectStatus('#ex-cloze .quarto-exercise-status', 'Correct!');
+
+      // Inline controls inside .exercise
+      const inlineBlank = page.locator('#ex-inline .quarto-exercise-blank-container');
+      await inlineBlank.locator('input').fill('Frodo');
+      const inlineChoose = page.locator('#ex-inline .quarto-exercise-choose-container');
+      await inlineChoose.locator('select').selectOption('Frodo');
+      await page.click('#ex-inline .quarto-exercise-check-btn');
+      await expectClass(inlineBlank, 'is-correct', true);
+      await expectClass(inlineChoose, 'is-correct', true);
+    } finally {
+      await browser.close();
+    }
+
+  });
+
+  test('Canvas-like checking, document-level and scoring semantics E2E', async () => {
+    const playwright = require('playwright');
+    const qmdContent = `---
+title: "Scoring and Page checking test"
+filters:
+  - quarto-exercises
+quarto-exercises:
+  check-page: true
+  score: true
+---
+
+[Gandalf]{.blank answer="Gandalf" id="stand-blank" points=2}.
+
+::: {.exercise #ex-multi points=4}
+MCQ:
+
+::: {.answer correct=true}
+Frodo
+:::
+
+::: {.answer}
+Legolas
+:::
+
+Blank: [Samwise]{.blank answer="Samwise"}.
+
+Choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
+
+Code Cloze:
+\`\`\`{.code-cloze lang="python"}
+x = {{blank answer="1"}}
+\`\`\`
+:::
+
+[Rivendell|Edoras]{.choose answer="Rivendell" id="stand-choose" points=3}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'page-scoring-e2e.qmd'), qmdContent);
+    renderQuarto('page-scoring-e2e.qmd');
+
+    const htmlPath = path.join(TEMP_DIR, 'page-scoring-e2e.html');
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`file://${htmlPath}`, { waitUntil: 'load' });
+
+      const expectStatus = async (selector, text) => {
+        const loc = page.locator(selector);
+        await page.waitForFunction(
+          ([el, expected]) => el.textContent === expected,
+          [await loc.elementHandle(), text]
+        );
+        assert.strictEqual(await loc.textContent(), text);
+      };
+
+      // Perform partial grading check:
+      // ex-multi MCQ (Frodo) correct
+      await page.locator('#ex-multi .quarto-exercise-answer', { hasText: 'Frodo' }).click();
+      // ex-multi choose (Rivendell) correct
+      await page.locator('#ex-multi .quarto-exercise-choose-select').selectOption('Rivendell');
+      // stand-choose (Rivendell) correct
+      await page.locator('#stand-choose .quarto-exercise-choose-select').selectOption('Rivendell');
+
+      // Click "Check Page"
+      await page.click('.quarto-exercise-page-controls .quarto-exercise-check-btn');
+
+      // We expect: stand-blank is wrong (0/2), stand-choose is correct (3/3),
+      // ex-multi: MCQ correct (1 unit), choose correct (1 unit), blank empty/wrong (0 units), cloze blank empty/wrong (0 units).
+      // So ex-multi score = 2 / 4 units correct = 2 points.
+      // Total score = 0 (stand-blank) + 2 (ex-multi) + 3 (stand-choose) = 5 points out of 9 possible.
+      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Not quite. Score: 5 / 9.');
+
+      // Now fill all correctly:
+      await page.locator('#stand-blank input').fill('Gandalf');
+      await page.locator('#ex-multi .quarto-exercise-blank-container input').fill('Samwise');
+      await page.locator('#ex-multi .quarto-exercise-code-blank').fill('1');
+
+      // Click "Check Page" again
+      await page.click('.quarto-exercise-page-controls .quarto-exercise-check-btn');
+      await expectStatus('.quarto-exercise-page-controls .quarto-exercise-status', 'Correct! Score: 9 / 9.');
+    } finally {
+      await browser.close();
     }
   });
 });

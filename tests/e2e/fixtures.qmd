@@ -1,0 +1,302 @@
+---
+title: "E2E Test Fixtures"
+filters:
+  - ../../_extensions/quarto-exercises/quarto-exercises.lua
+quarto-exercises:
+  instant: false
+  reveal: false
+  lock: false
+  reset: true
+  shuffle: false
+  show-answers: false
+---
+
+<!-- ========================================================
+     MCQ – SINGLE CHOICE
+     ======================================================== -->
+
+## MCQ single-choice
+
+::: {.exercise data-testid="mcq-basic-single"}
+Who is the Ringbearer?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Boromir
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+
+<!-- ========================================================
+     MCQ – MULTIPLE CHOICE
+     ======================================================== -->
+
+## MCQ multiple-choice
+
+::: {.exercise data-testid="mcq-basic-multi"}
+Which of the following are hobbits? Select all that apply.
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer correct=true}
+Samwise Gamgee
+:::
+
+::: {.answer}
+Legolas Greenleaf
+:::
+
+::: {.answer correct=true}
+Meriadoc Brandybuck
+:::
+:::
+
+<!-- ========================================================
+     MCQ – PER-ANSWER FEEDBACK
+     ======================================================== -->
+
+## MCQ with per-answer feedback
+
+::: {.exercise data-testid="mcq-with-feedback"}
+Who guides the Fellowship?
+
+::: {.answer correct=true key="gandalf"}
+Gandalf
+
+::: {.feedback}
+Correct! Gandalf the Grey.
+:::
+:::
+
+::: {.answer key="saruman"}
+Saruman
+
+::: {.feedback}
+Wrong. Saruman betrayed them.
+:::
+:::
+:::
+
+<!-- ========================================================
+     MCQ – HINT
+     ======================================================== -->
+
+## MCQ with hint
+
+::: {.exercise data-testid="mcq-with-hint"}
+What is the Elvish word for friend?
+
+::: {.answer correct=true}
+Mellon
+:::
+
+::: {.answer}
+Ennyn
+:::
+
+::: {.hint}
+Think of the door of Moria.
+:::
+:::
+
+<!-- ========================================================
+     MCQ – EXPLANATION (shows after correct)
+     ======================================================== -->
+
+## MCQ with explanation
+
+::: {.exercise data-testid="mcq-with-explanation" explanation="correct"}
+Who destroyed the One Ring?
+
+::: {.answer correct=true}
+Frodo (via Gollum)
+:::
+
+::: {.answer}
+Aragorn
+:::
+
+::: {.explanation}
+Gollum bit off Frodo's finger and fell into the fire.
+:::
+:::
+
+<!-- ========================================================
+     MCQ – REVEAL (shows correct answers after check)
+     ======================================================== -->
+
+## MCQ with reveal
+
+::: {.exercise data-testid="mcq-with-reveal" reveal=true}
+Who is the king of Rohan?
+
+::: {.answer correct=true}
+Théoden
+:::
+
+::: {.answer}
+Denethor
+:::
+:::
+
+<!-- ========================================================
+     MCQ – LOCK (disables inputs after correct)
+     ======================================================== -->
+
+## MCQ with lock
+
+::: {.exercise data-testid="mcq-with-lock" lock=true}
+What does Gimli carry?
+
+::: {.answer correct=true}
+An axe
+:::
+
+::: {.answer}
+A bow
+:::
+:::
+
+<!-- ========================================================
+     MCQ – QUESTION BOX
+     ======================================================== -->
+
+## MCQ with question box
+
+::: {.exercise data-testid="mcq-question-box" question-boxes="true"}
+Where was the One Ring forged?
+
+::: {.answer correct=true}
+Mount Doom
+:::
+
+::: {.answer}
+Isengard
+:::
+:::
+
+<!-- ========================================================
+     INLINE BLANK – BASIC
+     ======================================================== -->
+
+## Inline blank
+
+::: {.exercise data-testid="blank-exercise"}
+The wizard is [`Gandalf`]{.blank answer="Gandalf"}.
+:::
+
+<!-- ========================================================
+     INLINE BLANK – MULTI-ANSWER, CASE-INSENSITIVE
+     ======================================================== -->
+
+## Inline blank multi-answer
+
+::: {.exercise data-testid="blank-multi-answer"}
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
+:::
+
+<!-- ========================================================
+     INLINE BLANK – REGEX
+     ======================================================== -->
+
+## Inline blank regex
+
+::: {.exercise data-testid="blank-regex"}
+Name the mountain: [`Mount Doom`]{.blank answer="^mount\s+doom$" match="regex" ignore-case=true}.
+:::
+
+<!-- ========================================================
+     INLINE DROPDOWN (CHOOSE) – BASIC
+     ======================================================== -->
+
+## Inline choose
+
+::: {.exercise data-testid="choose-exercise"}
+The Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
+:::
+
+<!-- ========================================================
+     CODE CLOZE – STANDALONE
+     ======================================================== -->
+
+## Code cloze standalone
+
+```{.code-cloze lang="r" data-testid="cloze-standalone"}
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
+total <- {{blank answer="sum"}}(x)
+```
+
+<!-- ========================================================
+     CODE CLOZE – INSIDE EXERCISE
+     ======================================================== -->
+
+## Code cloze in exercise
+
+::: {.exercise data-testid="cloze-exercise"}
+```{.code-cloze lang="python"}
+numbers = [1, 2, 3]
+total = {{choose answer="sum" options="sum|max|min"}}(numbers)
+print({{blank answer="total"}})
+```
+:::
+
+<!-- ========================================================
+     CHECK-BATCH
+     ======================================================== -->
+
+## Check-batch
+
+::: {.check-batch data-testid="batch-container"}
+::: {.exercise data-testid="batch-q1" points=2}
+Which hobbit is Frodo's gardener?
+
+::: {.answer correct=true}
+Samwise Gamgee
+:::
+
+::: {.answer}
+Meriadoc Brandybuck
+:::
+:::
+
+::: {.exercise data-testid="batch-q2" points=1}
+Complete: [`Samwise`]{.blank answer="Samwise"} Gamgee.
+:::
+:::
+
+<!-- ========================================================
+     MIXED EXERCISE (blanks + chooses together)
+     ======================================================== -->
+
+## Mixed exercise
+
+::: {.exercise data-testid="mixed-exercise"}
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas]{.choose answer="Aragorn"},
+also known as [`Strider`]{.blank answer="Strider"}.
+:::
+
+<!-- ========================================================
+     EXERCISE – INSTANT MODE
+     ======================================================== -->
+
+## Instant mode exercise
+
+::: {.exercise data-testid="mcq-instant" instant=true}
+What does Elrond rule?
+
+::: {.answer correct=true}
+Rivendell
+:::
+
+::: {.answer}
+Lothlórien
+:::
+:::

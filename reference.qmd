@@ -1,7 +1,5 @@
 ---
 title: "Quarto Exercises Reference"
-filters:
-  - quarto-exercises
 ---
 
 This page shows how to configure and structure interactive practice exercises with the `quarto-exercises` extension.
@@ -12,22 +10,26 @@ Place configuration overrides in the document frontmatter under `quarto-exercise
 
 ```yaml
 quarto-exercises:
-  instant: false              # Validate answers on change instead of waiting for a Check button
-  reveal: false               # Reveal correct answers and statuses when checking
-  lock: false                 # Disable input fields after a correct answer is checked
-  reset: true                 # Show a Reset button to clear student inputs
-  shuffle: false              # Randomize the display order of choices
-  reshuffle-on-reset: false   # Randomize option order again when clicking Reset
-  show-answers: false         # Print answers inline or below questions (mostly for print/PDF)
+  instant: false              # Set true to validate answers immediately when inputs change.
+  reveal: false               # Set true to reveal correct answers after checking.
+  lock: false                 # Set true to disable inputs after a correct answer is checked.
+  reset: true                 # Set true to show a Reset button to clear student inputs.
+  shuffle: false              # Set true to randomize the display order of choices.
+  reshuffle-on-reset: false   # Set true to randomize option order again when clicking Reset.
   explanation: correct        # When to reveal explanations: correct, after-check, or never
   feedback-correct: "Correct!" # Message displayed next to controls on a correct answer
   feedback-incorrect: "Not quite." # Message displayed next to controls on an incorrect answer
-  ignore-case: false          # Ignore casing during text input validation
+  ignore-case: false          # Set true to ignore casing during text input validation.
+  question-boxes: false       # Set true to add a contained box around each exercise.
+  check-page: false           # Set true to check the entire page at once with one control set.
+  score: false                 # Set true to show earned and possible points after checking.
+  points: 1                    # Default points for each exercise
 ```
 
----
 
-## Multiple Choice Exercises
+## Question Types
+
+### Multiple Choice Exercises
 
 ```markdown
 ::: {.exercise}
@@ -63,7 +65,7 @@ Legolas Greenleaf
 :::
 :::
 
----
+
 
 ```markdown
 ::: {.exercise shuffle=true}
@@ -99,7 +101,7 @@ Samwise Gamgee
 :::
 :::
 
----
+
 
 ```markdown
 ::: {.exercise}
@@ -143,9 +145,9 @@ He is also known as Mithrandir.
 :::
 :::
 
----
 
-## Inline Blanks
+
+### Inline Blanks
 
 Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
 
@@ -155,7 +157,7 @@ The Capital of Gondor is [`Minas Tirith`]{.blank answer="Minas Tirith"}.
 
 The Capital of Gondor is [`Minas Tirith`]{.blank answer="Minas Tirith"}.
 
----
+
 
 ```markdown
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
@@ -163,7 +165,7 @@ The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=tru
 
 The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
 
----
+
 
 ```markdown
 Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
@@ -171,7 +173,7 @@ Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="
 
 Answer with the literal token [`yes|no`]{.blank answers="yes\\|no|maybe" match="one-of"}.
 
----
+
 
 ```markdown
 Enter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.
@@ -179,7 +181,7 @@ Enter the Fellowship member count as a binary literal for 9, with an optional `0
 
 Enter the Fellowship member count as a binary literal for 9, with an optional `0b` prefix: [`1001`]{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.
 
----
+
 
 ```markdown
 Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
@@ -187,9 +189,9 @@ Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Sam
 
 Name the hobbit who accompanied Frodo to Mount Doom: [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.
 
----
 
-## Inline Dropdowns
+
+### Inline Dropdowns
 
 ```markdown
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
@@ -197,25 +199,15 @@ The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedbac
 
 The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.
 
----
-
-```markdown
-The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-```
-
-The literal token is [yes\\|no|maybe|unknown]{.choose answer="yes|no"}.
-
----
-
 ```markdown
 The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
 ```
 
 The capital of Rohan is [Edoras|Helm's Deep|Isengard]{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.
 
----
 
-## Shared Controls Exercise
+
+### Shared Controls Exercise
 
 ```markdown
 ::: {.exercise}
@@ -227,9 +219,11 @@ The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.c
 The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
 :::
 
-## Code Cloze
+### Code Cloze
 
 Code cloze markers are parsed from raw code text, so escaped delimiter examples use one fewer backslash than normal Markdown attributes.
+
+Code cloze inputs do not show per-input feedback text inside the highlighted code block. In a grouped exercise, the shared status becomes correct only when every cloze input is correct.
 
 ````markdown
 ```{.code-cloze lang="r"}
@@ -245,14 +239,12 @@ x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3)
 total <- {{blank answer="sum"}}(x)
 ```
 
----
+
 
 Wrap the code block in an `.exercise` if it should share controls with the rest of the exercise:
 
 ````markdown
 ::: {.exercise explanation="after-check"}
-> [!NOTE]
-> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary
@@ -275,8 +267,6 @@ This program demonstrates Python dictionary property assignments: option selecti
 ````
 
 ::: {.exercise explanation="after-check"}
-> [!NOTE]
-> Inputs embedded inside `.code-cloze` blocks do not display individual correct or incorrect inline feedback messages, as there are no surrounding spans or container labels inside highlight code formatting to hold status text values. In a grouped exercise, the shared status is correct only after every cloze control is correct.
 
 ```{.code-cloze lang="python"}
 # Fellowship configuration dictionary
@@ -296,3 +286,451 @@ fellowship = {
 This program demonstrates Python dictionary property assignments: option selections ("Frodo"), string list choices ("Samwise"), and case-insensitive regular expressions checking the first Lord of the Rings book title inside code blocks.
 :::
 :::
+
+
+
+## Batch, Page, and Score Checking
+
+By default, every exercise gets its own Check and Reset controls. If you wrap multiple exercises in a `.check-batch` container, they are checked together as a batch using one set of controls.
+
+```markdown
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;"}
+::: {.exercise points=2}
+Which character is a hobbit?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+
+::: {.exercise points=1}
+Complete the name: [Samwise]{.blank answer="Samwise"} Gamgee.
+:::
+:::
+```
+Since `.check-batch` renders as a standard container `div`, you can style it using standard CSS or inline styles to add borders, boxes, margins, or background colors around the entire batch:
+
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;"}
+::: {.exercise points=2}
+Which character is a hobbit?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+
+::: {.exercise points=1}
+Complete the name: [Samwise]{.blank answer="Samwise"} Gamgee.
+:::
+:::
+
+Set `check-page: true` to place one Check Page and Reset Page control after all exercises in the document.
+
+Set `score: true` to show earned and possible points after checking.
+
+Standalone blanks, chooses, and code clozes are worth 1 point unless they specify `points`.
+
+The [Full Page Check](full-page-check.qmd) page demonstrates page-level checking with per-question points.
+
+## Answer Obfuscation
+
+Answer obfuscation is always enabled.
+
+Generated HTML stores opaque choice IDs, salts, and digests instead of plaintext correctness metadata. Accepted blank and dropdown answers are normalized and stored as salted digests. Regex patterns are encoded to avoid plaintext answer metadata in generated HTML.
+
+This is static source obfuscation, not secure grading. Because checking runs in the browser, a determined student can reverse engineer it. Use it to discourage casual answer lookup through view-source, DOM attributes, or obvious console inspection, not to secure a graded assessment.
+
+## Visual Style
+
+The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto's light and dark themes, Bootstrap themes, custom themes, and `theme: none`.
+
+### Question boxes
+
+Set `question-boxes: true` to place each `.exercise` in a subtle bordered box with padding and a theme-aware background. The default is `false`, so existing documents keep their current layout. Use `question-boxes="true"` or `question-boxes="false"` on an individual `.exercise` to override the document setting.
+
+```markdown
+::: {.exercise question-boxes="true"}
+Which answer is correct?
+
+::: {.answer correct=true}
+This one.
+:::
+
+::: {.answer}
+Not this one.
+:::
+:::
+```
+
+::: {.exercise question-boxes="true"}
+Which answer is correct?
+
+::: {.answer correct=true}
+This one.
+:::
+
+::: {.answer}
+Not this one.
+:::
+:::
+
+Only the exercise container is boxed. Standalone inline blanks and dropdowns are unchanged.
+
+### Multiple-column MCQ
+
+Set `option-columns` to the number of columns you want for multiple-choice options. Authors can choose any positive number of columns appropriate for their content. The grid preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens it collapses to one column. The default is `1`.
+
+```markdown
+::: {.exercise option-columns="2"}
+Choose all that apply.
+
+::: {.answer correct=true}
+First answer
+:::
+
+::: {.answer}
+Second answer
+:::
+
+::: {.answer correct=true}
+Third answer
+:::
+
+::: {.answer}
+Fourth answer
+:::
+:::
+```
+
+::: {.exercise option-columns="2"}
+Choose all that apply.
+
+::: {.answer correct=true}
+First answer
+:::
+
+::: {.answer}
+Second answer
+:::
+
+::: {.answer correct=true}
+Third answer
+:::
+
+::: {.answer}
+Fourth answer
+:::
+:::
+
+To place independent exercises beside each other, use Quarto's standard column layout. Each exercise keeps its own controls:
+
+```markdown
+::::: {.columns}
+:::: {.column}
+::: {.exercise}
+Which character is a dwarf?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+::::
+
+:::: {.column}
+::: {.exercise}
+Which pair are hobbits?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Gimli and Legolas
+:::
+:::
+::::
+:::::
+```
+
+::::: {.columns}
+:::: {.column}
+::: {.exercise}
+Which character is a dwarf?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+::::
+
+:::: {.column}
+::: {.exercise}
+Which pair are hobbits?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Gimli and Legolas
+:::
+:::
+::::
+:::::
+
+For exercises checked as one batch, put `option-columns` on `.check-batch`. It arranges the exercises into that many columns while retaining one shared set of batch controls:
+
+```markdown
+::: {.check-batch option-columns="2"}
+::: {.exercise}
+What does Gimli carry?
+
+::: {.answer correct=true}
+An axe
+:::
+
+::: {.answer}
+A bow
+:::
+:::
+
+::: {.exercise}
+What kind of being is Treebeard?
+
+::: {.answer correct=true}
+An Ent
+:::
+
+::: {.answer}
+A hobbit
+:::
+:::
+:::
+```
+
+::: {.check-batch option-columns="2"}
+::: {.exercise}
+What does Gimli carry?
+
+::: {.answer correct=true}
+An axe
+:::
+
+::: {.answer}
+A bow
+:::
+:::
+
+::: {.exercise}
+What kind of being is Treebeard?
+
+::: {.answer correct=true}
+An Ent
+:::
+
+::: {.answer}
+A hobbit
+:::
+:::
+:::
+
+On narrow screens, both the answer-choice grid and the batch grid collapse to one column.
+
+### Custom CSS Styling
+
+Since the extension outputs semantic HTML with dedicated class hooks, you can apply inline styles to exercise and batch containers or target exercises, batches, and generated answer choices from a stylesheet.
+
+To restyle the controls, override `.quarto-exercise-check-btn`, `.quarto-exercise-reset-btn`, or `.quarto-exercise-hint-btn` in your stylesheet.
+
+For instance, you can style a `.check-batch` with a custom border or background:
+
+```markdown
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}
+::: {.exercise}
+Which hobbit is usually paired with Merry?
+
+::: {.answer correct=true}
+Pippin
+:::
+
+::: {.answer}
+Sam
+:::
+:::
+
+::: {.exercise}
+Who is the dwarf in the Fellowship?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+:::
+```
+
+::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}
+::: {.exercise}
+Which hobbit is usually paired with Merry?
+
+::: {.answer correct=true}
+Pippin
+:::
+
+::: {.answer}
+Sam
+:::
+:::
+
+::: {.exercise}
+Who is the dwarf in the Fellowship?
+
+::: {.answer correct=true}
+Gimli
+:::
+
+::: {.answer}
+Legolas
+:::
+:::
+:::
+
+You can also style individual exercises. This example mixes the active theme's primary and body colors, so the card automatically changes with the site's light and dark themes.
+
+```css
+.fancy-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 18%, var(--bs-body-bg, #fff)),
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 32%, var(--bs-body-bg, #fff))
+  );
+  color: var(--bs-body-color, inherit);
+  padding: 1.5rem;
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bs-body-color, #000) 15%, transparent);
+}
+.fancy-card .quarto-exercise-answer {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 10%, var(--bs-body-bg, #fff));
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  color: inherit;
+}
+.fancy-card .quarto-exercise-answer:hover {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 20%, var(--bs-body-bg, #fff));
+}
+```
+
+```{=html}
+<style>
+.fancy-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 18%, var(--bs-body-bg, #fff)),
+    color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 32%, var(--bs-body-bg, #fff))
+  );
+  color: var(--bs-body-color, inherit);
+  padding: 1.5rem;
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bs-body-color, #000) 15%, transparent);
+}
+.fancy-card .quarto-exercise-answer {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 10%, var(--bs-body-bg, #fff));
+  border: 1px solid var(--bs-border-color, var(--ex-border-color));
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  color: inherit;
+}
+.fancy-card .quarto-exercise-answer:hover {
+  background: color-mix(in srgb, var(--bs-primary, var(--ex-accent)) 20%, var(--bs-body-bg, #fff));
+}
+</style>
+```
+
+Then apply the class to your exercise:
+
+```markdown
+::: {.exercise .fancy-card}
+Which two hobbits meet Treebeard?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Frodo and Sam
+:::
+:::
+```
+
+::: {.exercise .fancy-card}
+Which two hobbits meet Treebeard?
+
+::: {.answer correct=true}
+Merry and Pippin
+:::
+
+::: {.answer}
+Frodo and Sam
+:::
+:::
+
+
+## Supported CSS Variables
+
+Customize exercise controls and layouts by overriding these CSS custom properties in your site stylesheet or document header:
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `--ex-accent` | `#1a73e8` | Accent color for radio buttons, checkboxes, focus rings, and hint borders. |
+| `--ex-accent-dark` | `#4285f4` | Accent color for dark mode. |
+| `--ex-correct` | `#137333` | Text, border, and status color for correct answers. |
+| `--ex-incorrect` | `#c5221f` | Text and status color for incorrect answers. |
+| `--ex-incorrect-border` | `#ea4335` | Border color for incorrect text inputs and dropdowns. |
+| `--ex-muted` | `#555` | Text color for hints, explanations, feedback, and placeholders in light mode. |
+| `--ex-muted-dark` | `#aaa` | Text color for hints and explanations in dark mode. |
+| `--ex-border-color` | `#ccc` | Border color for action buttons, containers, and code cloze inputs. |
+| `--ex-border-strong` | `#ced4da` | Border color for unselected radio buttons, checkboxes, and select dropdowns. |
+| `--ex-bg` | `transparent` | Background color for exercise containers. |
+| `--ex-control-bg` | `#f8f9fa` | Background color for action buttons, inputs, and dropdowns in light mode. |
+| `--ex-control-hover-bg` | `#e9ecef` | Hover background color for buttons and controls in light mode. |
+| `--ex-control-primary-bg` | `#e9ecef` | Background color for primary action buttons in light mode. |
+| `--ex-control-primary-hover-bg` | `#dee2e6` | Hover background color for primary action buttons in light mode. |
+| `--ex-border-radius` | `4px` | Border radius applied to buttons, select dropdowns, and input containers. |
+| `--ex-focus-ring` | `0 0 0 2px rgba(...)` | Outer box shadow applied to focused controls for keyboard navigation. |
+| `--ex-panel-border` | `#6c757d` | Left border color for explanation callouts in light mode. |
+| `--ex-panel-border-dark` | `#adb5bd` | Left border color for explanation callouts in dark mode. |
+| `--ex-select-arrow` | SVG Data URI | Dropdown arrow icon for select menus. |
+| `--ex-option-columns` | `1` | Number of columns in multiple-choice choice grids. |
+| `--ex-batch-columns` | `1` | Number of columns in batch exercise grid layouts. |
+| `--ex-button-primary-bg` | `var(--bs-primary, var(--ex-accent))` | Background color for primary check buttons. |
+| `--ex-button-primary-color` | `var(--bs-white, #fff)` | Text color for primary check buttons. |
+| `--ex-button-secondary-bg` | `var(--bs-secondary-bg, var(--ex-control-bg))` | Background color for secondary reset buttons. |
+| `--ex-button-secondary-color` | `var(--bs-body-color, inherit)` | Text color for secondary reset buttons. |
+| `--ex-button-border` | `var(--bs-border-color, var(--ex-border-color))` | Border color for action buttons. |
+| `--ex-box-bg` | `var(--bs-body-bg, transparent)` | Background color for boxed exercise containers (`.quarto-exercise-boxed`). |
+| `--ex-box-border` | `var(--bs-border-color, var(--ex-border-color))` | Border color for boxed exercise containers. |
+| `--ex-box-radius` | `var(--bs-border-radius, var(--ex-border-radius))` | Border radius for boxed exercise containers. |

@@ -5,6 +5,19 @@ project:
     - "*.qmd"
     - "!tests"
 
+filters:
+  - quarto-exercises
+
+theme:
+  light: flatly
+  dark: darkly
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: right
+
 website:
   title: quarto-exercises
   navbar:
@@ -15,4 +28,13 @@ website:
         text: Example
       - href: reference.qmd
         text: Reference
-
+      - href: full-page-check.qmd
+        text: Full Page Check
+    tools:
+      - icon: github
+        href: https://github.com/VisruthSK/quarto-exercises
+        aria-label: quarto-exercises source code
+        target: _blank
+  repo-url: https://github.com/VisruthSK/quarto-exercises
+  repo-actions: [source, issue]
+  repo-link-target: _blank
