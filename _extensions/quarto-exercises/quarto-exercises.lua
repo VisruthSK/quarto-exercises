@@ -229,18 +229,6 @@ local function validate_regex(pattern, id)
     return
   end
 
-  if io.popen then
-    local cmd = 'node -e "try { new RegExp(process.argv[1]); process.exit(0); } catch (e) { console.error(e.message); process.exit(1); }" ' .. string.format("%q", pattern) .. ' 2>&1'
-    local pfile = io.popen(cmd)
-    if pfile then
-      local output = pfile:read("*a")
-      local success = pfile:close()
-      if success == nil or success == false or (type(success) == "boolean" and not success) then
-        fail(output and output:match("[^\n]+") or "invalid JavaScript regular expression")
-        return
-      end
-    end
-  end
 
   local len = #pattern
   local i = 1

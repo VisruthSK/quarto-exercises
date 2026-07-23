@@ -1173,16 +1173,16 @@ test.describe('Quarto Exercises Extension Tests', () => {
           return {
             style: {},
             textContent: '',
-            getBoundingClientRect: () => ({ width: measurerWidth }),
+            getBoundingClientRect: function() {
+              const widths = { total: 48, x: 8, abcdef: 48, '': 0 };
+              return { width: widths[this.textContent] ?? this.textContent.length * 8 };
+            },
             remove: () => {}
           };
         }
         return originalCreateElement.call(context.document, tag);
       };
-      context.document.body.appendChild = (el) => {
-        const widths = { total: 48, x: 8, abcdef: 48, '': 0 };
-        measurerWidth = widths[el.textContent] ?? el.textContent.length * 8;
-      };
+      context.document.body.appendChild = (el) => {};
 
       try {
         run();

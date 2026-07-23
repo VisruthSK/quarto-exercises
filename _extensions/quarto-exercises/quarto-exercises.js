@@ -297,6 +297,23 @@ function answerOptions(container) {
   return splitList(container.dataset.options);
 }
 
+let staticMeasurer = null;
+
+function getStaticMeasurer() {
+  if (!staticMeasurer && typeof document !== "undefined" && document.body) {
+    staticMeasurer = document.createElement("span");
+    staticMeasurer.className = "quarto-exercise-measurer";
+    staticMeasurer.style.visibility = "hidden";
+    staticMeasurer.style.position = "absolute";
+    staticMeasurer.style.left = "-9999px";
+    staticMeasurer.style.top = "-9999px";
+    staticMeasurer.style.whiteSpace = "pre";
+    staticMeasurer.style.pointerEvents = "none";
+    document.body.appendChild(staticMeasurer);
+  }
+  return staticMeasurer;
+}
+
 function adjustWidth(el, options = {}) {
   if (!el) return;
   const {
@@ -318,28 +335,30 @@ function adjustWidth(el, options = {}) {
     return;
   }
 
-  const style = window.getComputedStyle(el);
-  const measurer = document.createElement("span");
-  const measurerStyles = {
-    visibility: "hidden",
-    position: "absolute",
-    whiteSpace: "pre",
-    font: style.font
-  };
-  if (copyFontDetails) {
-    Object.assign(measurerStyles, {
-      letterSpacing: style.letterSpacing,
-      wordSpacing: style.wordSpacing,
-      textTransform: style.textTransform,
-      fontVariant: style.fontVariant,
-      fontFeatureSettings: style.fontFeatureSettings
-    });
+  const style = window.getComputedStyle ? window.getComputedStyle(el) : el.style || {};
+  let measurer = getStaticMeasurer();
+  let createdFallback = false;
+  if (!measurer) {
+    measurer = document.createElement("span");
+    measurer.style.visibility = "hidden";
+    measurer.style.position = "absolute";
+    measurer.style.whiteSpace = "pre";
+    if (typeof document !== "undefined" && document.body) {
+      document.body.appendChild(measurer);
+    }
+    createdFallback = true;
   }
-  Object.assign(measurer.style, measurerStyles);
-  measurer.textContent = text;
-  document.body.appendChild(measurer);
 
-  let width = measurer.getBoundingClientRect().width + extraPadding;
+  measurer.style.font = style.font || "";
+  measurer.style.letterSpacing = copyFontDetails ? (style.letterSpacing || "") : "";
+  measurer.style.wordSpacing = copyFontDetails ? (style.wordSpacing || "") : "";
+  measurer.style.textTransform = copyFontDetails ? (style.textTransform || "") : "";
+  measurer.style.fontVariant = copyFontDetails ? (style.fontVariant || "") : "";
+  measurer.style.fontFeatureSettings = copyFontDetails ? (style.fontFeatureSettings || "") : "";
+
+  measurer.textContent = text;
+
+  let width = (measurer.getBoundingClientRect ? measurer.getBoundingClientRect().width : 0) + extraPadding;
   if (includePadding) {
     width += (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
   }
@@ -354,7 +373,9 @@ function adjustWidth(el, options = {}) {
     el.style.borderBottom = "none";
   }
 
-  measurer.remove();
+  if (createdFallback) {
+    measurer.remove();
+  }
 }
 
 function adjustInputWidth(input) {
