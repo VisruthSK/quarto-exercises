@@ -77,146 +77,6 @@ local bool_attrs = {
   ["question-boxes"] = true
 }
 
--- Cryptographic primitives for answer obfuscation (SHA-256 and simple XOR cipher)
-local sha256 = {}
-local rrotate = function(x, n)
-  return ((x >> n) | (x << (32 - n))) & 0xffffffff
-end
-local rshift = function(x, n)
-  return (x >> n) & 0xffffffff
-end
-
-local h_init = {
-  0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-  0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-}
-
-local k_constants = {
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-}
-
-local function str_to_words(str)
-  local words = {}
-  for i = 1, #str, 4 do
-    local b1, b2, b3, b4 = string.byte(str, i, i + 3)
-    b2 = b2 or 0
-    b3 = b3 or 0
-    b4 = b4 or 0
-    words[#words + 1] = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4
-  end
-  return words
-end
-
-local function words_to_str(words)
-  local bytes = {}
-  for _, w in ipairs(words) do
-    bytes[#bytes + 1] = string.char(
-      (w >> 24) & 0xff,
-      (w >> 16) & 0xff,
-      (w >> 8) & 0xff,
-      w & 0xff
-    )
-  end
-  return table.concat(bytes)
-end
-
-function sha256.sha256(msg)
-  local h = { table.unpack(h_init) }
-  local extra = #msg % 64
-  local padding_len = 64 - extra
-  if padding_len < 9 then
-    padding_len = padding_len + 64
-  end
-
-  local padding = string.char(0x80) .. string.rep(string.char(0), padding_len - 9)
-  local bit_len = #msg * 8
-  local len_str = string.char(
-    (bit_len >> 56) & 0xff,
-    (bit_len >> 48) & 0xff,
-    (bit_len >> 40) & 0xff,
-    (bit_len >> 32) & 0xff,
-    (bit_len >> 24) & 0xff,
-    (bit_len >> 16) & 0xff,
-    (bit_len >> 8) & 0xff,
-    bit_len & 0xff
-  )
-
-  local padded_msg = msg .. padding .. len_str
-  local words = str_to_words(padded_msg)
-
-  for chunk_start = 1, #words, 16 do
-    local w = {}
-    for i = 1, 16 do w[i] = words[chunk_start + i - 1] end
-    for i = 17, 64 do
-      local s0 = rrotate(w[i - 15], 7) ~ rrotate(w[i - 15], 18) ~ rshift(w[i - 15], 3)
-      local s1 = rrotate(w[i - 2], 17) ~ rrotate(w[i - 2], 19) ~ rshift(w[i - 2], 10)
-      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) & 0xffffffff
-    end
-
-    local a, b, c, d, e, f, g, h_val = table.unpack(h)
-
-    for i = 1, 64 do
-      local S1 = rrotate(e, 6) ~ rrotate(e, 11) ~ rrotate(e, 25)
-      local ch = (e & f) ~ (~e & g)
-      local temp1 = (h_val + S1 + ch + k_constants[i] + w[i]) & 0xffffffff
-      local S0 = rrotate(a, 2) ~ rrotate(a, 13) ~ rrotate(a, 22)
-      local maj = (a & b) ~ (a & c) ~ (b & c)
-      local temp2 = (S0 + maj) & 0xffffffff
-
-      h_val = g
-      g = f
-      f = e
-      e = (d + temp1) & 0xffffffff
-      d = c
-      c = b
-      b = a
-      a = (temp1 + temp2) & 0xffffffff
-    end
-
-    h[1] = (h[1] + a) & 0xffffffff
-    h[2] = (h[2] + b) & 0xffffffff
-    h[3] = (h[3] + c) & 0xffffffff
-    h[4] = (h[4] + d) & 0xffffffff
-    h[5] = (h[5] + e) & 0xffffffff
-    h[6] = (h[6] + f) & 0xffffffff
-    h[7] = (h[7] + g) & 0xffffffff
-    h[8] = (h[8] + h_val) & 0xffffffff
-  end
-  return words_to_str(h)
-end
-
-local json_encode
-
-local doc_id = "default-doc"
-
-local opaque_counter = 0
-local function hex(bytes)
-  return (bytes:gsub('.', function(c) return string.format('%02x', string.byte(c)) end))
-end
-local function opaque(prefix)
-  opaque_counter = opaque_counter + 1
-  return prefix .. "_" .. hex(sha256.sha256(doc_id .. ":" .. tostring(opaque_counter) .. ":" .. tostring(os.time()) .. ":" .. tostring(math.random()))):sub(1, 24)
-end
-local function digest(salt, value)
-  return hex(sha256.sha256(salt .. "\0" .. value))
-end
-local function encode_pattern(salt, pattern)
-  local key = sha256.sha256(salt)
-  local bytes = {}
-  for i = 1, #pattern do
-    local encoded = string.byte(pattern, i) ~ string.byte(key, ((i - 1) % #key) + 1)
-    bytes[#bytes + 1] = string.format("%02x", encoded)
-  end
-  return table.concat(bytes)
-end
-
 local function validate_regex(pattern, id)
   local function fail(reason)
     local err_msg = "quarto-exercises error: exercise: #" .. tostring(id or "unknown") .. " invalid regular expression"
@@ -652,17 +512,6 @@ local function validate_explanation(value, id)
   return value
 end
 
-local function compute_digests(values, trim, collapse_space, ignore_case, salt)
-  local digests = {}
-  for _, value in ipairs(values) do
-    local normalized = value
-    if trim then normalized = normalized:match("^%s*(.-)%s*$") end
-    if collapse_space then normalized = normalized:gsub("%s+", " ") end
-    if ignore_case then normalized = string.lower(normalized) end
-    digests[#digests + 1] = digest(salt, normalized)
-  end
-  return digests
-end
 
 local function split_values(value, delimiter)
   local out = {}
@@ -852,12 +701,10 @@ end
 local function render_html_exercise(data, id, exercise_options)
   local output = pandoc.List()
   local input_type = data.correct_count > 1 and "checkbox" or "radio"
-  local answer_salt = opaque("salt")
-  local correct_digests = {}
+  local correct_keys = {}
   for _, answer in ipairs(data.answers) do
-    answer.opaque_key = opaque("opt")
     if answer.correct then
-      correct_digests[#correct_digests + 1] = digest(answer_salt, answer.opaque_key)
+      correct_keys[#correct_keys + 1] = answer.key
     end
   end
 
@@ -880,8 +727,10 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-points"] = exercise_options.points
   }
   if #data.answers > 0 then
-    div_attrs["data-qx-salt"] = answer_salt
-    div_attrs["data-qx-correct"] = table.concat(correct_digests, " ")
+    div_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
+      kind = "exercise",
+      correctKeys = correct_keys
+    }))
   end
   for _, class in ipairs(exercise_options.classes or {}) do
     if class ~= "exercise" then
@@ -903,7 +752,7 @@ local function render_html_exercise(data, id, exercise_options)
   if #data.answers > 0 then
     output:insert(pandoc.RawBlock("html", '<fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-' .. exercise_options["option-columns"] .. '" style="--ex-option-columns: ' .. exercise_options["option-columns"] .. ';">'))
     for _, answer in ipairs(data.answers) do
-      local answer_key = answer.opaque_key
+      local answer_key = answer.key
       local input_id = id .. "-" .. answer_key
       output:insert(pandoc.RawBlock("html",
         '<div class="quarto-exercise-answer" data-key="' .. html_escape(answer_key) .. '">' ..
@@ -1013,29 +862,6 @@ local function parse_attributes(attr_str)
     end
   end
   return attrs
-end
-
-json_encode = function(val)
-  if type(val) == "string" then
-    return '"' .. val:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r') .. '"'
-  elseif type(val) == "boolean" then
-    return tostring(val)
-  elseif type(val) == "table" then
-    local parts = {}
-    if val[1] ~= nil then
-      for _, item in ipairs(val) do
-        parts[#parts + 1] = json_encode(item)
-      end
-      return "[" .. table.concat(parts, ",") .. "]"
-    else
-      for k, v in pairs(val) do
-        parts[#parts + 1] = json_encode(k) .. ":" .. json_encode(v)
-      end
-      return "{" .. table.concat(parts, ",") .. "}"
-    end
-  else
-    return tostring(val)
-  end
 end
 
 local function make_token(text, idx)
@@ -1168,7 +994,7 @@ local function process_code_cloze(el, parent_id)
   local container_attrs = {
     class = table.concat(classes, " ")
   }
-  local display_metadata = {}
+  local controls = {}
   for token, info in pairs(metadata) do
     local attrs = {}
     for key, value in pairs(info.attrs) do
@@ -1177,27 +1003,37 @@ local function process_code_cloze(el, parent_id)
         attrs[key] = value
       end
     end
-    local qx = nil
-    do
-      local salt = opaque("salt")
-      local expected = info.attrs.answers or info.attrs.answer or ""
-      local values = info.type == "blank" and split_values(expected, "|") or { expected }
+    local expected = info.attrs.answers or info.attrs.answer or ""
+    if info.type == "blank" then
       local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
       local trim = normalize_bool(info.attrs.trim) ~= "false"
       local collapse_space = normalize_bool(info.attrs["collapse-space"]) == "true"
-      local regex = nil
-      local digests = {}
-      if info.type == "blank" and info.attrs.match == "regex" then
+      local match = info.attrs.match or "exact"
+      if match == "regex" then
         validate_regex(expected, id)
-        regex = encode_pattern(salt, expected)
-      else
-        digests = compute_digests(values, trim, collapse_space, ignore_case, salt)
       end
-      qx = { salt = salt, digests = digests, regex = regex, ignoreCase = ignore_case, trim = trim, collapseSpace = collapse_space }
+      controls[token] = {
+        type = info.type,
+        attrs = attrs,
+        kind = "blank",
+        answers = match == "regex" and { expected } or split_values(expected, "|"),
+        match = match,
+        ignoreCase = ignore_case,
+        trim = trim,
+        collapseSpace = collapse_space
+      }
+    elseif info.type == "choose" then
+      local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
+      controls[token] = {
+        type = info.type,
+        attrs = attrs,
+        kind = "choose",
+        answer = expected,
+        ignoreCase = ignore_case
+      }
     end
-    display_metadata[token] = { type = info.type, attrs = attrs, qx = qx }
   end
-  container_attrs["data-cloze-metadata"] = json_encode(display_metadata)
+  container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode(controls))
 
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
@@ -1270,18 +1106,15 @@ local function render_blank(el, id, parent_id)
   local collapse_space_val = (normalize_bool(el.attributes["collapse-space"]) or tostring(options["collapse-space"])) == "true"
 
   do
-    local salt = opaque("salt")
-    if match == "regex" then
-      container_attrs["data-qx-regex"] = encode_pattern(salt, answer)
-    else
-      local ans_list = split_values(answer, "|")
-      local digests = compute_digests(ans_list, trim_val, collapse_space_val, ignore_case_val, salt)
-      container_attrs["data-qx-digests"] = table.concat(digests, " ")
-    end
-    container_attrs["data-qx-salt"] = salt
-    container_attrs["data-qx-ignore-case"] = tostring(ignore_case_val)
-    container_attrs["data-qx-trim"] = tostring(trim_val)
-    container_attrs["data-qx-collapse-space"] = tostring(collapse_space_val)
+    local ans_list = match == "regex" and { answer } or split_values(answer, "|")
+    container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
+      kind = "blank",
+      answers = ans_list,
+      match = match,
+      ignoreCase = ignore_case_val,
+      trim = trim_val,
+      collapseSpace = collapse_space_val
+    }))
   end
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
@@ -1341,11 +1174,11 @@ local function render_choose(el, id, parent_id)
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
 
   do
-    local salt = opaque("salt")
-    local digests = compute_digests({ answer }, true, false, ignore_case_val, salt)
-    container_attrs["data-qx-salt"] = salt
-    container_attrs["data-qx-digests"] = table.concat(digests, " ")
-    container_attrs["data-qx-ignore-case"] = tostring(ignore_case_val)
+    container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
+      kind = "choose",
+      answer = answer,
+      ignoreCase = ignore_case_val
+    }))
   end
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
@@ -1360,16 +1193,6 @@ local function render_choose(el, id, parent_id)
 end
 
 function Meta(meta)
-  if PANDOC_STATE and PANDOC_STATE.input_files and PANDOC_STATE.input_files[1] then
-    -- Use only the basename (no directory, no extension) so that local filesystem
-    -- paths never appear in the rendered HTML output.
-    local full = PANDOC_STATE.input_files[1]:gsub("\\", "/")
-    local basename = full:match("([^/]+)$") or full
-    doc_id = basename:gsub("%.[^%.]+$", "")
-  elseif meta.title then
-    doc_id = pandoc.utils.stringify(meta.title)
-  end
-
   local config = as_value(meta["quarto-exercises"])
   if type(config) == "table" then
     for key, value in pairs(config) do

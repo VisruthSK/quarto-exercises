@@ -10,29 +10,39 @@ if (window.Quarto && typeof window.Quarto.onRender === "function") {
   window.Quarto.onRender(initExercises);
 }
 
-async function digest(salt, value) {
-  const bytes = new TextEncoder().encode(`${salt}\0${value}`);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function decodePattern(salt, encoded) {
-  const key = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt)));
-  const bytes = new Uint8Array(encoded.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(encoded.slice(i * 2, i * 2 + 2), 16) ^ key[i % key.length];
-  }
-  return new TextDecoder().decode(bytes);
-}
-
-async function matchesRegex(value, metadata) {
-  const pattern = await decodePattern(metadata.salt, metadata.regex);
+function decodeAnswerPayload(container) {
+  const encoded = container.dataset.answerPayload;
+  if (!encoded) return null;
   try {
-    return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
-  } catch (err) {
-    console.warn("Invalid regex pattern in exercise metadata", err);
-    return false;
+    return JSON.parse(atob(encoded));
+  } catch (e) {
+    return null;
   }
+}
+
+function checkWithPayload(payload, submittedValue, control) {
+  if (payload.kind === "blank") {
+    if (payload.match === "regex") {
+      try {
+        const pattern = payload.answers[0];
+        return new RegExp(pattern, payload.ignoreCase ? "i" : "").test(canonicalize(submittedValue, payload));
+      } catch (e) {
+        return false;
+      }
+    }
+    const value = canonicalize(submittedValue, payload);
+    return payload.answers.some(answer => canonicalize(answer, payload) === value);
+  }
+  if (payload.kind === "choose") {
+    const value = payload.ignoreCase ? submittedValue.toLowerCase() : submittedValue;
+    const expected = payload.ignoreCase ? payload.answer.toLowerCase() : payload.answer;
+    return value === expected;
+  }
+  if (payload.kind === "exercise") {
+    const key = control && control.dataset ? control.dataset.key : "";
+    return payload.correctKeys.includes(key);
+  }
+  return false;
 }
 
 function canonicalize(value, rules = {}) {
@@ -65,30 +75,17 @@ async function checkAnswer(control, submittedValue) {
                     control.closest(".quarto-exercise");
   if (!container) return false;
 
-  if (control.classList && control.classList.contains("quarto-exercise-answer")) {
-    const exercise = control.closest(".quarto-exercise");
-    const expected = exercise?.dataset.qxCorrect?.split(" ") || [];
-    return expected.includes(await digest(exercise?.dataset.qxSalt || "", control.dataset.key || ""));
+  if (control._qx) {
+    return checkWithPayload(control._qx, submittedValue, control);
   }
 
-  if (control._qx) {
-    if (control._qx.regex) return matchesRegex(submittedValue, control._qx);
-    const value = canonicalize(submittedValue, control._qx);
-    return control._qx.digests.includes(await digest(control._qx.salt, value));
-  }
-  if (container.dataset.qxDigests || container.dataset.qxRegex) {
-    const metadata = {
-      salt: container.dataset.qxSalt,
-      regex: container.dataset.qxRegex,
-      ignoreCase: container.dataset.qxIgnoreCase === "true",
-      trim: container.dataset.qxTrim !== "false",
-      collapseSpace: container.dataset.qxCollapseSpace === "true"
-    };
-    if (metadata.regex) return matchesRegex(submittedValue, metadata);
-    const value = canonicalize(submittedValue, metadata);
-    return container.dataset.qxDigests.split(" ").includes(await digest(container.dataset.qxSalt, value));
-  }
-  return false;
+  const parentContainer = control.classList && control.classList.contains("quarto-exercise-answer")
+    ? control.closest(".quarto-exercise") : container;
+
+  const payload = decodeAnswerPayload(parentContainer);
+  if (!payload) return false;
+
+  return checkWithPayload(payload, submittedValue, control);
 }
 
 function initExercises() {
@@ -870,11 +867,12 @@ window.QuartoExercises = {
 
 // ---- Code Cloze implementation ----
 
-function parseClozeMetadata(container) {
+function parseClozePayload(container) {
+  const encoded = container.dataset.answerPayload;
+  if (!encoded) return {};
   try {
-    return JSON.parse(container.dataset.clozeMetadata || "{}");
+    return JSON.parse(atob(encoded));
   } catch (e) {
-    console.warn("Invalid cloze metadata", e);
     return {};
   }
 }
@@ -911,7 +909,7 @@ function initCodeCloze(container, onCheck) {
   const code = container.querySelector("code");
   if (!code) return;
 
-  const metadata = parseClozeMetadata(container);
+  const metadata = parseClozePayload(container);
   const controls = [];
 
   for (const [token, info] of Object.entries(metadata)) {
@@ -930,7 +928,7 @@ function initCodeCloze(container, onCheck) {
         el: input,
         attrs,
         token,
-        qx: info.qx,
+        qx: info
       });
     } else if (info.type === "choose") {
       const attrs = info.attrs || {};
@@ -949,7 +947,7 @@ function initCodeCloze(container, onCheck) {
         el: select,
         attrs,
         token,
-        qx: info.qx
+        qx: info
       });
     }
   }
@@ -1050,9 +1048,8 @@ function initStandaloneCodeCloze(container) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    digest,
-    decodePattern,
-    matchesRegex,
+    decodeAnswerPayload,
+    checkWithPayload,
     initExercises,
     initController,
     initCheckControllers,
@@ -1090,7 +1087,7 @@ if (typeof module !== "undefined" && module.exports) {
     verifyExercise,
     resetExercise,
     resetUnit,
-    parseClozeMetadata,
+    parseClozePayload,
     initCodeCloze,
     verifyCodeCloze,
     resetCodeCloze,
