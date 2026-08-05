@@ -590,6 +590,80 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(canonicalize(" Frodo ", { trim: false }), " Frodo ");
   });
 
+  test('JS Base64 UTF-8 obfuscation, normalization, and answer matching', () => {
+    const {
+      decodeUtf8Base64,
+      normalizeAnswer,
+      matchesExact,
+      createRegex,
+      matchesRegex,
+      checkWithPayload
+    } = loadRuntime();
+
+    // 1. Correct and incorrect exact answers
+    assert.strictEqual(matchesExact("Frodo", "Frodo", { trim: true }), true);
+    assert.strictEqual(matchesExact("Sam", "Frodo", { trim: true }), false);
+
+    // 2. one-of answers
+    const oneOfPayload = {
+      kind: "blank",
+      match: "one-of",
+      answers: ["Samwise", "Sam"],
+      trim: true
+    };
+    assert.strictEqual(checkWithPayload(oneOfPayload, "Sam"), true);
+    assert.strictEqual(checkWithPayload(oneOfPayload, "Samwise"), true);
+    assert.strictEqual(checkWithPayload(oneOfPayload, "Frodo"), false);
+
+    // 3. Trimming enabled and disabled
+    assert.strictEqual(matchesExact(" Frodo ", "Frodo", { trim: true }), true);
+    assert.strictEqual(matchesExact(" Frodo ", "Frodo", { trim: false }), false);
+
+    // 4. Collapsed whitespace
+    assert.strictEqual(matchesExact("Frodo   Baggins", "Frodo Baggins", { trim: true, collapseSpace: true }), true);
+    assert.strictEqual(matchesExact("Frodo   Baggins", "Frodo Baggins", { trim: true, collapseSpace: false }), false);
+
+    // 5. Case-insensitive matching
+    assert.strictEqual(matchesExact("FRODO", "Frodo", { trim: true, ignoreCase: true }), true);
+    assert.strictEqual(matchesExact("FRODO", "Frodo", { trim: true, ignoreCase: false }), false);
+
+    // 6. Unicode NFC equivalence
+    const nfc = "Caf\u00e9";
+    const nfd = "Cafe\u0301";
+    assert.strictEqual(matchesExact(nfd, nfc, { trim: true }), true);
+
+    // 7. Non-ASCII answers
+    assert.strictEqual(matchesExact("München", "München", { trim: true }), true);
+    assert.strictEqual(matchesExact("Munchen", "München", { trim: true }), false);
+
+    // 8. Non-ASCII regex patterns
+    const nonAsciiRegex = createRegex("^München$", false);
+    assert.strictEqual(matchesRegex("München", nonAsciiRegex, {}), true);
+    assert.strictEqual(matchesRegex("Munchen", nonAsciiRegex, {}), false);
+
+    // 9. Anchored regexes
+    const anchoredRegex = createRegex("^0b[01]+$", false);
+    assert.strictEqual(matchesRegex("0b1010", anchoredRegex, {}), true);
+    assert.strictEqual(matchesRegex("prefix 0b1010", anchoredRegex, {}), false);
+
+    // 10. Partial regex matches
+    const partialRegex = createRegex("fellowship", true);
+    assert.strictEqual(matchesRegex("The Fellowship of the Ring", partialRegex, {}), true);
+    assert.strictEqual(matchesRegex("Two Towers", partialRegex, {}), false);
+
+    // 11. Plaintext answers that simply don't match are a mismatch, not a decode error
+    assert.strictEqual(checkWithPayload({ kind: "blank", match: "exact", answers: ["!!!NotTheAnswer!!!"] }, "test"), false);
+
+    // 12. Invalid UTF-8 in the payload envelope itself
+    const invalidUtf8B64 = Buffer.from([0xC3, 0x28]).toString('base64');
+    assert.throws(() => decodeUtf8Base64(invalidUtf8B64), Error);
+
+    // 13. Invalid regex patterns
+    const invalidRegex = createRegex("[a-z", false);
+    assert.strictEqual(invalidRegex, null);
+    assert.throws(() => matchesRegex("abc", null, {}), /incorrectly configured/);
+  });
+
   test('JS unit tests for internal utility and evaluation functions', async () => {
     const runtime = loadRuntime();
     const {
@@ -606,8 +680,7 @@ test.describe('Quarto Exercises Extension Tests', () => {
       makeControl,
       checkAnswer,
       gradeUnit,
-      parseClozePayload,
-      decodeAnswerPayload,
+      decodePayload,
       checkWithPayload,
       QuartoExercises
     } = runtime;
@@ -695,8 +768,10 @@ test.describe('Quarto Exercises Extension Tests', () => {
     const ctrl3 = makeControl(mockContainerDefault, "code");
     assert.strictEqual(ctrl3._controlId, "default-code");
 
-    // 7. checkWithPayload & decodeAnswerPayload tests
+    // 7. checkWithPayload & decodePayload tests
     assert.strictEqual(await checkAnswer(mockDefaultControl, "val"), false);
+
+    const encodePayload = obj => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64');
 
     // Blank payload with ignoreCase, trim, collapseSpace
     const blankPayload = {
@@ -728,7 +803,7 @@ test.describe('Quarto Exercises Extension Tests', () => {
       answers: ["[z-a]"],
       match: "regex"
     };
-    assert.strictEqual(checkWithPayload(invalidRegexPayload, "test"), false);
+    assert.throws(() => checkWithPayload(invalidRegexPayload, "test"), Error);
 
     // Choose payload
     const choosePayload = {
@@ -749,16 +824,16 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(checkWithPayload(exercisePayload, "true", correctControl), true);
     assert.strictEqual(checkWithPayload(exercisePayload, "true", wrongControl), false);
 
-    // decodeAnswerPayload
-    const encoded = btoa(JSON.stringify(blankPayload));
-    const mockContainer = { dataset: { answerPayload: encoded } };
-    assert.deepStrictEqual(decodeAnswerPayload(mockContainer), blankPayload);
-    assert.strictEqual(decodeAnswerPayload({ dataset: {} }), null);
-    assert.strictEqual(decodeAnswerPayload({ dataset: { answerPayload: "invalid!" } }), null);
+    // decodePayload, including a non-ASCII round trip proving the envelope decode is UTF-8 safe
+    const nonAsciiPayload = { kind: "choose", answer: "München", ignoreCase: true };
+    const mockContainer = { dataset: { answerPayload: encodePayload(nonAsciiPayload) } };
+    assert.deepStrictEqual(decodePayload(mockContainer), nonAsciiPayload);
+    assert.strictEqual(decodePayload({ dataset: {} }), null);
+    assert.strictEqual(decodePayload({ dataset: { answerPayload: "invalid!" } }), null);
 
     // Container-based checkAnswer
     const containerWithPayload = {
-      dataset: { answerPayload: btoa(JSON.stringify(blankPayload)) }
+      dataset: { answerPayload: encodePayload(blankPayload) }
     };
     const ctrlWithPayload = {
       closest() { return containerWithPayload; }
@@ -774,18 +849,12 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(await checkAnswer(qxCtrl, "  Answer123  "), true);
     assert.strictEqual(await checkAnswer(qxCtrl, "wrong"), false);
 
-    // 8. parseClozePayload
-    const plainPayload = btoa(JSON.stringify({ key: "val" }));
-    assert.strictEqual(JSON.stringify(parseClozePayload({ dataset: { answerPayload: plainPayload } })), JSON.stringify({ key: "val" }));
-    assert.strictEqual(JSON.stringify(parseClozePayload({ dataset: {} })), JSON.stringify({}));
-    assert.strictEqual(JSON.stringify(parseClozePayload({ dataset: { answerPayload: "invalid!" } })), JSON.stringify({}));
-
-    // 9. gradeUnit unknown unit class fallback
+    // 8. gradeUnit unknown unit class fallback
     const unknownUnit = { classList: { contains: () => false } };
     const result = await gradeUnit(unknownUnit);
     assert.strictEqual(JSON.stringify(result), JSON.stringify({ earned: 0, possible: 0, correct: false }));
 
-    // 10. QuartoExercises public API safety
+    // 9. QuartoExercises public API safety
     assert.strictEqual(await QuartoExercises.checkExercise("#nonexistent-ex-id"), false);
     QuartoExercises.resetExercise("#nonexistent-ex-id");
   });
@@ -976,7 +1045,7 @@ test.describe('Quarto Exercises Extension Tests', () => {
       initStandaloneCodeCloze,
     } = runtime;
 
-    const encodePayload = (obj) => btoa(JSON.stringify(obj));
+    const encodePayload = (obj) => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64');
 
     // 1. Standalone Blank Container Test
     const blankInput = createMockElement("input", { class: "quarto-exercise-blank-input" });

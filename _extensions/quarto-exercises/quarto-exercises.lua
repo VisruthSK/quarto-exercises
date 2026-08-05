@@ -1012,11 +1012,12 @@ local function process_code_cloze(el, parent_id)
       if match == "regex" then
         validate_regex(expected, id)
       end
+      local raw_list = match == "regex" and { expected } or split_values(expected, "|")
       controls[token] = {
         type = info.type,
         attrs = attrs,
         kind = "blank",
-        answers = match == "regex" and { expected } or split_values(expected, "|"),
+        answers = raw_list,
         match = match,
         ignoreCase = ignore_case,
         trim = trim,
@@ -1106,10 +1107,10 @@ local function render_blank(el, id, parent_id)
   local collapse_space_val = (normalize_bool(el.attributes["collapse-space"]) or tostring(options["collapse-space"])) == "true"
 
   do
-    local ans_list = match == "regex" and { answer } or split_values(answer, "|")
+    local raw_list = match == "regex" and { answer } or split_values(answer, "|")
     container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
       kind = "blank",
-      answers = ans_list,
+      answers = raw_list,
       match = match,
       ignoreCase = ignore_case_val,
       trim = trim_val,
@@ -1173,13 +1174,11 @@ local function render_choose(el, id, parent_id)
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
 
-  do
-    container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
-      kind = "choose",
-      answer = answer,
-      ignoreCase = ignore_case_val
-    }))
-  end
+  container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
+    kind = "choose",
+    answer = answer,
+    ignoreCase = ignore_case_val
+  }))
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
 

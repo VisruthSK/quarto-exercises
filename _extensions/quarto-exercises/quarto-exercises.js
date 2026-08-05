@@ -10,47 +10,128 @@ if (window.Quarto && typeof window.Quarto.onRender === "function") {
   window.Quarto.onRender(initExercises);
 }
 
-function decodeAnswerPayload(container) {
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
+
+function decodeUtf8Base64(encoded) {
+  if (typeof encoded !== "string" || encoded.length === 0) {
+    throw new Error("Missing encoded answer");
+  }
+
+  const binary = atob(encoded);
+  const bytes = Uint8Array.from(
+    binary,
+    character => character.charCodeAt(0)
+  );
+
+  return utf8Decoder.decode(bytes);
+}
+
+function normalizeAnswer(value, options = {}) {
+  let result = (value || "").normalize("NFC");
+
+  if (options.trim) {
+    result = result.trim();
+  }
+
+  if (options.collapseSpace) {
+    result = result.replace(/\s+/g, " ");
+  }
+
+  if (options.ignoreCase) {
+    result = result.toLowerCase();
+  }
+
+  return result;
+}
+
+function matchesExact(submitted, expected, options = {}) {
+  return normalizeAnswer(submitted, options) ===
+    normalizeAnswer(expected, options);
+}
+
+function createRegex(pattern, ignoreCase) {
+  try {
+    return new RegExp(pattern, ignoreCase ? "i" : "");
+  } catch (error) {
+    console.error("Invalid exercise regex configuration", error);
+    return null;
+  }
+}
+
+function matchesRegex(submitted, regex, options = {}) {
+  if (!regex) {
+    throw new Error("This exercise is incorrectly configured.");
+  }
+
+  return regex.test(normalizeAnswer(submitted, options));
+}
+
+function decodePayload(container) {
   const encoded = container.dataset.answerPayload;
   if (!encoded) return null;
   try {
-    return JSON.parse(atob(encoded));
+    return JSON.parse(decodeUtf8Base64(encoded));
   } catch (e) {
     return null;
   }
 }
 
 function checkWithPayload(payload, submittedValue, control) {
+  if (!payload || typeof payload !== "object") return false;
+
   if (payload.kind === "blank") {
-    if (payload.match === "regex") {
-      try {
-        const pattern = payload.answers[0];
-        return new RegExp(pattern, payload.ignoreCase ? "i" : "").test(canonicalize(submittedValue, payload));
-      } catch (e) {
-        return false;
-      }
+    const match = payload.match || "exact";
+    const options = {
+      trim: payload.trim !== false,
+      collapseSpace: Boolean(payload.collapseSpace),
+      ignoreCase: Boolean(payload.ignoreCase)
+    };
+
+    const answers = Array.isArray(payload.answers) ? payload.answers : [];
+    if (answers.length === 0) {
+      throw new Error("This exercise is incorrectly configured.");
     }
-    const value = canonicalize(submittedValue, payload);
-    return payload.answers.some(answer => canonicalize(answer, payload) === value);
+
+    if (match === "regex") {
+      if (!payload._compiledRegex) {
+        payload._compiledRegex = createRegex(answers[0], payload.ignoreCase);
+      }
+      return matchesRegex(submittedValue, payload._compiledRegex, options);
+    }
+
+    if (match === "one-of") {
+      return answers.some(answer => matchesExact(submittedValue, answer, options));
+    }
+
+    return matchesExact(submittedValue, answers[0], options);
   }
+
   if (payload.kind === "choose") {
-    const value = payload.ignoreCase ? submittedValue.toLowerCase() : submittedValue;
-    const expected = payload.ignoreCase ? payload.answer.toLowerCase() : payload.answer;
-    return value === expected;
+    const options = {
+      trim: false,
+      collapseSpace: false,
+      ignoreCase: Boolean(payload.ignoreCase)
+    };
+    if (!payload.answer) {
+      throw new Error("This exercise is incorrectly configured.");
+    }
+    return matchesExact(submittedValue, payload.answer, options);
   }
+
   if (payload.kind === "exercise") {
     const key = control && control.dataset ? control.dataset.key : "";
-    return payload.correctKeys.includes(key);
+    return (payload.correctKeys || []).includes(key);
   }
+
   return false;
 }
 
 function canonicalize(value, rules = {}) {
-  let normalized = value || "";
-  if (rules.trim !== false) normalized = normalized.trim();
-  if (rules.collapseSpace) normalized = normalized.replace(/\s+/g, " ");
-  if (rules.ignoreCase) normalized = normalized.toLowerCase();
-  return normalized;
+  return normalizeAnswer(value, {
+    trim: rules.trim !== false,
+    collapseSpace: Boolean(rules.collapseSpace),
+    ignoreCase: Boolean(rules.ignoreCase)
+  });
 }
 
 function checkModeFor(control) {
@@ -82,7 +163,7 @@ async function checkAnswer(control, submittedValue) {
   const parentContainer = control.classList && control.classList.contains("quarto-exercise-answer")
     ? control.closest(".quarto-exercise") : container;
 
-  const payload = decodeAnswerPayload(parentContainer);
+  const payload = decodePayload(parentContainer);
   if (!payload) return false;
 
   return checkWithPayload(payload, submittedValue, control);
@@ -418,7 +499,22 @@ async function verifySimpleControl(container, kind, inputSelector, feedbackSelec
   const feedback = $(container, feedbackSelector);
 
   const control = makeControl(container, kind);
-  const isCorrect = await checkAnswer(control, element ? element.value : "");
+  let isCorrect = false;
+  try {
+    isCorrect = await checkAnswer(control, element ? element.value : "");
+  } catch (err) {
+    console.error("Exercise configuration error", err);
+    container.classList.remove("is-correct");
+    if (element) {
+      element.classList.remove("is-correct", "is-incorrect");
+    }
+    if (showFeedback) {
+      setFeedback(feedback, "This exercise is incorrectly configured.", "incorrect");
+    } else {
+      resetFeedback(feedback);
+    }
+    return false;
+  }
 
   container.classList.toggle("is-correct", isCorrect);
   if (element) {
@@ -865,18 +961,6 @@ window.QuartoExercises = {
   }
 };
 
-// ---- Code Cloze implementation ----
-
-function parseClozePayload(container) {
-  const encoded = container.dataset.answerPayload;
-  if (!encoded) return {};
-  try {
-    return JSON.parse(atob(encoded));
-  } catch (e) {
-    return {};
-  }
-}
-
 function replaceTokenWithElement(codeNode, token, el) {
   let textNode = null;
   const walker = document.createTreeWalker(codeNode, NodeFilter.SHOW_TEXT);
@@ -909,7 +993,7 @@ function initCodeCloze(container, onCheck) {
   const code = container.querySelector("code");
   if (!code) return;
 
-  const metadata = parseClozePayload(container);
+  const metadata = decodePayload(container) || {};
   const controls = [];
 
   for (const [token, info] of Object.entries(metadata)) {
@@ -1048,7 +1132,13 @@ function initStandaloneCodeCloze(container) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    decodeAnswerPayload,
+    utf8Decoder,
+    decodeUtf8Base64,
+    normalizeAnswer,
+    matchesExact,
+    createRegex,
+    matchesRegex,
+    decodePayload,
     checkWithPayload,
     initExercises,
     initController,
@@ -1087,7 +1177,6 @@ if (typeof module !== "undefined" && module.exports) {
     verifyExercise,
     resetExercise,
     resetUnit,
-    parseClozePayload,
     initCodeCloze,
     verifyCodeCloze,
     resetCodeCloze,
