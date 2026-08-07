@@ -1046,7 +1046,13 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
 
     const controlObj = makeControl(container, type, token, ctrl.qx);
 
-    const ok = await checkAnswer(controlObj, el.value);
+    let ok;
+    try {
+      ok = await checkAnswer(controlObj, el.value);
+    } catch (err) {
+      console.error("Exercise configuration error", err);
+      ok = false;
+    }
     if (ok) {
       correctCount++;
     }

@@ -615,6 +615,16 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(checkWithPayload(oneOfPayload, "Samwise"), true);
     assert.strictEqual(checkWithPayload(oneOfPayload, "Frodo"), false);
 
+    // 2b. Default match ("exact") still checks every pipe-delimited answer, not just the first
+    const defaultMatchPayload = {
+      kind: "blank",
+      answers: ["Frodo", "Frodo Baggins"],
+      ignoreCase: true,
+      trim: true
+    };
+    assert.strictEqual(checkWithPayload(defaultMatchPayload, "frodo baggins"), true);
+    assert.strictEqual(checkWithPayload(defaultMatchPayload, "Boromir"), false);
+
     // 3. Trimming enabled and disabled
     assert.strictEqual(matchesExact(" Frodo ", "Frodo", { trim: true }), true);
     assert.strictEqual(matchesExact(" Frodo ", "Frodo", { trim: false }), false);
