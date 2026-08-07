@@ -99,11 +99,7 @@ function checkWithPayload(payload, submittedValue, control) {
       return matchesRegex(submittedValue, payload._compiledRegex, options);
     }
 
-    if (match === "one-of") {
-      return answers.some(answer => matchesExact(submittedValue, answer, options));
-    }
-
-    return matchesExact(submittedValue, answers[0], options);
+    return answers.some(answer => matchesExact(submittedValue, answer, options));
   }
 
   if (payload.kind === "choose") {
