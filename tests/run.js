@@ -377,21 +377,21 @@ ${css}
 </head>
 <body>
 <main>
-<div class="quarto-exercise" id="visual-ex" data-id="visual-ex" data-type="radio" data-qx-salt="s1" data-qx-correct="b9f833b1ea3f44fb47f4a201df30f9f33d73acf9d444307e17817ae981fd77e3" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<div class="quarto-exercise" id="visual-ex" data-id="visual-ex" data-type="radio" data-answer-payload="eyJraW5kIjoiZXhlcmNpc2UiLCJjb3JyZWN0S2V5cyI6WyJiIl19" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Choose the code fragment that returns the mean.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="visual-ex-a" type="radio" name="visual-ex" value="a" class="quarto-exercise-input"><label for="visual-ex-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p><code>sum(x)</code></p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>That returns the total.</div></div>
 <div class="quarto-exercise-answer" data-key="b"><div class="quarto-exercise-control"><input id="visual-ex-b" type="radio" name="visual-ex" value="b" class="quarto-exercise-input"><label for="visual-ex-b" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><div class="sourceCode"><pre><code>mean(x)</code></pre></div></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Right.</div></div>
 </div></fieldset>
-<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-qx-salt="s2" data-qx-digests="6a4e1f66a7a3226d4929cadb9ae166f19bc891064321ee91cd8138a9f0030d8b" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-qx-salt="s3" data-qx-digests="717918c208983cba7e2bfdab7854d7b3673fb5ed04059513e32a0dd0be2aab2d" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>The Fellowship leaves <span class="quarto-exercise-choose-container" data-answer-payload="eyJraW5kIjoiY2hvb3NlIiwiYW5zd2VyIjoiUml2ZW5kZWxsIiwiaWdub3JlQ2FzZSI6ZmFsc2V9" data-options="Rivendell|Edoras|Minas Tirith" data-shuffle="false" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden></span><button type="button" class="quarto-exercise-choose-check-btn">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden></span></span> with <span class="quarto-exercise-blank-container" data-answer-payload="eyJraW5kIjoiYmxhbmsiLCJhbnN3ZXJzIjpbIkdhbmRhbGYiXSwibWF0Y2giOiJleGFjdCIsImlnbm9yZUNhc2UiOmZhbHNlLCJ0cmltIjp0cnVlLCJjb2xsYXBzZVNwYWNlIjpmYWxzZX0=" data-feedback-correct="Right" data-feedback-incorrect="Wrong"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="quarto-exercise-actions"><button type="button" class="quarto-exercise-check-btn">Check</button><button type="button" class="quarto-exercise-reset-btn">Reset</button><button type="button" class="quarto-exercise-hint-btn">Hint</button><span class="quarto-exercise-status" aria-live="polite"></span></div>
 <div class="quarto-exercise-hint" hidden aria-live="polite">Use the base function.</div>
 <div class="quarto-exercise-explanation" hidden aria-live="polite">The mean is the arithmetic average.</div>
 </div>
-<p>Standalone blank: <span class="quarto-exercise-blank-container" data-qx-salt="s4" data-qx-digests="0186fe0a5aa2e9c5bd1a8bf7a6d5b951a06720d7ffd17a14ce9d9c94a55db846" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
-<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-qx-salt="s4" data-qx-digests="0186fe0a5aa2e9c5bd1a8bf7a6d5b951a06720d7ffd17a14ce9d9c94a55db846" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>Standalone blank: <span class="quarto-exercise-blank-container" data-answer-payload="eyJraW5kIjoiYmxhbmsiLCJhbnN3ZXJzIjpbIkZyb2RvIl0sIm1hdGNoIjoiZXhhY3QiLCJpZ25vcmVDYXNlIjpmYWxzZSwidHJpbSI6dHJ1ZSwiY29sbGFwc2VTcGFjZSI6ZmFsc2V9" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
+<p>Long placeholder blank: <span class="quarto-exercise-blank-container" data-answer-payload="eyJraW5kIjoiYmxhbmsiLCJhbnN3ZXJzIjpbIkZyb2RvIl0sIm1hdGNoIjoiZXhhY3QiLCJpZ25vcmVDYXNlIjpmYWxzZSwidHJpbSI6dHJ1ZSwiY29sbGFwc2VTcGFjZSI6ZmFsc2V9" data-feedback-correct="Right" data-feedback-incorrect=""><input type="text" class="quarto-exercise-blank-input" value="" placeholder="Enter the name of the mines of Moria here" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden></span><button type="button" class="quarto-exercise-blank-check-btn">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden></span></span>.</p>
 <div class="sourceCode"><pre><code><span>member = </span><select class="quarto-exercise-code-choose"><option value="">Choose...</option><option value="Gimli">Gimli</option><option value="Legolas">Legolas</option></select></code></pre></div>
-<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-qx-salt="s5" data-qx-correct="28c36f1054b6b9b77f71f7465a03cedfe216fbb4d2ca6f452dedc101c64926d9 66f8d9609638cd8653a3e5b1e8ede4c38ba467221810c4ea5513c1a4da1a0d3a" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
+<div class="quarto-exercise" id="checkbox-ex" data-id="checkbox-ex" data-type="checkbox" data-answer-payload="eyJraW5kIjoiZXhlcmNpc2UiLCJjb3JyZWN0S2V5cyI6WyJmcm9kbyIsInNhbSJdfQ==" data-instant="false" data-reveal="true" data-lock="false" data-reset="true" data-shuffle="false" data-reshuffle-on-reset="false" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite.">
 <p>Select all hobbits.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices">
 <div class="quarto-exercise-answer" data-key="frodo"><div class="quarto-exercise-control"><input id="checkbox-ex-frodo" type="checkbox" name="checkbox-ex" value="frodo" class="quarto-exercise-input"><label for="checkbox-ex-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content"><p>Frodo</p></div><div class="quarto-exercise-feedback" aria-live="polite" hidden>Frodo is a hobbit.</div></div>
@@ -590,6 +590,90 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(canonicalize(" Frodo ", { trim: false }), " Frodo ");
   });
 
+  test('JS Base64 UTF-8 obfuscation, normalization, and answer matching', () => {
+    const {
+      decodeUtf8Base64,
+      normalizeAnswer,
+      matchesExact,
+      createRegex,
+      matchesRegex,
+      checkWithPayload
+    } = loadRuntime();
+
+    // 1. Correct and incorrect exact answers
+    assert.strictEqual(matchesExact("Frodo", "Frodo", { trim: true }), true);
+    assert.strictEqual(matchesExact("Sam", "Frodo", { trim: true }), false);
+
+    // 2. one-of answers
+    const oneOfPayload = {
+      kind: "blank",
+      match: "one-of",
+      answers: ["Samwise", "Sam"],
+      trim: true
+    };
+    assert.strictEqual(checkWithPayload(oneOfPayload, "Sam"), true);
+    assert.strictEqual(checkWithPayload(oneOfPayload, "Samwise"), true);
+    assert.strictEqual(checkWithPayload(oneOfPayload, "Frodo"), false);
+
+    // 2b. Default match ("exact") still checks every pipe-delimited answer, not just the first
+    const defaultMatchPayload = {
+      kind: "blank",
+      answers: ["Frodo", "Frodo Baggins"],
+      ignoreCase: true,
+      trim: true
+    };
+    assert.strictEqual(checkWithPayload(defaultMatchPayload, "frodo baggins"), true);
+    assert.strictEqual(checkWithPayload(defaultMatchPayload, "Boromir"), false);
+
+    // 3. Trimming enabled and disabled
+    assert.strictEqual(matchesExact(" Frodo ", "Frodo", { trim: true }), true);
+    assert.strictEqual(matchesExact(" Frodo ", "Frodo", { trim: false }), false);
+
+    // 4. Collapsed whitespace
+    assert.strictEqual(matchesExact("Frodo   Baggins", "Frodo Baggins", { trim: true, collapseSpace: true }), true);
+    assert.strictEqual(matchesExact("Frodo   Baggins", "Frodo Baggins", { trim: true, collapseSpace: false }), false);
+
+    // 5. Case-insensitive matching
+    assert.strictEqual(matchesExact("FRODO", "Frodo", { trim: true, ignoreCase: true }), true);
+    assert.strictEqual(matchesExact("FRODO", "Frodo", { trim: true, ignoreCase: false }), false);
+
+    // 6. Unicode NFC equivalence
+    const nfc = "Caf\u00e9";
+    const nfd = "Cafe\u0301";
+    assert.strictEqual(matchesExact(nfd, nfc, { trim: true }), true);
+
+    // 7. Non-ASCII answers
+    assert.strictEqual(matchesExact("München", "München", { trim: true }), true);
+    assert.strictEqual(matchesExact("Munchen", "München", { trim: true }), false);
+
+    // 8. Non-ASCII regex patterns
+    const nonAsciiRegex = createRegex("^München$", false);
+    assert.strictEqual(matchesRegex("München", nonAsciiRegex, {}), true);
+    assert.strictEqual(matchesRegex("Munchen", nonAsciiRegex, {}), false);
+
+    // 9. Anchored regexes
+    const anchoredRegex = createRegex("^0b[01]+$", false);
+    assert.strictEqual(matchesRegex("0b1010", anchoredRegex, {}), true);
+    assert.strictEqual(matchesRegex("prefix 0b1010", anchoredRegex, {}), false);
+
+    // 10. Partial regex matches
+    const partialRegex = createRegex("fellowship", true);
+    assert.strictEqual(matchesRegex("The Fellowship of the Ring", partialRegex, {}), true);
+    assert.strictEqual(matchesRegex("Two Towers", partialRegex, {}), false);
+
+    // 11. Plaintext answers that simply don't match are a mismatch, not a decode error
+    assert.strictEqual(checkWithPayload({ kind: "blank", match: "exact", answers: ["!!!NotTheAnswer!!!"] }, "test"), false);
+
+    // 12. Invalid UTF-8 in the payload envelope itself
+    const invalidUtf8B64 = Buffer.from([0xC3, 0x28]).toString('base64');
+    assert.throws(() => decodeUtf8Base64(invalidUtf8B64), Error);
+
+    // 13. Invalid regex patterns
+    const invalidRegex = createRegex("[a-z", false);
+    assert.strictEqual(invalidRegex, null);
+    assert.throws(() => matchesRegex("abc", null, {}), /incorrectly configured/);
+  });
+
   test('JS unit tests for internal utility and evaluation functions', async () => {
     const runtime = loadRuntime();
     const {
@@ -606,9 +690,9 @@ test.describe('Quarto Exercises Extension Tests', () => {
       makeControl,
       checkAnswer,
       gradeUnit,
-      parseClozeMetadata,
-      QuartoExercises,
-      digest
+      decodePayload,
+      checkWithPayload,
+      QuartoExercises
     } = runtime;
 
     // 1. bool helper
@@ -694,74 +778,93 @@ test.describe('Quarto Exercises Extension Tests', () => {
     const ctrl3 = makeControl(mockContainerDefault, "code");
     assert.strictEqual(ctrl3._controlId, "default-code");
 
-    // 7. checkAnswer edge cases & hash validation
+    // 7. checkWithPayload & decodePayload tests
     assert.strictEqual(await checkAnswer(mockDefaultControl, "val"), false);
 
-    const salt = "test-salt";
-    const targetVal = "answer123";
-    const hashed = await digest(salt, targetVal);
+    const encodePayload = obj => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64');
 
+    // Blank payload with ignoreCase, trim, collapseSpace
+    const blankPayload = {
+      kind: "blank",
+      answers: ["answer123"],
+      match: "exact",
+      ignoreCase: true,
+      trim: true,
+      collapseSpace: true
+    };
+    assert.strictEqual(checkWithPayload(blankPayload, "  Answer123  "), true);
+    assert.strictEqual(checkWithPayload(blankPayload, "wrong"), false);
+
+    // Blank payload with regex
+    const regexPayload = {
+      kind: "blank",
+      answers: ["^hello$"],
+      match: "regex",
+      ignoreCase: true,
+      trim: true,
+      collapseSpace: true
+    };
+    assert.strictEqual(checkWithPayload(regexPayload, "  Hello  "), true);
+    assert.strictEqual(checkWithPayload(regexPayload, "world"), false);
+
+    // Invalid regex handling
+    const invalidRegexPayload = {
+      kind: "blank",
+      answers: ["[z-a]"],
+      match: "regex"
+    };
+    assert.throws(() => checkWithPayload(invalidRegexPayload, "test"), Error);
+
+    // Choose payload
+    const choosePayload = {
+      kind: "choose",
+      answer: "Rivendell",
+      ignoreCase: true
+    };
+    assert.strictEqual(checkWithPayload(choosePayload, "rivendell"), true);
+    assert.strictEqual(checkWithPayload(choosePayload, "Mordor"), false);
+
+    // Exercise payload
+    const exercisePayload = {
+      kind: "exercise",
+      correctKeys: ["a", "c"]
+    };
+    const correctControl = { dataset: { key: "a" } };
+    const wrongControl = { dataset: { key: "b" } };
+    assert.strictEqual(checkWithPayload(exercisePayload, "true", correctControl), true);
+    assert.strictEqual(checkWithPayload(exercisePayload, "true", wrongControl), false);
+
+    // decodePayload, including a non-ASCII round trip proving the envelope decode is UTF-8 safe
+    const nonAsciiPayload = { kind: "choose", answer: "München", ignoreCase: true };
+    const mockContainer = { dataset: { answerPayload: encodePayload(nonAsciiPayload) } };
+    assert.deepStrictEqual(decodePayload(mockContainer), nonAsciiPayload);
+    assert.strictEqual(decodePayload({ dataset: {} }), null);
+    assert.strictEqual(decodePayload({ dataset: { answerPayload: "invalid!" } }), null);
+
+    // Container-based checkAnswer
+    const containerWithPayload = {
+      dataset: { answerPayload: encodePayload(blankPayload) }
+    };
+    const ctrlWithPayload = {
+      closest() { return containerWithPayload; }
+    };
+    assert.strictEqual(await checkAnswer(ctrlWithPayload, "answer123"), true);
+    assert.strictEqual(await checkAnswer(ctrlWithPayload, "wrong"), false);
+
+    // Code cloze control (_qx) checkAnswer
     const qxCtrl = {
       closest() { return { dataset: {} }; },
-      _qx: { salt, digests: [hashed], trim: true, collapseSpace: true, ignoreCase: true }
+      _qx: blankPayload
     };
     assert.strictEqual(await checkAnswer(qxCtrl, "  Answer123  "), true);
     assert.strictEqual(await checkAnswer(qxCtrl, "wrong"), false);
 
-    // Container fallback dataset checking
-    const containerWithDataset = {
-      dataset: { qxSalt: salt, qxDigests: hashed, qxIgnoreCase: "true", qxTrim: "true", qxCollapseSpace: "true" }
-    };
-    const ctrlWithContainerDataset = {
-      closest() { return containerWithDataset; }
-    };
-    assert.strictEqual(await checkAnswer(ctrlWithContainerDataset, "answer123"), true);
-
-    // Regex matching validation
-    const { decodePattern, matchesRegex } = runtime;
-    const pattern = "^hello$";
-    const patternBytes = new TextEncoder().encode(pattern);
-    const keyBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt)));
-    const encodedBytes = new Uint8Array(patternBytes.length);
-    for (let i = 0; i < patternBytes.length; i++) {
-      encodedBytes[i] = patternBytes[i] ^ keyBytes[i % keyBytes.length];
-    }
-    const encodedHex = [...encodedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
-
-    const decoded = await decodePattern(salt, encodedHex);
-    assert.strictEqual(decoded, pattern);
-
-    const regexMeta = { salt, regex: encodedHex, ignoreCase: true, trim: true, collapseSpace: true };
-    assert.strictEqual(await matchesRegex("hello", regexMeta), true);
-    assert.strictEqual(await matchesRegex("world", regexMeta), false);
-
-    const qxRegexCtrl = {
-      closest() { return { dataset: {} }; },
-      _qx: regexMeta
-    };
-    assert.strictEqual(await checkAnswer(qxRegexCtrl, "  Hello  "), true);
-
-    // Invalid regex handling
-    const invalidPattern = "[z-a]"; // Invalid character range
-    const invalidPatternBytes = new TextEncoder().encode(invalidPattern);
-    const invalidEncodedBytes = new Uint8Array(invalidPatternBytes.length);
-    for (let i = 0; i < invalidPatternBytes.length; i++) {
-      invalidEncodedBytes[i] = invalidPatternBytes[i] ^ keyBytes[i % keyBytes.length];
-    }
-    const invalidEncodedHex = [...invalidEncodedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
-    const invalidRegexMeta = { salt, regex: invalidEncodedHex, ignoreCase: true, trim: true, collapseSpace: true };
-    assert.strictEqual(await matchesRegex("test", invalidRegexMeta), false);
-
-    // 8. parseClozeMetadata
-    assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: '{"key":"val"}' } })), JSON.stringify({ key: "val" }));
-    assert.strictEqual(JSON.stringify(parseClozeMetadata({ dataset: { clozeMetadata: 'invalid json' } })), JSON.stringify({}));
-
-    // 9. gradeUnit unknown unit class fallback
+    // 8. gradeUnit unknown unit class fallback
     const unknownUnit = { classList: { contains: () => false } };
     const result = await gradeUnit(unknownUnit);
     assert.strictEqual(JSON.stringify(result), JSON.stringify({ earned: 0, possible: 0, correct: false }));
 
-    // 10. QuartoExercises public API safety
+    // 9. QuartoExercises public API safety
     assert.strictEqual(await QuartoExercises.checkExercise("#nonexistent-ex-id"), false);
     QuartoExercises.resetExercise("#nonexistent-ex-id");
   });
@@ -950,11 +1053,9 @@ test.describe('Quarto Exercises Extension Tests', () => {
       verifyCodeCloze,
       resetCodeCloze,
       initStandaloneCodeCloze,
-      digest
     } = runtime;
 
-    const salt = "salt-dom-test";
-    const hashedAns = await digest(salt, "hobbit");
+    const encodePayload = (obj) => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64');
 
     // 1. Standalone Blank Container Test
     const blankInput = createMockElement("input", { class: "quarto-exercise-blank-input" });
@@ -966,10 +1067,14 @@ test.describe('Quarto Exercises Extension Tests', () => {
       id: "blank-1",
       "data-feedback-correct": "Correct!",
       "data-feedback-incorrect": "Wrong!",
-      "data-qx-salt": salt,
-      "data-qx-digests": hashedAns,
-      "data-qx-ignore-case": "true",
-      "data-qx-trim": "true"
+      "data-answer-payload": encodePayload({
+        kind: "blank",
+        answers: ["hobbit"],
+        match: "exact",
+        ignoreCase: true,
+        trim: true,
+        collapseSpace: false
+      })
     }, [blankInput, blankCorrectText, blankCheckBtn, blankFeedback]);
 
     initStandaloneBlank(blankContainer);
@@ -998,9 +1103,11 @@ test.describe('Quarto Exercises Extension Tests', () => {
       "data-shuffle": "true",
       "data-feedback-correct": "Correct!",
       "data-feedback-incorrect": "Wrong!",
-      "data-qx-salt": salt,
-      "data-qx-digests": hashedAns,
-      "data-qx-ignore-case": "true"
+      "data-answer-payload": encodePayload({
+        kind: "choose",
+        answer: "hobbit",
+        ignoreCase: true
+      })
     }, [chooseSelect, chooseCorrectText, chooseCheckBtn, chooseFeedback]);
 
     initStandaloneChoose(chooseContainer);
@@ -1038,8 +1145,10 @@ test.describe('Quarto Exercises Extension Tests', () => {
       "data-explanation-policy": "correct",
       "data-feedback-correct": "Great!",
       "data-feedback-incorrect": "Try again!",
-      "data-qx-salt": salt,
-      "data-qx-correct": hashedAns
+      "data-answer-payload": encodePayload({
+        kind: "exercise",
+        correctKeys: ["opt2"]
+      })
     }, [exChoices, exCheckBtn, exResetBtn, exHintBtn, exHint, exExplanation, exStatus]);
 
     initExercise(exContainer);
@@ -1051,7 +1160,7 @@ test.describe('Quarto Exercises Extension Tests', () => {
     exHintBtn.dispatchEvent("click");
     exCheckBtn.dispatchEvent("click");
 
-    // Grade unit & verify Exercise
+    // Grade unit & verify Exercise (opt1 is selected but correctKeys is ["opt2"], so wrong)
     const res = await gradeUnit(exContainer, { showFeedback: true, reveal: true });
     assert.strictEqual(res.correct, false);
 
@@ -1069,22 +1178,29 @@ test.describe('Quarto Exercises Extension Tests', () => {
     codeNode.children = [textNodeToken];
     textNodeToken.parentNode = codeNode;
 
-    const clozeMetadata = JSON.stringify({
+    const clozePayload = encodePayload({
       "QEXCLOZEP000001": {
         type: "blank",
         attrs: { answer: "hobbit" },
-        qx: { salt, digests: [hashedAns], trim: true, collapseSpace: true, ignoreCase: true }
+        kind: "blank",
+        answers: ["hobbit"],
+        match: "exact",
+        ignoreCase: true,
+        trim: true,
+        collapseSpace: true
       },
       "QEXCLOZEP000002": {
         type: "choose",
         attrs: { options: "hobbit|wizard" },
-        qx: { salt, digests: [hashedAns], trim: true, collapseSpace: true, ignoreCase: true }
+        kind: "choose",
+        answer: "hobbit",
+        ignoreCase: true
       }
     });
     const clozeContainer = createMockElement("div", {
       class: "quarto-exercise-code-cloze-container quarto-exercise-code-cloze-standalone",
       id: "cloze-1",
-      "data-cloze-metadata": clozeMetadata
+      "data-answer-payload": clozePayload
     }, [codeNode]);
 
     const clozeCheckBtnNode = createMockElement("button", { class: "quarto-exercise-check-btn" });
@@ -1257,10 +1373,9 @@ He is short and has hairy feet.
     assert.match(html, /style="background: navy;"/);
     assert.match(html, /data-type="radio"/);
 
-    // 2. Author keys are replaced by opaque option IDs and correct digests.
-    assert.match(html, /data-key="opt_[a-f0-9]{24}"/);
-    assert.match(html, /data-qx-correct="[a-f0-9]{64}"/);
-    assert.doesNotMatch(html, /data-key="(?:frodo|legolas)"/);
+    // 2. Answers are stored in the payload, not as plaintext attributes
+    assert.match(html, /data-key="[a-z]+"/);
+    assert.match(html, /data-answer-payload="/);
 
     // 3. Accessibility elements present
     assert.match(html, /fieldset class="quarto-exercise-fieldset"/);
@@ -1305,8 +1420,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
     assert.match(html, /class="quarto-exercise-blank-input"/);
     assert.match(html, /class="quarto-exercise-blank-check-btn"/);
     assert.doesNotMatch(html, /placeholder=/);
-    assert.match(html, /data-qx-digests="[a-f0-9]{64}"/);
-    assert.match(html, /data-qx-ignore-case="true"/);
+    assert.match(html, /data-answer-payload="/);
     assert.doesNotMatch(html, /data-answers=/);
     assert.match(html, /data-feedback-incorrect=""/);
 
@@ -1317,7 +1431,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
 
     // Code cloze renders correctly
     assert.match(html, /class="[^"]*quarto-exercise-code-cloze-container/);
-    assert.match(html, /data-cloze-metadata=/);
+    assert.match(html, /data-answer-payload="/);
     assert.match(html, /QEXCLOZEP/);
 
     // Syntax highlighting must be preserved — Pandoc emits sourceCode class
@@ -1344,7 +1458,7 @@ The path is [Mordor| Gondor |Rohan]{.choose answer="Mordor"}.
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'pipe-choice.html'), 'utf8');
     assert.match(html, /data-options="Mordor\| Gondor \|Rohan"/);
-    assert.match(html, /data-qx-digests="[a-f0-9]{64}"/);
+    assert.match(html, /data-answer-payload="/);
   });
 
   test('Escaped pipe delimiters render as literal value characters', (t) => {
@@ -1705,7 +1819,7 @@ Legolas
 
     assert.doesNotMatch(log, /invalid boolean value/);
     assert.doesNotMatch(log, /has no correct answers/);
-    assert.match(html, /data-qx-correct="[a-f0-9]{64}"/);
+    assert.match(html, /data-answer-payload="/);
   });
 
   test('Numeric boolean attributes are invalid and not truthy', (t) => {
@@ -1734,7 +1848,7 @@ Legolas
 
     assert.match(log, /invalid boolean value for 'correct': '1'/);
     assert.match(log, /has no correct answers/);
-    assert.match(html, /data-qx-correct=""/);
+    assert.match(html, /data-answer-payload="/);
     assert.doesNotMatch(html, /data-correct=/);
   });
 
@@ -2205,11 +2319,10 @@ Default choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
     assert.match(html, /class="quarto-exercise-reset-btn(?:\s|")/);
 
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-ignore-case="false"/);
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-trim="true"/);
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-collapse-space="false"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-answer-payload="/);
+    assert.doesNotMatch(html, /data-qx-ignore-case|data-qx-trim|data-qx-collapse-space/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="false"/);
-    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-qx-ignore-case="false"/);
+    assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-answer-payload="/);
   });
 
   test('Global metadata overrides render into exercise, blank, and choice controls', () => {
@@ -2267,7 +2380,7 @@ Shuffled choice: [Rivendell|Edoras]{.choose answer="Rivendell"}.
     assert.doesNotMatch(html, /class="quarto-exercise-check-btn"/);
     assert.doesNotMatch(html, /class="quarto-exercise-reset-btn"/);
 
-    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-qx-ignore-case="true"/);
+    assert.match(html, /class="quarto-exercise-blank-container"[^>]*data-answer-payload="/);
     assert.match(html, /class="quarto-exercise-choose-container"[^>]*data-shuffle="true"/);
   });
 
@@ -2919,9 +3032,8 @@ Inline choose: [Frodo|Sam]{.choose answer="Frodo"}.
     assert.doesNotMatch(html, /class="quarto-exercise-blank-container"[^>]*data-answers=/);
     assert.doesNotMatch(html, /"answers":/);
     assert.doesNotMatch(html, /"correct":/);
-    assert.match(html, /data-qx-salt="salt_[a-f0-9]{24}"/);
-    assert.match(html, /data-qx-(?:correct|digests)="[a-f0-9 ]+"/);
-    assert.doesNotMatch(html, /QUARTO_EXERCISES_KEY|quartoExercisesKey|data-pba=/);
+    assert.match(html, /data-answer-payload="[A-Za-z0-9+/=]+"/);
+    assert.doesNotMatch(html, /data-qx-salt|data-qx-correct|data-qx-digests|data-qx-regex|data-qx-ignore-case|data-qx-trim|data-qx-collapse-space|data-cloze-metadata/);
 
     // 3. Verify grading behavior in browser
     const browser = await playwright.chromium.launch();
