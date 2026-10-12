@@ -2,7 +2,7 @@ title: Quarto Exercises
 author: Visruth Srimath Kandali
 version: 0.2.0
 description: Interactive practice questions for Quarto HTML and reveal.js documents.
-quarto-required: ">=1.10.0"
+quarto-required: ">=1.4.0"
 contributes:
   filters:
     - quarto-exercises.lua
