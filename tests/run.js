@@ -464,11 +464,14 @@ async function runVisualMode(playwright, mode) {
     const blank = document.querySelector('main > p .quarto-exercise-blank-container');
     const input = blank.querySelector('.quarto-exercise-blank-input');
     const button = blank.querySelector('.quarto-exercise-blank-check-btn');
+    const primary = document.querySelector('#visual-ex .quarto-exercise-check-btn');
     const longBlank = document.querySelectorAll('.quarto-exercise-blank-input')[1];
     return {
       placeholder: input.placeholder,
       buttonBg: getComputedStyle(button).backgroundColor,
       buttonBorder: getComputedStyle(button).borderTopColor,
+      primaryBg: getComputedStyle(primary).backgroundColor,
+      primaryBorder: getComputedStyle(primary).borderTopColor,
       shortWidth: input.getBoundingClientRect().width,
       longWidth: longBlank.getBoundingClientRect().width
     };
@@ -1320,7 +1323,7 @@ for(i in {{blank answer="seq_along(rings)"}}) {
 
     // Basic blank renders as input
     assert.match(html, /class="quarto-exercise-blank-input"/);
-    assert.match(html, /class="quarto-exercise-blank-check-btn"/);
+    assert.match(html, /class="quarto-exercise-blank-check-btn[\s"]/);
     assert.doesNotMatch(html, /placeholder=/);
     assert.match(html, /data-answer-payload="/);
     assert.doesNotMatch(html, /data-answers=/);
@@ -2160,9 +2163,9 @@ Two
     assert.doesNotMatch(html, /class="quarto-exercise quarto-exercise-boxed"[^>]*id="local-off"/);
     assert.match(html, /id="local-off"[\s\S]*?quarto-exercise-options-cols-1/);
     assert.match(html, /id="local-on"[\s\S]*?quarto-exercise-options-cols-2/);
-    assert.match(html, /quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary/);
-    assert.match(html, /quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
-    assert.match(html, /quarto-exercise-hint-btn quarto-exercise-btn quarto-exercise-btn-secondary/);
+    assert.match(html, /quarto-exercise-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary/);
+    assert.match(html, /quarto-exercise-reset-btn btn btn-sm btn-secondary quarto-exercise-btn quarto-exercise-btn-secondary/);
+    assert.match(html, /quarto-exercise-hint-btn btn btn-sm btn-secondary quarto-exercise-btn quarto-exercise-btn-secondary/);
     assert.doesNotMatch(result.stderr, /unsupported/);
 
     fs.writeFileSync(path.join(TEMP_DIR, 'invalid-columns.qmd'), qmdContent.replace('option-columns="2"', 'option-columns="invalid"'));
@@ -2379,8 +2382,8 @@ Choose: [Rivendell|Edoras]{.choose answer="Rivendell"}.
 
     const html = fs.readFileSync(path.join(TEMP_DIR, 'nested-controls.html'), 'utf8');
     assert.match(html, /class="quarto-exercise-check-btn(?:\s|")/);
-    assert.doesNotMatch(html, /class="quarto-exercise-blank-check-btn"/);
-    assert.doesNotMatch(html, /class="quarto-exercise-choose-check-btn"/);
+    assert.doesNotMatch(html, /class="quarto-exercise-blank-check-btn[\s"]/);
+    assert.doesNotMatch(html, /class="quarto-exercise-choose-check-btn[\s"]/);
   });
 
   test('check-page: true suppresses individual check and reset buttons in the HTML', () => {
@@ -2609,6 +2612,48 @@ filters:
     assert.match(result.stderr + result.stdout, /Regex patterns unable to be checked for validity\. Check QUARTO_DENO/);
   });
 
+  test('exercises render and grade in revealjs output', async () => {
+    const qmdContent = `---
+title: "Reveal"
+format: revealjs
+filters:
+  - quarto-exercises
+---
+
+## Slide
+
+[Gandalf]{.blank answer="Gandalf"} is a wizard.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'reveal-blank.qmd'), qmdContent);
+    const result = runQuarto('reveal-blank.qmd', 'revealjs');
+    assert.strictEqual(result.success, true, result.stderr);
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'reveal-blank.html'), 'utf8');
+    assert.match(html, /class="quarto-exercise-blank-container"/);
+    assert.doesNotMatch(html, /________/);
+
+    const playwright = require('playwright');
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      const pageErrors = [];
+      page.on('pageerror', error => pageErrors.push(error.message));
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'reveal-blank.html')).href, { waitUntil: 'load' });
+      await page.waitForFunction(() => window.Reveal && window.Reveal.isReady());
+      await page.evaluate(() => {
+        const section = document.querySelector('.quarto-exercise-blank-input').closest('section');
+        const { h, v } = Reveal.getIndices(section);
+        Reveal.slide(h, v);
+      });
+      await page.locator('.quarto-exercise-blank-input').first().fill('Gandalf');
+      await page.locator('.quarto-exercise-blank-check-btn').first().click();
+      await page.waitForFunction(() => document.querySelector('.quarto-exercise-blank-feedback').textContent === 'Correct!');
+      assert.deepStrictEqual(pageErrors, []);
+    } finally {
+      await browser.close();
+    }
+  });
+
   test('check-batch shows global scores for standalone controls', async () => {
     const qmdContent = `---
 title: "Standalone batch score"
@@ -2737,13 +2782,8 @@ x = {{blank answer="1"}}
       assert.ok(selectWidthChoose < selectWidthLong, `${mode} choose select should expand for longer selected option`);
       assert.strictEqual(standaloneBlankState.placeholder, '', `${mode} standalone blank placeholder should be empty`);
       assert.strictEqual(standaloneBlankState.shortWidth, standaloneBlankState.longWidth, `${mode} placeholder should not affect default width of entry box`);
-      if (mode === 'dark') {
-        assert.match(standaloneBlankState.buttonBg, /rgb\(45, 46, 48\)/, `${mode} blank check button background`);
-        assert.match(standaloneBlankState.buttonBorder, /rgb\(85, 85, 85\)/, `${mode} blank check button border`);
-      } else {
-        assert.match(standaloneBlankState.buttonBg, /rgb\(248, 249, 250\)/, `${mode} blank check button background`);
-        assert.match(standaloneBlankState.buttonBorder, /rgb\(204, 204, 204\)/, `${mode} blank check button border`);
-      }
+      assert.strictEqual(standaloneBlankState.buttonBg, standaloneBlankState.primaryBg, `${mode} blank check button uses the primary button background`);
+      assert.strictEqual(standaloneBlankState.buttonBorder, standaloneBlankState.primaryBorder, `${mode} blank check button uses the primary button border`);
       assert.strictEqual(standaloneBlankState.feedbackHiddenAfterWrong, true, `${mode} default blank wrong feedback should be hidden`);
       assert.strictEqual(hintState.initiallyHidden, true, `${mode} hint should start hidden`);
       assert.strictEqual(hintState.visibleAfterClick, true, `${mode} hint button should reveal hint`);

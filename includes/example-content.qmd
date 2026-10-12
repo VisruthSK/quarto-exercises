@@ -1,0 +1,155 @@
+See the extension in action. If you want to learn more about how to write the questions, read the [reference page](/reference.qmd).
+
+## Multiple Choice / Multiple Answer
+
+### Minimal Single-Choice
+
+::: {.exercise data-testid="mcq-single"}
+Who carried the One Ring out of the Shire?
+
+::: {.answer correct=true}
+Frodo Baggins
+:::
+
+::: {.answer}
+Boromir
+:::
+:::
+
+### Multiple-Correct with Custom Keys & Shuffling
+
+::: {.exercise shuffle=true data-testid="mcq-multiple"}
+Which members of the Fellowship are hobbits? Select all that apply.
+
+::: {.answer correct=true key="frodo"}
+Frodo Baggins
+:::
+
+::: {.answer correct=true key="sam"}
+Samwise Gamgee
+:::
+
+::: {.answer key="legolas"}
+Legolas Greenleaf
+:::
+
+::: {.answer correct=true key="merry"}
+Meriadoc Brandybuck
+:::
+
+::: {.hint}
+There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.
+:::
+:::
+
+### Per-Answer Feedback & Question Explanation
+
+::: {.exercise data-testid="mcq-feedback"}
+What is the name of the wizard who guides the Fellowship?
+
+::: {.answer correct=true}
+Gandalf
+
+::: {.feedback}
+Correct! Specifically Gandalf the Grey, who later becomes Gandalf the White.
+:::
+:::
+
+::: {.answer}
+Saruman
+
+::: {.feedback}
+Not quite. Saruman resides in Isengard and betrays the Fellowship.
+:::
+:::
+
+::: {.explanation}
+Gandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.
+:::
+:::
+
+### Code Blocks in Choices
+
+::: {.exercise data-testid="mcq-code"}
+What does the following Python statement print?
+
+```python
+print([x * 2 for x in range(3)])
+```
+
+::: {.answer}
+`[1, 2, 3]`
+:::
+
+::: {.answer correct=true}
+`[0, 2, 4]`
+
+::: {.feedback}
+Correct! `range(3)` produces `0, 1, 2`, and multiplying each by 2 yields `0, 2, 4`.
+:::
+:::
+:::
+
+
+## Fill-in-the-blank
+
+### Basic Blank
+
+The wizard who guides the Fellowship is [`Gandalf`]{.blank answer="Gandalf"}.
+
+### Multiple Accepted Answers (Case-insensitive)
+
+The Ringbearer is [`Frodo`]{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.
+
+### Regex Matching
+
+The full title of the first volume of Lord of the Rings is [`The Fellowship of the Ring`]{.blank answer="^The\s+Fellowship\s+of\s+the\s+Ring$" match="regex" ignore-case=true}.
+
+
+## Inline Choice / Dropdown Cloze
+
+### Standalone Dropdowns
+
+The One Ring was forged in [Mordor|Gondor|Rohan]{.choose answer="Mordor"}.
+
+### Nested in a Parent Exercise
+
+Grouping inline choices and blanks under a parent `.exercise` block combines their Check and Reset controls:
+
+::: {.exercise data-testid="mixed-inline-exercise"}
+The hobbits are saved at the Prancing Pony by [Aragorn|Boromir|Legolas|Gimli]{.choose answer="Aragorn"}, who is also known as [Strider]{.blank answer="Strider"}.
+
+::: {.hint}
+What does Sam call him?
+:::
+:::
+
+## Code Cloze
+
+Blanks and dropdowns can live directly inside code blocks. Syntax highlighting is fully preserved.
+
+A standalone `.code-cloze` block gets its own Check and Reset buttons:
+
+```{.code-cloze lang="r"}
+x <- {{choose answer="c" options="c|list|data.frame"}}(1, 2, 3, 4, 5)
+total <- {{blank answer="sum"}}(x)
+cat("Total:", total, "\n")
+```
+
+Wrapping a `.code-cloze` block in an `.exercise` div gives it the same Check and Reset controls as any other exercise:
+
+::: {.exercise}
+```{.code-cloze lang="python"}
+numbers = [1, 2, 3, 4, 5]
+total = {{choose answer="sum" options="sum|max|min|len"}}(numbers)
+print({{blank answer="total"}})
+```
+:::
+
+::: {.exercise}
+```{.code-cloze lang="r"}
+x <- 1:10
+mean <- {{choose answer="mean" options="mean|median|sum|length"}}(x)
+cat({{blank answer="mean"}}, "\n")
+```
+:::

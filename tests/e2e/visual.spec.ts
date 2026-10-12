@@ -25,6 +25,7 @@ import path from 'node:path';
 const fixturesUrl  = pathToFileURL(path.resolve('tests/e2e/fixtures.html')).href;
 const fullPageUrl  = pathToFileURL(path.resolve('_site/full-page-check.html')).href;
 const exampleUrl   = pathToFileURL(path.resolve('_site/example.html')).href;
+const exampleSlidesUrl = pathToFileURL(path.resolve('_site/example-slides.html')).href;
 const screenshotMask = readFileSync('tests/e2e/screenshot-mask.css', 'utf8');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -785,6 +786,21 @@ test.describe('Full-page smoke tests', () => {
     await expect(page).toHaveScreenshot('smoke-example.png', { fullPage: true });
   });
 
+  test('example-slides.html – single-choice grades in revealjs', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await page.waitForFunction(() => (window as any).Reveal?.isReady());
+    await page.evaluate(() => {
+      const reveal = (window as any).Reveal;
+      const el = document.querySelector('[data-testid="mcq-single"]')!;
+      const { h, v } = reveal.getIndices(el.closest('section'));
+      reveal.slide(h, v);
+    });
+    const exercise = page.locator('[data-testid="mcq-single"]');
+    await exercise.locator('.quarto-exercise-answer', { hasText: 'Frodo Baggins' }).click();
+    await exercise.locator('.quarto-exercise-check-btn').click();
+    await expect(exercise.locator('.quarto-exercise-status')).toHaveText('Correct!');
+  });
+
   test('full-page-check.html – initial load', async ({ page }) => {
     await goto(page, fullPageUrl);
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -800,5 +816,54 @@ test.describe('Full-page smoke tests', () => {
     await page.getByRole('button', { name: 'Check Page' }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect(page).toHaveScreenshot('smoke-full-page-perfect.png', { fullPage: true });
+  });
+});
+
+test.describe('Reveal slides', () => {
+  async function showSlide(page: any, selector: string) {
+    await page.waitForFunction(() => (window as any).Reveal?.isReady());
+    await page.evaluate((sel: string) => {
+      const reveal = (window as any).Reveal;
+      reveal.configure({ transition: 'none' });
+      const section = document.querySelector(sel)!.closest('section');
+      const { h, v } = reveal.getIndices(section);
+      reveal.slide(h, v);
+    }, selector);
+    await page.waitForFunction(
+      (sel: string) => document.querySelector('section.present')?.contains(document.querySelector(sel)),
+      selector
+    );
+  }
+
+  test('reveal MCQ single-choice – idle', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '[data-testid="mcq-single"]');
+    await expect(page).toHaveScreenshot('reveal-mcq-idle.png');
+  });
+
+  test('reveal MCQ single-choice – correct answer → Correct!', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '[data-testid="mcq-single"]');
+    const exercise = ex(page, 'mcq-single');
+    await exercise.locator('.quarto-exercise-answer', { hasText: 'Frodo Baggins' }).click();
+    await exercise.locator('.quarto-exercise-check-btn').click();
+    await expect(exercise.locator('.quarto-exercise-status')).toHaveText('Correct!');
+    await expect(page).toHaveScreenshot('reveal-mcq-correct.png');
+  });
+
+  test('reveal inline blank – idle', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '.quarto-exercise-blank-input');
+    await expect(page).toHaveScreenshot('reveal-blank-idle.png');
+  });
+
+  test('reveal inline blank – correct answer → is-correct', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '.quarto-exercise-blank-input');
+    const blank = page.locator('.quarto-exercise-blank-container').first();
+    await blank.locator('.quarto-exercise-blank-input').fill('Gandalf');
+    await blank.locator('.quarto-exercise-blank-check-btn').click();
+    await expect(blank.locator('.quarto-exercise-blank-feedback')).toHaveText('Correct!');
+    await expect(page).toHaveScreenshot('reveal-blank-correct.png');
   });
 });

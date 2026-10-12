@@ -14,7 +14,7 @@ function run(args) {
 }
 
 // Root-level documents → _site/
-run(['render', 'example.qmd', 'full-page-check.qmd', '--output-dir', '_site']);
+run(['render', 'example.qmd', 'example-slides.qmd', 'full-page-check.qmd', '--output-dir', '_site']);
 
 // The fixture owns its filter path and renders beside itself. It is excluded
 // from the website project, so test-only content never reaches _site/.
