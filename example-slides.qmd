@@ -1,6 +1,11 @@
 ---
 title: "Quarto Exercises Extension Example (Slides)"
-format: revealjs
+format:
+  revealjs:
+    slide-number: true
+    smaller: true
+    scrollable: true
+    slide-level: 3
 quarto-exercises:
   instant: false
   reveal: false

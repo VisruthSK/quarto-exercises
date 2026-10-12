@@ -48,11 +48,6 @@ body.quarto-dark {
   color: inherit;
   box-sizing: border-box;
   background: var(--ex-bg);
-  --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
-  --ex-button-primary-color: var(--bs-white, #fff);
-  --ex-button-secondary-bg: var(--bs-secondary-bg, var(--ex-control-bg));
-  --ex-button-secondary-color: var(--bs-body-color, inherit);
-  --ex-button-border: var(--bs-border-color, var(--ex-border-color));
   --ex-box-bg: var(--bs-body-bg, transparent);
   --ex-box-border: var(--bs-border-color, var(--ex-border-color));
   --ex-box-radius: var(--bs-border-radius, var(--ex-border-radius));
@@ -313,71 +308,41 @@ body.quarto-dark {
   display: flex;
   gap: 0.5rem;
   margin: 1rem 0;
-  --ex-button-primary-bg: var(--bs-primary, var(--ex-accent));
-  --ex-button-primary-color: var(--bs-white, #fff);
-  --ex-button-secondary-bg: var(--bs-secondary, #6c757d);
-  --ex-button-secondary-color: #fff;
-  --ex-button-border: var(--bs-border-color, var(--ex-border-color));
 }
 
-.quarto-exercise-check-btn,
-.quarto-exercise-reset-btn,
-.quarto-exercise-hint-btn,
-.quarto-exercise-blank-check-btn {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.85rem;
-  border: 1px solid var(--ex-border-color);
-  background-color: var(--ex-control-bg);
-  color: inherit;
+.quarto-exercise-blank-check-btn,
+.quarto-exercise-choose-check-btn {
+  margin-left: 0.25rem;
+}
+
+.reveal .quarto-exercise-btn {
+  padding: 0.25em 0.75em;
+  font-family: inherit;
+  font-size: 0.85em;
+  line-height: 1.2;
+  border: 1px solid transparent;
   border-radius: var(--ex-border-radius);
   cursor: pointer;
-  line-height: 1.2;
 }
 
-.quarto-exercise-check-btn:hover,
-.quarto-exercise-reset-btn:hover,
-.quarto-exercise-hint-btn:hover,
-.quarto-exercise-blank-check-btn:hover {
-  background-color: var(--ex-control-hover-bg);
+.reveal .quarto-exercise-btn-primary {
+  background: var(--quarto-scss-export-primary, var(--r-link-color));
+  color: var(--quarto-scss-export-background, var(--r-background-color));
 }
 
-.quarto-exercise-btn {
-  border-color: var(--ex-button-border);
+.reveal .quarto-exercise-btn-secondary {
+  background: var(--quarto-scss-export-secondary, var(--r-main-color));
+  color: var(--quarto-scss-export-background, var(--r-background-color));
 }
 
-.quarto-exercise-btn-primary {
-  background: var(--ex-button-primary-bg);
-  border-color: var(--ex-button-primary-bg);
-  color: var(--ex-button-primary-color);
-}
-
-.quarto-exercise-btn-primary:hover {
-  background-color: var(--ex-button-primary-bg) !important;
-  color: var(--ex-button-primary-color) !important;
+.reveal .quarto-exercise-btn:hover {
   opacity: 0.85;
 }
 
-.quarto-exercise-btn-secondary,
-.quarto-exercise-hint-btn.quarto-exercise-btn-secondary {
-  background: var(--ex-button-secondary-bg);
-  color: var(--ex-button-secondary-color);
-}
-
-.quarto-exercise-btn-secondary:hover,
-.quarto-exercise-hint-btn.quarto-exercise-btn-secondary:hover {
-  background-color: var(--ex-button-secondary-bg) !important;
-  color: var(--ex-button-secondary-color) !important;
-  opacity: 0.85;
-}
-
-body.quarto-dark .quarto-exercise-reset-btn,
-body.quarto-dark .quarto-exercise-hint-btn {
-  border-color: transparent !important;
-}
-
-.quarto-exercise-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ex-focus-ring);
+.reveal .quarto-exercise-blank-check-btn,
+.reveal .quarto-exercise-choose-check-btn {
+  padding: 0.1em 0.5em;
+  font-size: 0.8em;
 }
 
 /* Hint Panel - Blue left border highlight */
@@ -566,27 +531,6 @@ body.quarto-dark .quarto-exercise-explanation {
   color: var(--bs-body-color, inherit);
 }
 
-.quarto-exercise-choose-check-btn,
-.quarto-exercise-blank-check-btn {
-  display: inline-block;
-  vertical-align: baseline;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.8em;
-  border: 1px solid var(--ex-border-color);
-  background-color: var(--ex-control-bg);
-  color: inherit;
-  border-radius: var(--ex-border-radius);
-  cursor: pointer;
-  margin-left: 0.25rem;
-  line-height: 1.2;
-  height: 1.5rem;
-  box-sizing: border-box;
-}
-
-.quarto-exercise-choose-check-btn:hover,
-.quarto-exercise-blank-check-btn:hover {
-  background-color: var(--ex-control-hover-bg);
-}
 
 /* Hide standalone button if nested in an exercise block */
 .quarto-exercise .quarto-exercise-choose-check-btn,

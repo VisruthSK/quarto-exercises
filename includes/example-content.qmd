@@ -1,4 +1,4 @@
-See the extension in action. If you want to learn more about how to write the questions, read the [reference page](reference.qmd).
+See the extension in action. If you want to learn more about how to write the questions, read the [reference page](/reference.qmd).
 
 ## Multiple Choice / Multiple Answer
 

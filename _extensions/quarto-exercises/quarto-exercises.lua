@@ -608,8 +608,8 @@ local function render_html_exercise(data, id, exercise_options)
     output:insert(pandoc.RawBlock("html", "</div></fieldset>"))
   end
 
-  local button_class = " quarto-exercise-btn quarto-exercise-btn-primary"
-  local reset_button_class = " quarto-exercise-btn quarto-exercise-btn-secondary"
+  local button_class = " btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary"
+  local reset_button_class = " btn btn-sm btn-secondary quarto-exercise-btn quarto-exercise-btn-secondary"
   output:insert(pandoc.RawBlock("html", '<div class="quarto-exercise-actions">'))
   if not exercise_options.instant and not exercise_options.suppress_controls then
     output:insert(pandoc.RawBlock("html", '<button type="button" class="quarto-exercise-check-btn' .. button_class .. '">Check</button>'))
@@ -878,8 +878,8 @@ local function process_code_cloze(el, parent_id)
     local actions_html = '<div class="quarto-exercise-actions">'
     if not suppress_controls then
       actions_html = actions_html ..
-        '<button type="button" class="quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary">Check</button>' ..
-        '<button type="button" class="quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary">Reset</button>'
+        '<button type="button" class="quarto-exercise-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button>' ..
+        '<button type="button" class="quarto-exercise-reset-btn btn btn-sm btn-secondary quarto-exercise-btn quarto-exercise-btn-secondary">Reset</button>'
     end
     actions_html = actions_html ..
       '<span class="quarto-exercise-status" aria-live="polite"></span>' ..
@@ -941,7 +941,7 @@ local function render_blank(el, id, parent_id)
     ))
   end
 
-  local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
+  local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button>'
 
   return pandoc.RawInline("html",
     raw_inline("span", container_attrs) ..
@@ -999,7 +999,7 @@ local function render_choose(el, id, parent_id)
 
   container_attrs["data-answer-payload"] = encode_payload(answer_payload({ answer }, "exact", { ignoreCase = ignore_case_val }))
 
-  local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
+  local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button>'
 
   return pandoc.RawInline("html",
     raw_inline("span", container_attrs) ..

@@ -83,8 +83,8 @@ function controllerActions(kind) {
   actions.className = `quarto-exercise-actions quarto-exercise-${kind}-controls`;
   actions.dataset.checkController = kind;
   actions.innerHTML =
-    `<button type="button" class="quarto-exercise-check-btn quarto-exercise-btn quarto-exercise-btn-primary">${kind === "page" ? "Check Page" : "Check"}</button>` +
-    `<button type="button" class="quarto-exercise-reset-btn quarto-exercise-btn quarto-exercise-btn-secondary">${kind === "page" ? "Reset Page" : "Reset"}</button>` +
+    `<button type="button" class="quarto-exercise-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">${kind === "page" ? "Check Page" : "Check"}</button>` +
+    `<button type="button" class="quarto-exercise-reset-btn btn btn-sm btn-secondary quarto-exercise-btn quarto-exercise-btn-secondary">${kind === "page" ? "Reset Page" : "Reset"}</button>` +
     '<span class="quarto-exercise-status" role="status"></span>';
   return actions;
 }

@@ -22,8 +22,12 @@ website:
         text: Home
       - href: example.qmd
         text: Example
-      - href: example-slides.qmd
-        text: Example Slides
+      - text: Previews
+        menu:
+          - text: Slides
+            href: example-slides.html
+          - text: PDF
+            href: example.pdf
       - href: reference.qmd
         text: Reference
       - href: full-page-check.qmd

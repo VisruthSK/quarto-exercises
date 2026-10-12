@@ -818,3 +818,52 @@ test.describe('Full-page smoke tests', () => {
     await expect(page).toHaveScreenshot('smoke-full-page-perfect.png', { fullPage: true });
   });
 });
+
+test.describe('Reveal slides', () => {
+  async function showSlide(page: any, selector: string) {
+    await page.waitForFunction(() => (window as any).Reveal?.isReady());
+    await page.evaluate((sel: string) => {
+      const reveal = (window as any).Reveal;
+      reveal.configure({ transition: 'none' });
+      const section = document.querySelector(sel)!.closest('section');
+      const { h, v } = reveal.getIndices(section);
+      reveal.slide(h, v);
+    }, selector);
+    await page.waitForFunction(
+      (sel: string) => document.querySelector('section.present')?.contains(document.querySelector(sel)),
+      selector
+    );
+  }
+
+  test('reveal MCQ single-choice – idle', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '[data-testid="mcq-single"]');
+    await expect(page).toHaveScreenshot('reveal-mcq-idle.png');
+  });
+
+  test('reveal MCQ single-choice – correct answer → Correct!', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '[data-testid="mcq-single"]');
+    const exercise = ex(page, 'mcq-single');
+    await exercise.locator('.quarto-exercise-answer', { hasText: 'Frodo Baggins' }).click();
+    await exercise.locator('.quarto-exercise-check-btn').click();
+    await expect(exercise.locator('.quarto-exercise-status')).toHaveText('Correct!');
+    await expect(page).toHaveScreenshot('reveal-mcq-correct.png');
+  });
+
+  test('reveal inline blank – idle', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '.quarto-exercise-blank-input');
+    await expect(page).toHaveScreenshot('reveal-blank-idle.png');
+  });
+
+  test('reveal inline blank – correct answer → is-correct', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await showSlide(page, '.quarto-exercise-blank-input');
+    const blank = page.locator('.quarto-exercise-blank-container').first();
+    await blank.locator('.quarto-exercise-blank-input').fill('Gandalf');
+    await blank.locator('.quarto-exercise-blank-check-btn').click();
+    await expect(blank.locator('.quarto-exercise-blank-feedback')).toHaveText('Correct!');
+    await expect(page).toHaveScreenshot('reveal-blank-correct.png');
+  });
+});

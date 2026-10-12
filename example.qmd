@@ -1,12 +1,9 @@
 ---
 title: "Quarto Exercises Extension Example"
 format:
-    html: default
-    typst:
-        output-file: example-typst.pdf
-    pdf:
-        output-file: example-latex.pdf   
-    docx: default
+  html: default
+  typst:
+    output-file: example.pdf
 quarto-exercises:
   instant: false
   reveal: false
