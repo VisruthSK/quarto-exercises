@@ -2,7 +2,7 @@
 title: "quarto-exercises"
 ---
 
-`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML documents.
+`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML and reveal.js documents.
 
 Use it to add multiple-choice questions, inline blanks, and dropdown choices to Quarto pages. Blanks and choices also work inside syntax-highlighted code blocks.
 
@@ -40,6 +40,7 @@ Boromir
 ## Routing
 
 - Use [Example](example.qmd) to see rendered exercises.
+- Use [Example Slides](example-slides.qmd) to see the reveal.js version of the example.
 - Use [Reference](reference.qmd) to write your own. Start here when writing exercises. It covers syntax, options, checking modes, scoring, and styling.
 - Use [Full Page Check](full-page-check.qmd) to see page-level checking and scoring.
 - Use [GitHub README](https://github.com/VisruthSK/quarto-exercises#readme) for package documentation and more details.

@@ -595,6 +595,7 @@ test.describe('Quarto Exercises Extension Tests', () => {
     assert.strictEqual(normalize("  Gandalf  "), "Gandalf");
     assert.strictEqual(normalize("Gandalf  The   Grey", { collapseSpace: true }), "Gandalf The Grey");
     assert.strictEqual(normalize("  FRODO  ", { ignoreCase: true }), "frodo");
+    assert.strictEqual(normalize("MÜNCHEN", { ignoreCase: true }), "münchen");
     assert.strictEqual(normalize(" Frodo ", { trim: false }), " Frodo ");
   });
 
@@ -2594,7 +2595,7 @@ filters:
     copyFolderSync(path.join(TEMP_DIR, '_extensions'), path.join(dir, '_extensions'));
     const luaPath = path.join(dir, '_extensions', 'quarto-exercises', 'quarto-exercises.lua');
     const lua = fs.readFileSync(luaPath, 'utf8');
-    const patched = lua.replace('os.getenv("QUARTO_DENO")', '"missing-deno"');
+    const patched = lua.split('os.getenv("QUARTO_DENO")').join('"missing-deno"');
     assert.notStrictEqual(patched, lua);
     fs.writeFileSync(luaPath, patched);
 
@@ -2649,6 +2650,33 @@ filters:
       await page.locator('.quarto-exercise-blank-check-btn').first().click();
       await page.waitForFunction(() => document.querySelector('.quarto-exercise-blank-feedback').textContent === 'Correct!');
       assert.deepStrictEqual(pageErrors, []);
+    } finally {
+      await browser.close();
+    }
+  });
+
+  test('ignore-case folds non-ASCII letters at build time and in the browser', async () => {
+    const qmdContent = `---
+title: "Unicode case"
+filters:
+  - quarto-exercises
+---
+
+City: [München]{.blank answer="München" ignore-case=true}.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'unicode-case.qmd'), qmdContent);
+    const result = runQuarto('unicode-case.qmd');
+    assert.strictEqual(result.success, true, result.stderr);
+    assert.doesNotMatch(result.stderr + result.stdout, /ignore-case folds only ASCII/);
+
+    const playwright = require('playwright');
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'unicode-case.html')).href, { waitUntil: 'load' });
+      await page.locator('.quarto-exercise-blank-input').first().fill('MÜNCHEN');
+      await page.locator('.quarto-exercise-blank-check-btn').first().click();
+      await page.waitForFunction(() => document.querySelector('.quarto-exercise-blank-feedback').textContent === 'Correct!');
     } finally {
       await browser.close();
     }
@@ -2729,8 +2757,6 @@ x = {{blank answer="1"}}
       '--ex-bg': 'transparent',
       '--ex-control-bg': '#f8f9fa',
       '--ex-control-hover-bg': '#e9ecef',
-      '--ex-control-primary-bg': '#e9ecef',
-      '--ex-control-primary-hover-bg': '#dee2e6',
       '--ex-border-radius': '4px',
       '--ex-focus-ring': '0 0 0 2px rgba(26, 115, 232, 0.3)',
       '--ex-panel-border': '#6c757d',
@@ -2750,8 +2776,6 @@ x = {{blank answer="1"}}
       '--ex-bg': 'transparent',
       '--ex-control-bg': '#2d2e30',
       '--ex-control-hover-bg': '#3c4043',
-      '--ex-control-primary-bg': '#3c4043',
-      '--ex-control-primary-hover-bg': '#4f5357',
       '--ex-focus-ring': '0 0 0 2px rgba(138, 180, 248, 0.4)',
       '--ex-panel-border': '#9aa0a6',
       '--ex-select-arrow': 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 10 10\'%3E%3Cpath fill=\'%23aaa\' d=\'M1 3h8l-4 4z\'/%3E%3C/svg%3E")'

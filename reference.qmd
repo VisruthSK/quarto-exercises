@@ -348,6 +348,24 @@ Generated HTML stores accepted blank, dropdown, and exercise answers as salted S
 
 This is static source obfuscation, not secure grading. Short or guessable answers can be recovered by hashing candidates, and regex patterns can be decoded. Use it to discourage casual answer lookup through view-source, DOM attributes, or obvious console inspection, not to secure a graded assessment.
 
+## Output Formats
+
+HTML and reveal.js output is interactive. Other formats, such as PDF, Typst, and Markdown, print each question as a static list. Blanks and dropdowns appear as underlines.
+
+### reveal.js
+
+Exercises work in reveal.js slides. In a deck where `##` headings group questions and each `###` heading starts one question, set `slide-level` to 3:
+
+```yaml
+format:
+  revealjs:
+    slide-level: 3
+```
+
+### Build-time checks
+
+Regex patterns are validated at build time with the JavaScript engine bundled with Quarto (`QUARTO_DENO`). An invalid pattern fails the build with that engine's error message. `ignore-case` lowercases letters with the same engine, so non-ASCII letters fold too. If `QUARTO_DENO` is unavailable, the build warns, `ignore-case` folds only ASCII letters, and invalid patterns are caught only in the browser.
+
 ## Visual Style
 
 The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto's light and dark themes, Bootstrap themes, custom themes, and `theme: none`.
@@ -717,8 +735,6 @@ Customize exercise controls and layouts by overriding these CSS custom propertie
 | `--ex-bg` | `transparent` | Background color for exercise containers. |
 | `--ex-control-bg` | `#f8f9fa` | Background color for action buttons, inputs, and dropdowns in light mode. |
 | `--ex-control-hover-bg` | `#e9ecef` | Hover background color for buttons and controls in light mode. |
-| `--ex-control-primary-bg` | `#e9ecef` | Background color for primary action buttons in light mode. |
-| `--ex-control-primary-hover-bg` | `#dee2e6` | Hover background color for primary action buttons in light mode. |
 | `--ex-border-radius` | `4px` | Border radius applied to buttons, select dropdowns, and input containers. |
 | `--ex-focus-ring` | `0 0 0 2px rgba(...)` | Outer box shadow applied to focused controls for keyboard navigation. |
 | `--ex-panel-border` | `#6c757d` | Left border color for explanation callouts in light mode. |
@@ -726,11 +742,6 @@ Customize exercise controls and layouts by overriding these CSS custom propertie
 | `--ex-select-arrow` | SVG Data URI | Dropdown arrow icon for select menus. |
 | `--ex-option-columns` | `1` | Number of columns in multiple-choice choice grids. |
 | `--ex-batch-columns` | `1` | Number of columns in batch exercise grid layouts. |
-| `--ex-button-primary-bg` | `var(--bs-primary, var(--ex-accent))` | Background color for primary check buttons. |
-| `--ex-button-primary-color` | `var(--bs-white, #fff)` | Text color for primary check buttons. |
-| `--ex-button-secondary-bg` | `var(--bs-secondary-bg, var(--ex-control-bg))` | Background color for secondary reset buttons. |
-| `--ex-button-secondary-color` | `var(--bs-body-color, inherit)` | Text color for secondary reset buttons. |
-| `--ex-button-border` | `var(--bs-border-color, var(--ex-border-color))` | Border color for action buttons. |
 | `--ex-box-bg` | `var(--bs-body-bg, transparent)` | Background color for boxed exercise containers (`.quarto-exercise-boxed`). |
 | `--ex-box-border` | `var(--bs-border-color, var(--ex-border-color))` | Border color for boxed exercise containers. |
 | `--ex-box-radius` | `var(--bs-border-radius, var(--ex-border-radius))` | Border radius for boxed exercise containers. |
