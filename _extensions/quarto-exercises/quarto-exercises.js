@@ -10,37 +10,35 @@ if (window.Quarto && typeof window.Quarto.onRender === "function") {
   window.Quarto.onRender(initExercises);
 }
 
-async function digest(salt, value) {
-  const bytes = new TextEncoder().encode(`${salt}\0${value}`);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+const payloadText = new TextDecoder();
+
+function decodePayload(container) {
+  const encoded = container.dataset.answerPayload;
+  if (!encoded) return null;
+  const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
+  return JSON.parse(payloadText.decode(bytes));
 }
 
-async function decodePattern(salt, encoded) {
-  const key = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt)));
-  const bytes = new Uint8Array(encoded.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(encoded.slice(i * 2, i * 2 + 2), 16) ^ key[i % key.length];
+async function digest(salt, text) {
+  const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${salt}\0${text}`));
+  return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function normalize(value, { trim = true, collapseSpace = false, ignoreCase = false } = {}) {
+  let text = value;
+  if (trim) text = text.replace(/^[ \t\n\r\f\v]+|[ \t\n\r\f\v]+$/g, "");
+  if (collapseSpace) text = text.replace(/[ \t\n\r\f\v]+/g, " ");
+  if (ignoreCase) text = text.replace(/[A-Z]+/g, letters => letters.toLowerCase());
+  return text;
+}
+
+async function checkWithPayload(payload, submittedValue, control) {
+  if (payload.match === "regex") {
+    const value = normalize(submittedValue, payload);
+    return Boolean(value) && new RegExp(payload.pattern, payload.ignoreCase ? "i" : "").test(value);
   }
-  return new TextDecoder().decode(bytes);
-}
-
-async function matchesRegex(value, metadata) {
-  const pattern = await decodePattern(metadata.salt, metadata.regex);
-  try {
-    return new RegExp(pattern, metadata.ignoreCase ? "i" : "").test(canonicalize(value, metadata));
-  } catch (err) {
-    console.warn("Invalid regex pattern in exercise metadata", err);
-    return false;
-  }
-}
-
-function canonicalize(value, rules = {}) {
-  let normalized = value || "";
-  if (rules.trim !== false) normalized = normalized.trim();
-  if (rules.collapseSpace) normalized = normalized.replace(/\s+/g, " ");
-  if (rules.ignoreCase) normalized = normalized.toLowerCase();
-  return normalized;
+  const value = payload.match === "key" ? control.dataset.key : normalize(submittedValue, payload);
+  return Boolean(value) && payload.answers.includes(await digest(payload.salt, value));
 }
 
 function checkModeFor(control) {
@@ -59,36 +57,12 @@ function makeControl(container, kind, id, qx) {
 }
 
 async function checkAnswer(control, submittedValue) {
-  const container = control.closest(".quarto-exercise-blank-container") ||
-                    control.closest(".quarto-exercise-choose-container") ||
-                    control.closest(".quarto-exercise-code-cloze-container") ||
-                    control.closest(".quarto-exercise");
-  if (!container) return false;
+  if (control._qx) return checkWithPayload(control._qx, submittedValue, control);
 
-  if (control.classList && control.classList.contains("quarto-exercise-answer")) {
-    const exercise = control.closest(".quarto-exercise");
-    const expected = exercise?.dataset.qxCorrect?.split(" ") || [];
-    return expected.includes(await digest(exercise?.dataset.qxSalt || "", control.dataset.key || ""));
-  }
-
-  if (control._qx) {
-    if (control._qx.regex) return matchesRegex(submittedValue, control._qx);
-    const value = canonicalize(submittedValue, control._qx);
-    return control._qx.digests.includes(await digest(control._qx.salt, value));
-  }
-  if (container.dataset.qxDigests || container.dataset.qxRegex) {
-    const metadata = {
-      salt: container.dataset.qxSalt,
-      regex: container.dataset.qxRegex,
-      ignoreCase: container.dataset.qxIgnoreCase === "true",
-      trim: container.dataset.qxTrim !== "false",
-      collapseSpace: container.dataset.qxCollapseSpace === "true"
-    };
-    if (metadata.regex) return matchesRegex(submittedValue, metadata);
-    const value = canonicalize(submittedValue, metadata);
-    return container.dataset.qxDigests.split(" ").includes(await digest(container.dataset.qxSalt, value));
-  }
-  return false;
+  const host = control.closest(".quarto-exercise-blank-container, .quarto-exercise-choose-container") ||
+               control.closest(".quarto-exercise");
+  const payload = host && decodePayload(host);
+  return Boolean(payload) && checkWithPayload(payload, submittedValue, control);
 }
 
 function initExercises() {
@@ -421,7 +395,22 @@ async function verifySimpleControl(container, kind, inputSelector, feedbackSelec
   const feedback = $(container, feedbackSelector);
 
   const control = makeControl(container, kind);
-  const isCorrect = await checkAnswer(control, element ? element.value : "");
+  let isCorrect = false;
+  try {
+    isCorrect = await checkAnswer(control, element ? element.value : "");
+  } catch (err) {
+    console.error("Exercise configuration error", err);
+    container.classList.remove("is-correct");
+    if (element) {
+      element.classList.remove("is-correct", "is-incorrect");
+    }
+    if (showFeedback) {
+      setFeedback(feedback, "This exercise is incorrectly configured.", "incorrect");
+    } else {
+      resetFeedback(feedback);
+    }
+    return false;
+  }
 
   container.classList.toggle("is-correct", isCorrect);
   if (element) {
@@ -868,17 +857,6 @@ window.QuartoExercises = {
   }
 };
 
-// ---- Code Cloze implementation ----
-
-function parseClozeMetadata(container) {
-  try {
-    return JSON.parse(container.dataset.clozeMetadata || "{}");
-  } catch (e) {
-    console.warn("Invalid cloze metadata", e);
-    return {};
-  }
-}
-
 function replaceTokenWithElement(codeNode, token, el) {
   let textNode = null;
   const walker = document.createTreeWalker(codeNode, NodeFilter.SHOW_TEXT);
@@ -911,7 +889,7 @@ function initCodeCloze(container, onCheck) {
   const code = container.querySelector("code");
   if (!code) return;
 
-  const metadata = parseClozeMetadata(container);
+  const metadata = decodePayload(container) || {};
   const controls = [];
 
   for (const [token, info] of Object.entries(metadata)) {
@@ -930,7 +908,7 @@ function initCodeCloze(container, onCheck) {
         el: input,
         attrs,
         token,
-        qx: info.qx,
+        qx: info
       });
     } else if (info.type === "choose") {
       const attrs = info.attrs || {};
@@ -949,7 +927,7 @@ function initCodeCloze(container, onCheck) {
         el: select,
         attrs,
         token,
-        qx: info.qx
+        qx: info
       });
     }
   }
@@ -968,7 +946,13 @@ async function verifyCodeCloze(container, { showFeedback = false, reveal = false
 
     const controlObj = makeControl(container, type, token, ctrl.qx);
 
-    const ok = await checkAnswer(controlObj, el.value);
+    let ok;
+    try {
+      ok = await checkAnswer(controlObj, el.value);
+    } catch (err) {
+      console.error("Exercise configuration error", err);
+      ok = false;
+    }
     if (ok) {
       correctCount++;
     }
@@ -1051,13 +1035,13 @@ function initStandaloneCodeCloze(container) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     digest,
-    decodePattern,
-    matchesRegex,
+    normalize,
+    decodePayload,
+    checkWithPayload,
     initExercises,
     initController,
     initCheckControllers,
     checkAnswer,
-    canonicalize,
     splitList,
     makeControl,
     checkModeFor,
@@ -1090,7 +1074,6 @@ if (typeof module !== "undefined" && module.exports) {
     verifyExercise,
     resetExercise,
     resetUnit,
-    parseClozeMetadata,
     initCodeCloze,
     verifyCodeCloze,
     resetCodeCloze,
