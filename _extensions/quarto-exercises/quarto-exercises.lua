@@ -77,258 +77,55 @@ local bool_attrs = {
   ["question-boxes"] = true
 }
 
+local regex_check = [[
+const patterns = JSON.parse(await new Response(Deno.stdin.readable).text());
+for (const pattern of patterns) {
+  try {
+    new RegExp(pattern);
+    console.log("");
+  } catch (error) {
+    console.log(error.message);
+  }
+}
+]]
+
+local pending_regexes = {}
+
 local function validate_regex(pattern, id)
-  local function fail(reason)
-    local err_msg = "quarto-exercises error: exercise: #" .. tostring(id or "unknown") .. " invalid regular expression"
-    if reason and reason ~= "" then err_msg = err_msg .. " (" .. reason .. ")" end
-    io.stderr:write(err_msg .. "\n")
-    os.exit(1)
+  pending_regexes[#pending_regexes + 1] = { pattern = pattern, id = id }
+end
+
+local function check_regexes()
+  if #pending_regexes == 0 then return end
+
+  local patterns = {}
+  for i, entry in ipairs(pending_regexes) do
+    patterns[i] = entry.pattern
   end
 
-  if not pattern or pattern == "" then
+  local ok, output = false, ""
+  local deno = os.getenv("QUARTO_DENO")
+  if deno then
+    ok, output = pcall(pandoc.pipe, deno, { "eval", regex_check }, quarto.json.encode(patterns))
+  end
+  if not ok then
+    io.stderr:write("quarto-exercises warning: Regex patterns unable to be checked for validity. Check QUARTO_DENO\n")
     return
   end
 
-
-  local len = #pattern
-  local i = 1
-  local depth = 0
-  local last_was_atom = false
-  local last_was_quantifier = false
-
-  local function char_at(pos)
-    return pattern:sub(pos, pos)
+  local messages = {}
+  for line in string.gmatch(output, "([^\n]*)\n") do
+    messages[#messages + 1] = line
   end
 
-  while i <= len do
-    local c = char_at(i)
-
-    if c == "\\" then
-      if i == len then
-        fail("dangling backslash")
-      end
-      local next_c = char_at(i + 1)
-      if next_c == "x" then
-        if i + 3 > len or not pattern:sub(i + 2, i + 3):match("^[0-9a-fA-F]+$") then
-          fail("invalid hex escape \\x")
-        end
-        i = i + 4
-      elseif next_c == "u" then
-        if i + 5 > len or not pattern:sub(i + 2, i + 5):match("^[0-9a-fA-F]+$") then
-          fail("invalid unicode escape \\u")
-        end
-        i = i + 6
-      else
-        i = i + 2
-      end
-      last_was_atom = true
-      last_was_quantifier = false
-
-    elseif c == "[" then
-      i = i + 1
-      if i <= len and char_at(i) == "^" then
-        i = i + 1
-      end
-
-      local class_start = i
-      local in_range = false
-      local prev_code = nil
-      local prev_is_class_escape = false
-
-      while i <= len do
-        local cc = char_at(i)
-        if cc == "\\" then
-          if i == len then
-            fail("dangling backslash in character class")
-          end
-          local ncc = char_at(i + 1)
-          local code = nil
-          local is_class_escape = false
-          if ncc:match("^[dDwWsS]$") then
-            is_class_escape = true
-            i = i + 2
-          elseif ncc == "n" then code = 10; i = i + 2
-          elseif ncc == "r" then code = 13; i = i + 2
-          elseif ncc == "t" then code = 9; i = i + 2
-          elseif ncc == "f" then code = 12; i = i + 2
-          elseif ncc == "v" then code = 11; i = i + 2
-          elseif ncc == "0" then code = 0; i = i + 2
-          elseif ncc == "x" then
-            if i + 3 <= len and pattern:sub(i + 2, i + 3):match("^[0-9a-fA-F]+$") then
-              code = tonumber(pattern:sub(i + 2, i + 3), 16)
-              i = i + 4
-            else
-              fail("invalid hex escape in character class")
-            end
-          elseif ncc == "u" then
-            if i + 5 <= len and pattern:sub(i + 2, i + 5):match("^[0-9a-fA-F]+$") then
-              code = tonumber(pattern:sub(i + 2, i + 5), 16)
-              i = i + 6
-            else
-              fail("invalid unicode escape in character class")
-            end
-          else
-            code = string.byte(ncc)
-            i = i + 2
-          end
-
-          if in_range then
-            if prev_is_class_escape or is_class_escape then
-              fail("invalid class range")
-            end
-            if prev_code and code and prev_code > code then
-              fail("range out of order in character class")
-            end
-            in_range = false
-            prev_code = nil
-            prev_is_class_escape = false
-          else
-            prev_code = code
-            prev_is_class_escape = is_class_escape
-          end
-
-        elseif cc == "]" and i > class_start then
-          break
-        elseif cc == "-" and not in_range and i > class_start and char_at(i + 1) ~= "]" then
-          if prev_is_class_escape then
-            fail("invalid class range")
-          end
-          in_range = true
-          i = i + 1
-        else
-          local code = string.byte(cc)
-          if in_range then
-            if prev_is_class_escape then
-              fail("invalid class range")
-            end
-            if prev_code and prev_code > code then
-              fail("range out of order in character class")
-            end
-            in_range = false
-            prev_code = nil
-            prev_is_class_escape = false
-          else
-            prev_code = code
-            prev_is_class_escape = false
-          end
-          i = i + 1
-        end
-      end
-
-      if i > len or char_at(i) ~= "]" then
-        fail("unclosed character class")
-      end
-      i = i + 1
-      last_was_atom = true
-      last_was_quantifier = false
-
-    elseif c == "(" then
-      depth = depth + 1
-      i = i + 1
-      last_was_atom = false
-      last_was_quantifier = false
-
-      if i <= len and char_at(i) == "?" then
-        i = i + 1
-        if i > len then
-          fail("invalid group structure")
-        end
-        local gc = char_at(i)
-        if gc == ":" or gc == "=" or gc == "!" then
-          i = i + 1
-        elseif gc == "<" then
-          i = i + 1
-          if i <= len and (char_at(i) == "=" or char_at(i) == "!") then
-            i = i + 1
-          else
-            local name_start = i
-            while i <= len and char_at(i) ~= ">" do
-              i = i + 1
-            end
-            if i > len or i == name_start then
-              fail("invalid group name")
-            end
-            i = i + 1
-          end
-        else
-          fail("invalid group syntax")
-        end
-      end
-
-    elseif c == ")" then
-      depth = depth - 1
-      if depth < 0 then
-        fail("unmatched closing parenthesis")
-      end
-      i = i + 1
-      last_was_atom = true
-      last_was_quantifier = false
-
-    elseif c == "|" then
-      i = i + 1
-      last_was_atom = false
-      last_was_quantifier = false
-
-    elseif c == "*" or c == "+" or c == "?" or c == "{" then
-      if c == "{" then
-        local sub = pattern:sub(i)
-        local n_str, comma, m_str, rest = sub:match("^{([0-9]+)(,?)([0-9]*)}()")
-        if n_str then
-          if not last_was_atom then
-            fail("nothing to repeat")
-          end
-          if last_was_quantifier then
-            fail("multiple quantifiers")
-          end
-          local n = tonumber(n_str)
-          if comma == "," and m_str ~= "" then
-            local m = tonumber(m_str)
-            if n > m then
-              fail("numbers out of order in {} quantifier")
-            end
-          end
-          i = i + rest - 1
-          if i <= len and char_at(i) == "?" then
-            i = i + 1
-          end
-          last_was_atom = true
-          last_was_quantifier = true
-        else
-          i = i + 1
-          last_was_atom = true
-          last_was_quantifier = false
-        end
-      else
-        if last_was_quantifier then
-          if c == "?" then
-            i = i + 1
-            last_was_quantifier = true
-            last_was_atom = true
-          else
-            fail("nothing to repeat")
-          end
-        elseif not last_was_atom then
-          fail("nothing to repeat")
-        else
-          i = i + 1
-          if i <= len and char_at(i) == "?" then
-            i = i + 1
-          end
-          last_was_atom = true
-          last_was_quantifier = true
-        end
-      end
-
-    else
-      i = i + 1
-      last_was_atom = true
-      last_was_quantifier = false
+  local failed = false
+  for i, entry in ipairs(pending_regexes) do
+    if messages[i] and messages[i] ~= "" then
+      io.stderr:write("quarto-exercises error: exercise: #" .. tostring(entry.id or "unknown") .. " invalid regular expression: " .. messages[i] .. "\n")
+      failed = true
     end
   end
-
-  if depth ~= 0 then
-    fail("unclosed group")
-  end
+  if failed then os.exit(1) end
 end
 
 local counter = 0
@@ -561,6 +358,43 @@ local function join_values(values, delimiter)
   return table.concat(escaped, delimiter)
 end
 
+local function normalize(text, rules)
+  if rules.trim then text = text:match("^%s*(.-)%s*$") end
+  if rules.collapseSpace then text = text:gsub("%s+", " ") end
+  if rules.ignoreCase then text = string.lower(text) end
+  return text
+end
+
+local document_salt
+
+local function get_salt()
+  document_salt = document_salt or pandoc.utils.sha1(tostring(os.time()) .. tostring(math.random()))
+  return document_salt
+end
+
+local function answer_payload(values, match, rules)
+  local payload = {
+    match = match,
+    salt = get_salt(),
+    trim = rules.trim or false,
+    collapseSpace = rules.collapseSpace or false,
+    ignoreCase = rules.ignoreCase or false
+  }
+  if match == "regex" then
+    payload.pattern = values[1]
+  else
+    payload.answers = {}
+    for _, value in ipairs(values) do
+      payload.answers[#payload.answers + 1] = pandoc.utils.sha1(payload.salt .. "\0" .. normalize(value, rules))
+    end
+  end
+  return payload
+end
+
+local function encode_payload(payload)
+  return quarto.base64.encode(quarto.json.encode(payload))
+end
+
 local function has_inline_interaction(blocks)
   local found = false
   for _, block in ipairs(blocks) do
@@ -727,10 +561,7 @@ local function render_html_exercise(data, id, exercise_options)
     ["data-points"] = exercise_options.points
   }
   if #data.answers > 0 then
-    div_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
-      kind = "exercise",
-      correctKeys = correct_keys
-    }))
+    div_attrs["data-answer-payload"] = encode_payload(answer_payload(correct_keys, "key", {}))
   end
   for _, class in ipairs(exercise_options.classes or {}) do
     if class ~= "exercise" then
@@ -1004,37 +835,33 @@ local function process_code_cloze(el, parent_id)
       end
     end
     local expected = info.attrs.answers or info.attrs.answer or ""
+    local payload
     if info.type == "blank" then
-      local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
-      local trim = normalize_bool(info.attrs.trim) ~= "false"
-      local collapse_space = normalize_bool(info.attrs["collapse-space"]) == "true"
       local match = info.attrs.match or "exact"
       if match == "regex" then
         validate_regex(expected, id)
       end
-      local raw_list = match == "regex" and { expected } or split_values(expected, "|")
-      controls[token] = {
-        type = info.type,
-        attrs = attrs,
-        kind = "blank",
-        answers = raw_list,
-        match = match,
-        ignoreCase = ignore_case,
-        trim = trim,
-        collapseSpace = collapse_space
-      }
+      payload = answer_payload(
+        match == "regex" and { expected } or split_values(expected, "|"),
+        match == "regex" and "regex" or "exact",
+        {
+          trim = normalize_bool(info.attrs.trim) ~= "false",
+          collapseSpace = normalize_bool(info.attrs["collapse-space"]) == "true",
+          ignoreCase = normalize_bool(info.attrs["ignore-case"]) == "true"
+        }
+      )
     elseif info.type == "choose" then
-      local ignore_case = normalize_bool(info.attrs["ignore-case"]) == "true"
-      controls[token] = {
-        type = info.type,
-        attrs = attrs,
-        kind = "choose",
-        answer = expected,
-        ignoreCase = ignore_case
-      }
+      payload = answer_payload({ expected }, "exact", {
+        ignoreCase = normalize_bool(info.attrs["ignore-case"]) == "true"
+      })
+    end
+    if payload then
+      payload.type = info.type
+      payload.attrs = attrs
+      controls[token] = payload
     end
   end
-  container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode(controls))
+  container_attrs["data-answer-payload"] = encode_payload(controls)
 
   if parent_id then
     container_attrs["data-parent-id"] = parent_id
@@ -1107,15 +934,11 @@ local function render_blank(el, id, parent_id)
   local collapse_space_val = (normalize_bool(el.attributes["collapse-space"]) or tostring(options["collapse-space"])) == "true"
 
   do
-    local raw_list = match == "regex" and { answer } or split_values(answer, "|")
-    container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
-      kind = "blank",
-      answers = raw_list,
-      match = match,
-      ignoreCase = ignore_case_val,
-      trim = trim_val,
-      collapseSpace = collapse_space_val
-    }))
+    container_attrs["data-answer-payload"] = encode_payload(answer_payload(
+      match == "regex" and { answer } or split_values(answer, "|"),
+      match == "regex" and "regex" or "exact",
+      { trim = trim_val, collapseSpace = collapse_space_val, ignoreCase = ignore_case_val }
+    ))
   end
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-blank-check-btn">Check</button>'
@@ -1174,11 +997,7 @@ local function render_choose(el, id, parent_id)
 
   local ignore_case_val = (normalize_bool(el.attributes["ignore-case"]) or "false") == "true"
 
-  container_attrs["data-answer-payload"] = quarto.base64.encode(quarto.json.encode({
-    kind = "choose",
-    answer = answer,
-    ignoreCase = ignore_case_val
-  }))
+  container_attrs["data-answer-payload"] = encode_payload(answer_payload({ answer }, "exact", { ignoreCase = ignore_case_val }))
 
   local button_html = should_suppress_controls(parent_id, el.attributes) and "" or '<button type="button" class="quarto-exercise-choose-check-btn">Check</button>'
 
@@ -1394,5 +1213,6 @@ return {
   { Meta = Meta },
   { Div = mark_batch_exercises },
   { Div = Div },
-  { Span = Span, CodeBlock = CodeBlock }
+  { Span = Span, CodeBlock = CodeBlock },
+  { Pandoc = check_regexes }
 }

@@ -65,7 +65,7 @@ There are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin),
 :::
 ```
 
-The optional `key` attribute gives an answer a stable authoring identifier for duplicate-key validation. It is not written to the generated HTML. The extension assigns every rendered choice a random-looking opaque ID.
+The optional `key` attribute gives an answer a stable identifier for duplicate-key validation, and it is written to the generated HTML as the choice's `data-key`. Choices without a key are assigned a letter (`a`, `b`, and so on). Which keys are correct is not written to the HTML in plain text.
 
 ## Feedback, Hints, and Explanations
 
@@ -356,7 +356,7 @@ body.quarto-dark {
 
 ## Answer Obfuscation
 
-The extension obfuscates answer metadata in generated HTML to prevent casual answer lookup through view-source, DOM attributes, or the browser console. Checking happens in the browser, so a determined student can reverse engineer it. Do not use the extension as the security boundary for a graded assessment.
+Correct answers are kept out of the generated HTML in readable form. Each accepted blank, dropdown, and exercise answer is stored as a salted SHA-1 digest of its normalized value, and the browser normalizes and hashes the learner's input the same way before comparing. Regex patterns are stored in an encoded form that the browser decodes when checking. This keeps answers out of a quick view-source or DOM read, but it is not a security boundary: short or guessable answers can be recovered by hashing candidates, and regex patterns can be decoded. Do not use the extension as the security boundary for a graded assessment.
 
 ## Limitations
 

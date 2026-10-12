@@ -10,124 +10,35 @@ if (window.Quarto && typeof window.Quarto.onRender === "function") {
   window.Quarto.onRender(initExercises);
 }
 
-const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
-
-function decodeUtf8Base64(encoded) {
-  if (typeof encoded !== "string" || encoded.length === 0) {
-    throw new Error("Missing encoded answer");
-  }
-
-  const binary = atob(encoded);
-  const bytes = Uint8Array.from(
-    binary,
-    character => character.charCodeAt(0)
-  );
-
-  return utf8Decoder.decode(bytes);
-}
-
-function normalizeAnswer(value, options = {}) {
-  let result = (value || "").normalize("NFC");
-
-  if (options.trim) {
-    result = result.trim();
-  }
-
-  if (options.collapseSpace) {
-    result = result.replace(/\s+/g, " ");
-  }
-
-  if (options.ignoreCase) {
-    result = result.toLowerCase();
-  }
-
-  return result;
-}
-
-function matchesExact(submitted, expected, options = {}) {
-  return normalizeAnswer(submitted, options) ===
-    normalizeAnswer(expected, options);
-}
-
-function createRegex(pattern, ignoreCase) {
-  try {
-    return new RegExp(pattern, ignoreCase ? "i" : "");
-  } catch (error) {
-    console.error("Invalid exercise regex configuration", error);
-    return null;
-  }
-}
-
-function matchesRegex(submitted, regex, options = {}) {
-  if (!regex) {
-    throw new Error("This exercise is incorrectly configured.");
-  }
-
-  return regex.test(normalizeAnswer(submitted, options));
-}
+const payloadText = new TextDecoder();
 
 function decodePayload(container) {
   const encoded = container.dataset.answerPayload;
   if (!encoded) return null;
-  try {
-    return JSON.parse(decodeUtf8Base64(encoded));
-  } catch (e) {
-    return null;
-  }
+  const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
+  return JSON.parse(payloadText.decode(bytes));
 }
 
-function checkWithPayload(payload, submittedValue, control) {
-  if (!payload || typeof payload !== "object") return false;
-
-  if (payload.kind === "blank") {
-    const match = payload.match || "exact";
-    const options = {
-      trim: payload.trim !== false,
-      collapseSpace: Boolean(payload.collapseSpace),
-      ignoreCase: Boolean(payload.ignoreCase)
-    };
-
-    const answers = Array.isArray(payload.answers) ? payload.answers : [];
-    if (answers.length === 0) {
-      throw new Error("This exercise is incorrectly configured.");
-    }
-
-    if (match === "regex") {
-      if (!payload._compiledRegex) {
-        payload._compiledRegex = createRegex(answers[0], payload.ignoreCase);
-      }
-      return matchesRegex(submittedValue, payload._compiledRegex, options);
-    }
-
-    return answers.some(answer => matchesExact(submittedValue, answer, options));
-  }
-
-  if (payload.kind === "choose") {
-    const options = {
-      trim: false,
-      collapseSpace: false,
-      ignoreCase: Boolean(payload.ignoreCase)
-    };
-    if (!payload.answer) {
-      throw new Error("This exercise is incorrectly configured.");
-    }
-    return matchesExact(submittedValue, payload.answer, options);
-  }
-
-  if (payload.kind === "exercise") {
-    const key = control && control.dataset ? control.dataset.key : "";
-    return (payload.correctKeys || []).includes(key);
-  }
-
-  return false;
+async function digest(salt, text) {
+  const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${salt}\0${text}`));
+  return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function canonicalize(value, rules = {}) {
-  return normalizeAnswer(value, {
-    trim: rules.trim !== false,
-    collapseSpace: Boolean(rules.collapseSpace),
-    ignoreCase: Boolean(rules.ignoreCase)
-  });
+function normalize(value, { trim = true, collapseSpace = false, ignoreCase = false } = {}) {
+  let text = value;
+  if (trim) text = text.replace(/^[ \t\n\r\f\v]+|[ \t\n\r\f\v]+$/g, "");
+  if (collapseSpace) text = text.replace(/[ \t\n\r\f\v]+/g, " ");
+  if (ignoreCase) text = text.replace(/[A-Z]+/g, letters => letters.toLowerCase());
+  return text;
+}
+
+async function checkWithPayload(payload, submittedValue, control) {
+  if (payload.match === "regex") {
+    const value = normalize(submittedValue, payload);
+    return Boolean(value) && new RegExp(payload.pattern, payload.ignoreCase ? "i" : "").test(value);
+  }
+  const value = payload.match === "key" ? control.dataset.key : normalize(submittedValue, payload);
+  return Boolean(value) && payload.answers.includes(await digest(payload.salt, value));
 }
 
 function checkModeFor(control) {
@@ -146,23 +57,12 @@ function makeControl(container, kind, id, qx) {
 }
 
 async function checkAnswer(control, submittedValue) {
-  const container = control.closest(".quarto-exercise-blank-container") ||
-                    control.closest(".quarto-exercise-choose-container") ||
-                    control.closest(".quarto-exercise-code-cloze-container") ||
-                    control.closest(".quarto-exercise");
-  if (!container) return false;
+  if (control._qx) return checkWithPayload(control._qx, submittedValue, control);
 
-  if (control._qx) {
-    return checkWithPayload(control._qx, submittedValue, control);
-  }
-
-  const parentContainer = control.classList && control.classList.contains("quarto-exercise-answer")
-    ? control.closest(".quarto-exercise") : container;
-
-  const payload = decodePayload(parentContainer);
-  if (!payload) return false;
-
-  return checkWithPayload(payload, submittedValue, control);
+  const host = control.closest(".quarto-exercise-blank-container, .quarto-exercise-choose-container") ||
+               control.closest(".quarto-exercise");
+  const payload = host && decodePayload(host);
+  return Boolean(payload) && checkWithPayload(payload, submittedValue, control);
 }
 
 function initExercises() {
@@ -1134,19 +1034,14 @@ function initStandaloneCodeCloze(container) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    utf8Decoder,
-    decodeUtf8Base64,
-    normalizeAnswer,
-    matchesExact,
-    createRegex,
-    matchesRegex,
+    digest,
+    normalize,
     decodePayload,
     checkWithPayload,
     initExercises,
     initController,
     initCheckControllers,
     checkAnswer,
-    canonicalize,
     splitList,
     makeControl,
     checkModeFor,
