@@ -32,7 +32,7 @@
     "href": "reference.html#answer-obfuscation",
     "title": "Quarto Exercises Reference",
     "section": "Answer Obfuscation",
-    "text": "Answer Obfuscation\nAnswer obfuscation is always enabled.\nGenerated HTML stores opaque choice IDs, salts, and digests instead of plaintext correctness metadata. Accepted blank and dropdown answers are normalized and stored as salted digests. Regex patterns are encoded to avoid plaintext answer metadata in generated HTML.\nThis is static source obfuscation, not secure grading. Because checking runs in the browser, a determined student can reverse engineer it. Use it to discourage casual answer lookup through view-source, DOM attributes, or obvious console inspection, not to secure a graded assessment."
+    "text": "Answer Obfuscation\nAnswer obfuscation is always enabled.\nGenerated HTML stores accepted blank, dropdown, and exercise answers as salted SHA-1 digests of their normalized values instead of plaintext. The browser normalizes and hashes the learner’s input the same way before comparing. Regex patterns are stored in an encoded form.\nThis is static source obfuscation, not secure grading. Short or guessable answers can be recovered by hashing candidates, and regex patterns can be decoded. Use it to discourage casual answer lookup through view-source, DOM attributes, or obvious console inspection, not to secure a graded assessment."
   },
   {
     "objectID": "reference.html#visual-style",
