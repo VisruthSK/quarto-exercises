@@ -1,8 +1,8 @@
 # quarto-exercises
 
-`quarto-exercises` is a Quarto extension for small interactive practice questions in Quarto documents built to HTML. 
+`quarto-exercises` is a Quarto extension for small interactive practice questions in HTML and reveal.js documents. Other formats such as PDF and Typst print the questions without interactivity.
 
-See the [example](example.qmd) and [reference](reference.qmd) pages for more details on the problem types and options.
+See the [example](example.qmd), [slides](example-slides.qmd), and [reference](reference.qmd) pages for more details on the problem types and options.
 
 ## Installation
 
@@ -215,6 +215,8 @@ Use `true` or `false` for boolean attributes.
 
 The filter warns during render for unsupported attributes, missing answers, duplicate answer keys, missing correct choices, invalid boolean values, and malformed code cloze markers. Fix those warnings before publishing.
 
+Invalid regular expressions fail the build. Checking them needs Quarto's bundled Deno (`QUARTO_DENO`). Without it, the build warns and the browser checks the pattern instead.
+
 Do not put `.blank`, `.choose`, or `.code-cloze` controls inside `.answer` blocks. Put them in the exercise stem or in a standalone paragraph instead.
 
 Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write `\\|` for a literal pipe and `\\\\` for a literal backslash because Pandoc consumes one backslash before this filter receives the value. Inside `.code-cloze` blocks, write `\|` for a literal pipe and `\\` for a literal backslash because code cloze markers are parsed from raw code text.
@@ -306,7 +308,7 @@ For formats such as PDF, DOCX, Typst, and Markdown, the filter removes the inter
 
 ## Styling
 
-The extension ships its own CSS and follows Quarto light and dark modes. These are the default light-mode CSS variables:
+The extension ships its own CSS and follows Quarto light and dark modes. Check, Reset, and Hint buttons take their colors from the Quarto theme: Bootstrap button classes in HTML, and the reveal.js theme colors in slides. These are the default light-mode CSS variables:
 
 ```css
 .quarto-exercise {
@@ -322,8 +324,6 @@ The extension ships its own CSS and follows Quarto light and dark modes. These a
   --ex-bg: transparent;
   --ex-control-bg: #f8f9fa;
   --ex-control-hover-bg: #e9ecef;
-  --ex-control-primary-bg: #e9ecef;
-  --ex-control-primary-hover-bg: #dee2e6;
   --ex-border-radius: 4px;
   --ex-focus-ring: 0 0 0 2px rgba(26, 115, 232, 0.3);
   --ex-panel-border: #6c757d;
@@ -347,8 +347,6 @@ body.quarto-dark {
   --ex-bg: transparent;
   --ex-control-bg: #2d2e30;
   --ex-control-hover-bg: #3c4043;
-  --ex-control-primary-bg: #3c4043;
-  --ex-control-primary-hover-bg: #4f5357;
   --ex-focus-ring: 0 0 0 2px rgba(138, 180, 248, 0.4);
   --ex-panel-border: #9aa0a6;
 }

@@ -358,10 +358,34 @@ local function join_values(values, delimiter)
   return table.concat(escaped, delimiter)
 end
 
+local lowercase_script = "console.log((await new Response(Deno.stdin.readable).text()).toLowerCase());"
+local lowercase_cache = {}
+local lowercase_warned = false
+
+local function lowercase(text)
+  if lowercase_cache[text] == nil then
+    local deno = os.getenv("QUARTO_DENO")
+    local ok, output = false, nil
+    if deno then
+      ok, output = pcall(pandoc.pipe, deno, { "eval", lowercase_script }, text)
+    end
+    if ok then
+      lowercase_cache[text] = (output:gsub("\n$", ""))
+    else
+      if not lowercase_warned then
+        io.stderr:write("quarto-exercises warning: ignore-case folds only ASCII letters. Check QUARTO_DENO\n")
+        lowercase_warned = true
+      end
+      lowercase_cache[text] = string.lower(text)
+    end
+  end
+  return lowercase_cache[text]
+end
+
 local function normalize(text, rules)
   if rules.trim then text = text:match("^%s*(.-)%s*$") end
   if rules.collapseSpace then text = text:gsub("%s+", " ") end
-  if rules.ignoreCase then text = string.lower(text) end
+  if rules.ignoreCase then text = lowercase(text) end
   return text
 end
 
@@ -1036,7 +1060,7 @@ function Meta(meta)
   if quarto and quarto.doc and quarto.doc.add_html_dependency and html() then
     quarto.doc.add_html_dependency({
       name = "quarto-exercises",
-      version = "0.1.0",
+      version = "0.2.0",
       stylesheets = { "quarto-exercises.css" },
       scripts = { "quarto-exercises.js" }
     })
