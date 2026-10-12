@@ -49,32 +49,39 @@
     "text": "Supported CSS Variables\nCustomize exercise controls and layouts by overriding these CSS custom properties in your site stylesheet or document header:\n\n\n\n\n\n\n\n\nVariable\nDefault\nDescription\n\n\n\n\n--ex-accent\n#1a73e8\nAccent color for radio buttons, checkboxes, focus rings, and hint borders.\n\n\n--ex-accent-dark\n#4285f4\nAccent color for dark mode.\n\n\n--ex-correct\n#137333\nText, border, and status color for correct answers.\n\n\n--ex-incorrect\n#c5221f\nText and status color for incorrect answers.\n\n\n--ex-incorrect-border\n#ea4335\nBorder color for incorrect text inputs and dropdowns.\n\n\n--ex-muted\n#555\nText color for hints, explanations, feedback, and placeholders in light mode.\n\n\n--ex-muted-dark\n#aaa\nText color for hints and explanations in dark mode.\n\n\n--ex-border-color\n#ccc\nBorder color for action buttons, containers, and code cloze inputs.\n\n\n--ex-border-strong\n#ced4da\nBorder color for unselected radio buttons, checkboxes, and select dropdowns.\n\n\n--ex-bg\ntransparent\nBackground color for exercise containers.\n\n\n--ex-control-bg\n#f8f9fa\nBackground color for action buttons, inputs, and dropdowns in light mode.\n\n\n--ex-control-hover-bg\n#e9ecef\nHover background color for buttons and controls in light mode.\n\n\n--ex-control-primary-bg\n#e9ecef\nBackground color for primary action buttons in light mode.\n\n\n--ex-control-primary-hover-bg\n#dee2e6\nHover background color for primary action buttons in light mode.\n\n\n--ex-border-radius\n4px\nBorder radius applied to buttons, select dropdowns, and input containers.\n\n\n--ex-focus-ring\n0 0 0 2px rgba(...)\nOuter box shadow applied to focused controls for keyboard navigation.\n\n\n--ex-panel-border\n#6c757d\nLeft border color for explanation callouts in light mode.\n\n\n--ex-panel-border-dark\n#adb5bd\nLeft border color for explanation callouts in dark mode.\n\n\n--ex-select-arrow\nSVG Data URI\nDropdown arrow icon for select menus.\n\n\n--ex-option-columns\n1\nNumber of columns in multiple-choice choice grids.\n\n\n--ex-batch-columns\n1\nNumber of columns in batch exercise grid layouts.\n\n\n--ex-button-primary-bg\nvar(--bs-primary, var(--ex-accent))\nBackground color for primary check buttons.\n\n\n--ex-button-primary-color\nvar(--bs-white, #fff)\nText color for primary check buttons.\n\n\n--ex-button-secondary-bg\nvar(--bs-secondary-bg, var(--ex-control-bg))\nBackground color for secondary reset buttons.\n\n\n--ex-button-secondary-color\nvar(--bs-body-color, inherit)\nText color for secondary reset buttons.\n\n\n--ex-button-border\nvar(--bs-border-color, var(--ex-border-color))\nBorder color for action buttons.\n\n\n--ex-box-bg\nvar(--bs-body-bg, transparent)\nBackground color for boxed exercise containers (.quarto-exercise-boxed).\n\n\n--ex-box-border\nvar(--bs-border-color, var(--ex-border-color))\nBorder color for boxed exercise containers.\n\n\n--ex-box-radius\nvar(--bs-border-radius, var(--ex-border-radius))\nBorder radius for boxed exercise containers."
   },
   {
-    "objectID": "full-page-check.html",
-    "href": "full-page-check.html",
-    "title": "Full Page Check",
+    "objectID": "includes/example-content.html",
+    "href": "includes/example-content.html",
+    "title": "quarto-exercises",
     "section": "",
-    "text": "This page demonstrates check-page: true. The page has one Check Page button and one Reset Page button for all exercises. Each question keeps its own options, including points, shuffle, and reveal. See the Reference page for the authoring pattern."
+    "text": "See the extension in action. If you want to learn more about how to write the questions, read the reference page."
   },
   {
-    "objectID": "full-page-check.html#ringbearer-2-points",
-    "href": "full-page-check.html#ringbearer-2-points",
-    "title": "Full Page Check",
-    "section": "Ringbearer (2 points)",
-    "text": "Ringbearer (2 points)\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir"
+    "objectID": "includes/example-content.html#multiple-choice-multiple-answer",
+    "href": "includes/example-content.html#multiple-choice-multiple-answer",
+    "title": "quarto-exercises",
+    "section": "Multiple Choice / Multiple Answer",
+    "text": "Multiple Choice / Multiple Answer\n\nMinimal Single-Choice\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir\n\n\n\n\nCheck\nReset\n\n\n\n\nMultiple-Correct with Custom Keys & Shuffling\n\nWhich members of the Fellowship are hobbits? Select all that apply.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf\n\n\n\nMeriadoc Brandybuck\n\n\n\n\nCheck\nReset\nHint\n\n\nThere are four hobbits in the Fellowship. One of them is Peregrin Took (Pippin), who is not listed here.\n\n\n\n\nPer-Answer Feedback & Question Explanation\n\nWhat is the name of the wizard who guides the Fellowship?\nAnswer choices\n\nGandalf\n\n\nCorrect! Specifically Gandalf the Grey, who later becomes Gandalf the White.\n\n\n\nSaruman\n\n\nNot quite. Saruman resides in Isengard and betrays the Fellowship.\n\n\n\n\nCheck\nReset\n\n\nGandalf is one of the Istari (wizards) sent to Middle-earth to oppose Sauron.\n\n\n\n\nCode Blocks in Choices\n\nWhat does the following Python statement print?\nprint([x * 2 for x in range(3)])\nAnswer choices\n\n[1, 2, 3]\n\n\n\n[0, 2, 4]\n\n\nCorrect! range(3) produces 0, 1, 2, and multiplying each by 2 yields 0, 2, 4.\n\n\n\n\nCheck\nReset"
   },
   {
-    "objectID": "full-page-check.html#fellowship-3-points",
-    "href": "full-page-check.html#fellowship-3-points",
-    "title": "Full Page Check",
-    "section": "Fellowship (3 points)",
-    "text": "Fellowship (3 points)\n\nSelect all hobbits in the Fellowship.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf"
+    "objectID": "includes/example-content.html#fill-in-the-blank",
+    "href": "includes/example-content.html#fill-in-the-blank",
+    "title": "quarto-exercises",
+    "section": "Fill-in-the-blank",
+    "text": "Fill-in-the-blank\n\nBasic Blank\nThe wizard who guides the Fellowship is Check.\n\n\nMultiple Accepted Answers (Case-insensitive)\nThe Ringbearer is Check.\n\n\nRegex Matching\nThe full title of the first volume of Lord of the Rings is Check."
   },
   {
-    "objectID": "full-page-check.html#inline-answer-1-point",
-    "href": "full-page-check.html#inline-answer-1-point",
-    "title": "Full Page Check",
-    "section": "Inline answer (1 point)",
-    "text": "Inline answer (1 point)\n\nThe wizard who guides the Fellowship is ."
+    "objectID": "includes/example-content.html#inline-choice-dropdown-cloze",
+    "href": "includes/example-content.html#inline-choice-dropdown-cloze",
+    "title": "quarto-exercises",
+    "section": "Inline Choice / Dropdown Cloze",
+    "text": "Inline Choice / Dropdown Cloze\n\nStandalone Dropdowns\nThe One Ring was forged in Choose...Check.\n\n\nNested in a Parent Exercise\nGrouping inline choices and blanks under a parent .exercise block combines their Check and Reset controls:\n\nThe hobbits are saved at the Prancing Pony by Choose..., who is also known as .\n\nCheck\nReset\nHint\n\n\nWhat does Sam call him?"
+  },
+  {
+    "objectID": "includes/example-content.html#code-cloze",
+    "href": "includes/example-content.html#code-cloze",
+    "title": "quarto-exercises",
+    "section": "Code Cloze",
+    "text": "Code Cloze\nBlanks and dropdowns can live directly inside code blocks. Syntax highlighting is fully preserved.\nA standalone .code-cloze block gets its own Check and Reset buttons:\n\n\nx &lt;- QEXCLOZEP000001(1, 2, 3, 4, 5)\ntotal &lt;- QEXCLOZEP000002(x)\ncat(\"Total:\", total, \"\\n\")\n\nCheckReset\n\nWrapping a .code-cloze block in an .exercise div gives it the same Check and Reset controls as any other exercise:\n\n\nnumbers = [1, 2, 3, 4, 5]\ntotal = QEXCLOZEP000001(numbers)\nprint(QEXCLOZEP000002)\n\n\nCheck\nReset\n\n\n\n\nx &lt;- 1:10\nmean &lt;- QEXCLOZEP000001(x)\ncat(QEXCLOZEP000002, \"\\n\")\n\n\nCheck\nReset"
   },
   {
     "objectID": "example.html",
@@ -110,6 +117,62 @@
     "title": "Quarto Exercises Extension Example",
     "section": "Code Cloze",
     "text": "Code Cloze\nBlanks and dropdowns can live directly inside code blocks. Syntax highlighting is fully preserved.\nA standalone .code-cloze block gets its own Check and Reset buttons:\n\n\nx &lt;- QEXCLOZEP000001(1, 2, 3, 4, 5)\ntotal &lt;- QEXCLOZEP000002(x)\ncat(\"Total:\", total, \"\\n\")\n\nCheckReset\n\nWrapping a .code-cloze block in an .exercise div gives it the same Check and Reset controls as any other exercise:\n\n\nnumbers = [1, 2, 3, 4, 5]\ntotal = QEXCLOZEP000001(numbers)\nprint(QEXCLOZEP000002)\n\n\nCheck\nReset\n\n\n\n\nx &lt;- 1:10\nmean &lt;- QEXCLOZEP000001(x)\ncat(QEXCLOZEP000002, \"\\n\")\n\n\nCheck\nReset"
+  },
+  {
+    "objectID": "example-slides.html#multiple-choice-multiple-answer",
+    "href": "example-slides.html#multiple-choice-multiple-answer",
+    "title": "Quarto Exercises Extension Example (Slides)",
+    "section": "Multiple Choice / Multiple Answer",
+    "text": "Multiple Choice / Multiple Answer"
+  },
+  {
+    "objectID": "example-slides.html#fill-in-the-blank",
+    "href": "example-slides.html#fill-in-the-blank",
+    "title": "Quarto Exercises Extension Example (Slides)",
+    "section": "Fill-in-the-blank",
+    "text": "Fill-in-the-blank"
+  },
+  {
+    "objectID": "example-slides.html#inline-choice-dropdown-cloze",
+    "href": "example-slides.html#inline-choice-dropdown-cloze",
+    "title": "Quarto Exercises Extension Example (Slides)",
+    "section": "Inline Choice / Dropdown Cloze",
+    "text": "Inline Choice / Dropdown Cloze"
+  },
+  {
+    "objectID": "example-slides.html#code-cloze",
+    "href": "example-slides.html#code-cloze",
+    "title": "Quarto Exercises Extension Example (Slides)",
+    "section": "Code Cloze",
+    "text": "Code Cloze\nBlanks and dropdowns can live directly inside code blocks. Syntax highlighting is fully preserved.\nA standalone .code-cloze block gets its own Check and Reset buttons:\n\n\nx &lt;- QEXCLOZEP000001(1, 2, 3, 4, 5)\ntotal &lt;- QEXCLOZEP000002(x)\ncat(\"Total:\", total, \"\\n\")\n\nCheckReset\n\nWrapping a .code-cloze block in an .exercise div gives it the same Check and Reset controls as any other exercise:\n\n\nnumbers = [1, 2, 3, 4, 5]\ntotal = QEXCLOZEP000001(numbers)\nprint(QEXCLOZEP000002)\n\n\nCheck\nReset\n\n\n\n\nx &lt;- 1:10\nmean &lt;- QEXCLOZEP000001(x)\ncat(QEXCLOZEP000002, \"\\n\")\n\n\nCheck\nReset"
+  },
+  {
+    "objectID": "full-page-check.html",
+    "href": "full-page-check.html",
+    "title": "Full Page Check",
+    "section": "",
+    "text": "This page demonstrates check-page: true. The page has one Check Page button and one Reset Page button for all exercises. Each question keeps its own options, including points, shuffle, and reveal. See the Reference page for the authoring pattern."
+  },
+  {
+    "objectID": "full-page-check.html#ringbearer-2-points",
+    "href": "full-page-check.html#ringbearer-2-points",
+    "title": "Full Page Check",
+    "section": "Ringbearer (2 points)",
+    "text": "Ringbearer (2 points)\n\nWho carried the One Ring out of the Shire?\nAnswer choices\n\nFrodo Baggins\n\n\n\nBoromir"
+  },
+  {
+    "objectID": "full-page-check.html#fellowship-3-points",
+    "href": "full-page-check.html#fellowship-3-points",
+    "title": "Full Page Check",
+    "section": "Fellowship (3 points)",
+    "text": "Fellowship (3 points)\n\nSelect all hobbits in the Fellowship.\nAnswer choices\n\nFrodo Baggins\n\n\n\nSamwise Gamgee\n\n\n\nLegolas Greenleaf"
+  },
+  {
+    "objectID": "full-page-check.html#inline-answer-1-point",
+    "href": "full-page-check.html#inline-answer-1-point",
+    "title": "Full Page Check",
+    "section": "Inline answer (1 point)",
+    "text": "Inline answer (1 point)\n\nThe wizard who guides the Fellowship is ."
   },
   {
     "objectID": "index.html",
