@@ -2609,6 +2609,48 @@ filters:
     assert.match(result.stderr + result.stdout, /Regex patterns unable to be checked for validity\. Check QUARTO_DENO/);
   });
 
+  test('exercises render and grade in revealjs output', async () => {
+    const qmdContent = `---
+title: "Reveal"
+format: revealjs
+filters:
+  - quarto-exercises
+---
+
+## Slide
+
+[Gandalf]{.blank answer="Gandalf"} is a wizard.
+`;
+    fs.writeFileSync(path.join(TEMP_DIR, 'reveal-blank.qmd'), qmdContent);
+    const result = runQuarto('reveal-blank.qmd', 'revealjs');
+    assert.strictEqual(result.success, true, result.stderr);
+
+    const html = fs.readFileSync(path.join(TEMP_DIR, 'reveal-blank.html'), 'utf8');
+    assert.match(html, /class="quarto-exercise-blank-container"/);
+    assert.doesNotMatch(html, /________/);
+
+    const playwright = require('playwright');
+    const browser = await playwright.chromium.launch();
+    try {
+      const page = await browser.newPage();
+      const pageErrors = [];
+      page.on('pageerror', error => pageErrors.push(error.message));
+      await page.goto(pathToFileURL(path.join(TEMP_DIR, 'reveal-blank.html')).href, { waitUntil: 'load' });
+      await page.waitForFunction(() => window.Reveal && window.Reveal.isReady());
+      await page.evaluate(() => {
+        const section = document.querySelector('.quarto-exercise-blank-input').closest('section');
+        const { h, v } = Reveal.getIndices(section);
+        Reveal.slide(h, v);
+      });
+      await page.locator('.quarto-exercise-blank-input').first().fill('Gandalf');
+      await page.locator('.quarto-exercise-blank-check-btn').first().click();
+      await page.waitForFunction(() => document.querySelector('.quarto-exercise-blank-feedback').textContent === 'Correct!');
+      assert.deepStrictEqual(pageErrors, []);
+    } finally {
+      await browser.close();
+    }
+  });
+
   test('check-batch shows global scores for standalone controls', async () => {
     const qmdContent = `---
 title: "Standalone batch score"

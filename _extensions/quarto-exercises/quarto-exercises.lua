@@ -135,7 +135,7 @@ for i = 65, 90 do
 end
 
 local function html()
-  return FORMAT:match("html")
+  return FORMAT:match("html") or FORMAT:match("revealjs")
 end
 
 local function id_for(el, prefix)
