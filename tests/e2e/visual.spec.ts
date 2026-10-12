@@ -25,6 +25,7 @@ import path from 'node:path';
 const fixturesUrl  = pathToFileURL(path.resolve('tests/e2e/fixtures.html')).href;
 const fullPageUrl  = pathToFileURL(path.resolve('_site/full-page-check.html')).href;
 const exampleUrl   = pathToFileURL(path.resolve('_site/example.html')).href;
+const exampleSlidesUrl = pathToFileURL(path.resolve('_site/example-slides.html')).href;
 const screenshotMask = readFileSync('tests/e2e/screenshot-mask.css', 'utf8');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -783,6 +784,21 @@ test.describe('Full-page smoke tests', () => {
     await goto(page, exampleUrl);
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect(page).toHaveScreenshot('smoke-example.png', { fullPage: true });
+  });
+
+  test('example-slides.html – single-choice grades in revealjs', async ({ page }) => {
+    await goto(page, exampleSlidesUrl);
+    await page.waitForFunction(() => (window as any).Reveal?.isReady());
+    await page.evaluate(() => {
+      const reveal = (window as any).Reveal;
+      const el = document.querySelector('[data-testid="mcq-single"]')!;
+      const { h, v } = reveal.getIndices(el.closest('section'));
+      reveal.slide(h, v);
+    });
+    const exercise = page.locator('[data-testid="mcq-single"]');
+    await exercise.locator('.quarto-exercise-answer', { hasText: 'Frodo Baggins' }).click();
+    await exercise.locator('.quarto-exercise-check-btn').click();
+    await expect(exercise.locator('.quarto-exercise-status')).toHaveText('Correct!');
   });
 
   test('full-page-check.html – initial load', async ({ page }) => {

@@ -22,6 +22,8 @@ website:
         text: Home
       - href: example.qmd
         text: Example
+      - href: example-slides.qmd
+        text: Example Slides
       - href: reference.qmd
         text: Reference
       - href: full-page-check.qmd

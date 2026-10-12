@@ -1,0 +1,12 @@
+---
+title: "Quarto Exercises Extension Example (Slides)"
+format: revealjs
+quarto-exercises:
+  instant: false
+  reveal: false
+  lock: false
+  reset: true
+  shuffle: false
+---
+
+{{< include includes/example-content.qmd >}}
