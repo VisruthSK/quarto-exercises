@@ -85,8 +85,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/bootstrap/bootstrap-971141284efbfb80ef6dc4565bbed61c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
 <link href="site_libs/bootstrap/bootstrap-dark-12a9eb18fb12ca21b135dbf36efae7a3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
 <link href="site_libs/bootstrap/bootstrap-971141284efbfb80ef6dc4565bbed61c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
-<script src="site_libs/quarto-contrib/quarto-exercises-0.1.0/quarto-exercises.js"></script>
-<link href="site_libs/quarto-contrib/quarto-exercises-0.1.0/quarto-exercises.css" rel="stylesheet">
+<script src="site_libs/quarto-contrib/quarto-exercises-0.2.0/quarto-exercises.js"></script>
+<link href="site_libs/quarto-contrib/quarto-exercises-0.2.0/quarto-exercises.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -357,6 +357,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#batch-page-and-score-checking" id="toc-batch-page-and-score-checking" class="nav-link" data-scroll-target="#batch-page-and-score-checking">Batch, Page, and Score Checking</a></li>
   <li><a href="#answer-obfuscation" id="toc-answer-obfuscation" class="nav-link" data-scroll-target="#answer-obfuscation">Answer Obfuscation</a></li>
+  <li><a href="#output-formats" id="toc-output-formats" class="nav-link" data-scroll-target="#output-formats">Output Formats</a>
+  <ul class="collapse">
+  <li><a href="#reveal.js" id="toc-reveal.js" class="nav-link" data-scroll-target="#reveal.js">reveal.js</a></li>
+  <li><a href="#build-time-checks" id="toc-build-time-checks" class="nav-link" data-scroll-target="#build-time-checks">Build-time checks</a></li>
+  </ul></li>
   <li><a href="#visual-style" id="toc-visual-style" class="nav-link" data-scroll-target="#visual-style">Visual Style</a>
   <ul class="collapse">
   <li><a href="#question-boxes" id="toc-question-boxes" class="nav-link" data-scroll-target="#question-boxes">Question boxes</a></li>
@@ -429,7 +434,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>Legolas Greenleaf</span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-1" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-1">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-1" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-1">
 <p>Who carried the One Ring out of the Shire?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-1-a" type="radio" name="ex-1" value="a" class="quarto-exercise-input"><label for="ex-1-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -465,7 +470,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>Samwise Gamgee</span>
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImY5YmVmOGIyNTJjMzlmOWM4MzM0NWNkNGEwNGFiODFhZmE2YmVmYzgiLCI5ZDgwOWFjYjBlYTE0ZDVmMjg4OWIwZGIzMjNhMTljNDJlNWE0N2E3Il0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjpmYWxzZSwibWF0Y2giOiJrZXkiLCJzYWx0IjoiMzc1ZTZiNzZmM2Y5MThjMTIzYzFkMGUwZDYyMTgzNWNmOTU5OGI5YiIsInRyaW0iOmZhbHNlfQ==" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-2" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="true" data-type="checkbox" id="ex-2">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImE0MDUyZWVhYmQ0YmQwZDkxNWQzNTM1MTE1ZjhiNzg5YmJjMjEwYTAiLCJhY2I5NTBlMmNhNzljYjZlNTRkOTgwOGZlOTdkM2Y2ZDUyY2E5OWIxIl0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjpmYWxzZSwibWF0Y2giOiJrZXkiLCJzYWx0IjoiNmY3NjE3MWNjMDg1NGJlYzlhMDgwZGQ3ZTkxZGU4NTIyMTZiMDEwZSIsInRyaW0iOmZhbHNlfQ==" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-2" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="true" data-type="checkbox" id="ex-2">
 <p>Which members of the Fellowship are hobbits? Select all that apply.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="frodo"><div class="quarto-exercise-control"><input id="ex-2-frodo" type="checkbox" name="ex-2" value="frodo" class="quarto-exercise-input"><label for="ex-2-frodo" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -505,7 +510,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>He is also known as Mithrandir.</span>
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-3" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-3">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-3" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-3">
 <p>What is the name of the wizard who guides the Fellowship?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-3-a" type="radio" name="ex-3" value="a" class="quarto-exercise-input"><label for="ex-3-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -534,22 +539,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="inline-blanks">Inline Blanks</h3>
 <p>Pipe-delimited fields use backslash escapes. In normal Quarto Markdown source, write <code>\\|</code> for a literal pipe and <code>\\\\</code> for a literal backslash. Inside <code>.code-cloze</code> blocks, write <code>\|</code> for a literal pipe and <code>\\</code> for a literal backslash because code cloze markers are parsed from raw code text.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>The Capital of Gondor is <span class="co">[</span><span class="ot">`Minas Tirith`</span><span class="co">]</span>{.blank answer="Minas Tirith"}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The Capital of Gondor is <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjNjZWVlOTNiMDZmZWUzN2MyYjliZWVlOTEwNTcyNjIwMzk4NmFmYWQiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-21"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>The Capital of Gondor is <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjI1MWU3YTljOGE0OWZiZWM0ODI4ZWNjZDVmMTc2ZjgxNTkyZGMzM2UiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-21"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>The Ringbearer is <span class="co">[</span><span class="ot">`Frodo`</span><span class="co">]</span>{.blank answers="Frodo|Frodo Baggins" ignore-case=true}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The Ringbearer is <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbImY5YmVmOGIyNTJjMzlmOWM4MzM0NWNkNGEwNGFiODFhZmE2YmVmYzgiLCJjMTU0ZTc5NjJmMWY5MjNkYTU4M2NhMWRjYjFiNzU4ZjFlZTk3NWI4Il0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjp0cnVlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-22"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>The Ringbearer is <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbImE0MDUyZWVhYmQ0YmQwZDkxNWQzNTM1MTE1ZjhiNzg5YmJjMjEwYTAiLCI5NDNhOGY5OGNlMDJjNDY0NDk4MTY3OTE1N2Y5YzFhY2U1MDk0ZWZmIl0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjp0cnVlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-22"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Answer with the literal token <span class="co">[</span><span class="ot">`yes|no`</span><span class="co">]</span>{.blank answers="yes<span class="sc">\\</span>|no|maybe" match="one-of"}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Answer with the literal token <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbImE0OWI4M2RhMTNkNDI2OWFjZmNjYTMyNjQzYTQzMmE5MmZjODU5YjIiLCJiYjAwYzhjZDMwMGQ3ZGJiOWQyYTViM2NlMjNiYjZiMTc3ZjQzMjZiIl0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjpmYWxzZSwibWF0Y2giOiJleGFjdCIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6dHJ1ZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-23"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>Answer with the literal token <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjY5Yzg1NGVmZTEzNTQ0YTEzNmEyMWFhNzYwNmFiYjZjMzFlMWQ2ZmMiLCIzYjMxYzk1ZTkzYzE5ZGQwMzM0YjYxOTMyOGVkMjg0NGZlYzMzN2I1Il0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjpmYWxzZSwibWF0Y2giOiJleGFjdCIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6dHJ1ZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-23"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Enter the Fellowship member count as a binary literal for 9, with an optional <span class="in">`0b`</span> prefix: <span class="co">[</span><span class="ot">`1001`</span><span class="co">]</span>{.blank answer="^(0b)?1001$" match="regex" ignore-case=true}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Enter the Fellowship member count as a binary literal for 9, with an optional <code>0b</code> prefix: <span class="quarto-exercise-blank-container" data-answer-payload="eyJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6dHJ1ZSwibWF0Y2giOiJyZWdleCIsInBhdHRlcm4iOiJeKDBiKT8xMDAxJCIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6dHJ1ZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-24"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>Enter the Fellowship member count as a binary literal for 9, with an optional <code>0b</code> prefix: <span class="quarto-exercise-blank-container" data-answer-payload="eyJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6dHJ1ZSwibWF0Y2giOiJyZWdleCIsInBhdHRlcm4iOiJeKDBiKT8xMDAxJCIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6dHJ1ZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="" data-points="1" id="blank-24"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="an">Name the hobbit who accompanied Frodo to Mount Doom:</span><span class="co"> [`Sam`]{.blank answers="Samwise|Sam|Samwise Gamgee" match="one-of" ignore-case=true trim=true collapse-space=true feedback-correct="Yes, Samwise!" feedback-incorrect="Try again. Think of Frodo's loyal gardener."}.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Name the hobbit who accompanied Frodo to Mount Doom: <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjk1ZGNlOTQwYjE3MGM3YTFkMzY4ZWNkMmZkZGU4ODMyZGRiMDQyYzgiLCI5ZDgwOWFjYjBlYTE0ZDVmMjg4OWIwZGIzMjNhMTljNDJlNWE0N2E3IiwiZDNkNDk4ODNlYTMxMTJjN2Y1YWI5ZGI0YWJlNTJhNDdjNzRlN2Y1YiJdLCJjb2xsYXBzZVNwYWNlIjp0cnVlLCJpZ25vcmVDYXNlIjp0cnVlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Yes, Samwise!" data-feedback-incorrect="Try again. Think of Frodo's loyal gardener." data-points="1" id="blank-25"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>Name the hobbit who accompanied Frodo to Mount Doom: <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjM3NzJiMGRlMDRjNmYxODg4Nzg0NWJiMGRlMjA5NGNlMWYzMmM5MTgiLCJhY2I5NTBlMmNhNzljYjZlNTRkOTgwOGZlOTdkM2Y2ZDUyY2E5OWIxIiwiNjFmZGVhZWZmYjU4OTNkMmFjNWIzNGYyNDU4YmUwMjlkYmU4YjNiOSJdLCJjb2xsYXBzZVNwYWNlIjp0cnVlLCJpZ25vcmVDYXNlIjp0cnVlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Yes, Samwise!" data-feedback-incorrect="Try again. Think of Frodo's loyal gardener." data-points="1" id="blank-25"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><button type="button" class="quarto-exercise-blank-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
 </section>
 <section id="inline-dropdowns" class="level3">
 <h3 class="anchored" data-anchor-id="inline-dropdowns">Inline Dropdowns</h3>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>The One Ring was forged in <span class="co">[</span><span class="ot">Mordor|Gondor|Rohan</span><span class="co">]</span>{.choose answer="Mordor" feedback-correct="" feedback-incorrect=""}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The One Ring was forged in <span class="quarto-exercise-choose-container" data-answer-payload="eyJhbnN3ZXJzIjpbImMzMTRiMzIzMjU0NWQ4OWFhODUwZjI5ZmEyNGQyZTBmNTAwMzRkZWEiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjpmYWxzZX0=" data-feedback-correct="" data-feedback-incorrect="" data-options="Mordor|Gondor|Rohan" data-points="1" data-shuffle="false" id="choose-26"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden=""></span><button type="button" class="quarto-exercise-choose-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>The One Ring was forged in <span class="quarto-exercise-choose-container" data-answer-payload="eyJhbnN3ZXJzIjpbImRkZDkyZWI0YjAzMmUzOTk1MTcwOGM4NmE1MzBjMGNjZWQxMzk0MmEiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjpmYWxzZX0=" data-feedback-correct="" data-feedback-incorrect="" data-options="Mordor|Gondor|Rohan" data-points="1" data-shuffle="false" id="choose-26"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden=""></span><button type="button" class="quarto-exercise-choose-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden=""></span></span>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>The capital of Rohan is <span class="co">[</span><span class="ot">Edoras|Helm's Deep|Isengard</span><span class="co">]</span>{.choose answer="Edoras" shuffle=true feedback-incorrect="Not the correct location."}.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The capital of Rohan is <span class="quarto-exercise-choose-container" data-answer-payload="eyJhbnN3ZXJzIjpbImI0ZTM1NGRjMjE3YTBkODI0ODU4NTU2YjFiYTMwOTExNWY3ZTllNjIiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjpmYWxzZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="Not the correct location." data-options="Edoras|Helm’s Deep|Isengard" data-points="1" data-shuffle="true" id="choose-27"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden=""></span><button type="button" class="quarto-exercise-choose-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>The capital of Rohan is <span class="quarto-exercise-choose-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjg4NGM0YzkwMTBmNzY4MGE3YjRlZDcxMmI4NWUyOTJhYmMyNDExZTQiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjpmYWxzZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="Not the correct location." data-options="Edoras|Helm’s Deep|Isengard" data-points="1" data-shuffle="true" id="choose-27"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden=""></span><button type="button" class="quarto-exercise-choose-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden=""></span></span>.</p>
 </section>
 <section id="shared-controls-exercise" class="level3">
 <h3 class="anchored" data-anchor-id="shared-controls-exercise">Shared Controls Exercise</h3>
@@ -557,7 +562,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>The hobbits are saved at the Prancing Pony by <span class="co">[</span><span class="ot">Aragorn|Boromir|Legolas|Gimli</span><span class="co">]</span>{.choose answer="Aragorn"}, who is also known as <span class="co">[</span><span class="ot">Strider</span><span class="co">]</span>{.blank answer="Strider"}.</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="quarto-exercise" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-4" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-4">
-<p>The hobbits are saved at the Prancing Pony by <span class="quarto-exercise-choose-container" data-answer-payload="eyJhbnN3ZXJzIjpbImY2YWQ3NDNiZWM1NDljYzc5MzU2YWZhNWQ3ZGE4MjIxZWM5M2IzMTQiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjpmYWxzZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-options="Aragorn|Boromir|Legolas|Gimli" data-shuffle="false" id="choose-5"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden=""></span><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden=""></span></span>, who is also known as <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjRlOWI1Mjc5OTRlNTZiOTk1MTNhZjIyMzRmMTE5NjBmMzM2OWNmMDUiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" id="blank-6"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
+<p>The hobbits are saved at the Prancing Pony by <span class="quarto-exercise-choose-container" data-answer-payload="eyJhbnN3ZXJzIjpbImI0OWZiOTNlY2JmMWJlMDFhOTA0OTZhNjU1MjJhZjdhMTNkZmNiNTgiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjpmYWxzZX0=" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-options="Aragorn|Boromir|Legolas|Gimli" data-shuffle="false" id="choose-5"><select class="quarto-exercise-choose-select"><option value="">Choose...</option></select><span class="quarto-exercise-choose-correct-text" hidden=""></span><span class="quarto-exercise-choose-feedback" aria-live="polite" hidden=""></span></span>, who is also known as <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjE3YmM0OWJkYmZlMmIxNjNiNWUxNjEyOTE3MDdlMzNkNzQ3YWRkNDkiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" id="blank-6"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span>.</p>
 <div class="quarto-exercise-actions">
 <button type="button" class="quarto-exercise-check-btn btn btn-sm btn-primary quarto-exercise-btn quarto-exercise-btn-primary">Check</button>
 <button type="button" class="quarto-exercise-reset-btn btn btn-sm btn-secondary quarto-exercise-btn quarto-exercise-btn-secondary">Reset</button>
@@ -574,7 +579,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>total <span class="op">&lt;-</span> <span class="op">{{</span>blank answer<span class="op">=</span><span class="st">"sum"</span><span class="op">}}(</span>x<span class="op">)</span></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="quarto-exercise-code-cloze-wrapper">
-<div id="cloze-28" class="quarto-exercise-code-cloze-container quarto-exercise-code-cloze-standalone" data-points="1" data-answer-payload="eyJRRVhDTE9aRVAwMDAwMDEiOnsiYW5zd2VycyI6WyI1NGI1YTIwMGUwMDRlNDViNjc5ZTAyMjhiNDk1MTE4ZTIwNmY5ODUzIl0sImF0dHJzIjp7Im9wdGlvbnMiOiJjfGxpc3R8ZGF0YS5mcmFtZSJ9LCJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6ZmFsc2UsIm1hdGNoIjoiZXhhY3QiLCJzYWx0IjoiMzc1ZTZiNzZmM2Y5MThjMTIzYzFkMGUwZDYyMTgzNWNmOTU5OGI5YiIsInRyaW0iOmZhbHNlLCJ0eXBlIjoiY2hvb3NlIn0sIlFFWENMT1pFUDAwMDAwMiI6eyJhbnN3ZXJzIjpbIjRlNDhmMzExMWUxYWY3NGI3YmU3OWFjZDgwNzU1MTNhZmY5M2MyZWQiXSwiYXR0cnMiOltdLCJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6ZmFsc2UsIm1hdGNoIjoiZXhhY3QiLCJzYWx0IjoiMzc1ZTZiNzZmM2Y5MThjMTIzYzFkMGUwZDYyMTgzNWNmOTU5OGI5YiIsInRyaW0iOnRydWUsInR5cGUiOiJibGFuayJ9fQ==" data-id="cloze-28">
+<div id="cloze-28" class="quarto-exercise-code-cloze-container quarto-exercise-code-cloze-standalone" data-answer-payload="eyJRRVhDTE9aRVAwMDAwMDEiOnsiYW5zd2VycyI6WyIyMTZkMjljZDlkMDRjYmY3ODVjM2MyMjRmNjIxZjAyZmNjOGVlOTg1Il0sImF0dHJzIjp7Im9wdGlvbnMiOiJjfGxpc3R8ZGF0YS5mcmFtZSJ9LCJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6ZmFsc2UsIm1hdGNoIjoiZXhhY3QiLCJzYWx0IjoiNmY3NjE3MWNjMDg1NGJlYzlhMDgwZGQ3ZTkxZGU4NTIyMTZiMDEwZSIsInRyaW0iOmZhbHNlLCJ0eXBlIjoiY2hvb3NlIn0sIlFFWENMT1pFUDAwMDAwMiI6eyJhbnN3ZXJzIjpbIjZhYzVlMTE5OGM1M2UxNTE2YTJlMDQyMTlmNDljN2Q2MWQxZjk2YWQiXSwiYXR0cnMiOltdLCJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6ZmFsc2UsIm1hdGNoIjoiZXhhY3QiLCJzYWx0IjoiNmY3NjE3MWNjMDg1NGJlYzlhMDgwZGQ3ZTkxZGU4NTIyMTZiMDEwZSIsInRyaW0iOnRydWUsInR5cGUiOiJibGFuayJ9fQ==" data-points="1" data-id="cloze-28">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode r quarto-exercise-code-cloze-code code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standalone code cloze (gets its own Check/Reset buttons)</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">QEXCLOZEP000001</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>total <span class="ot">&lt;-</span> <span class="fu">QEXCLOZEP000002</span>(x)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -603,7 +608,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="quarto-exercise" data-check-mode="exercise" data-explanation-policy="after-check" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-has-code-cloze="true" data-id="ex-7" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-7">
-<div class="quarto-exercise-code-cloze-container" data-answer-payload="eyJRRVhDTE9aRVAwMDAwMDEiOnsiYW5zd2VycyI6WyIwYWNiM2I5NjJiMDAzYzllMjZhOWZkZjgyY2MzYzJlNmE5NzA5OGUzIl0sImF0dHJzIjp7Im9wdGlvbnMiOiJcIkZyb2RvXCJ8XCJTYW1cInxcIk1lcnJ5XCIiLCJzaHVmZmxlIjoidHJ1ZSJ9LCJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6dHJ1ZSwibWF0Y2giOiJleGFjdCIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2UsInR5cGUiOiJjaG9vc2UifSwiUUVYQ0xPWkVQMDAwMDAyIjp7ImFuc3dlcnMiOlsiZjMxOTcwZDU4YjBmN2I3NzExYmZhMzdjMWZlMjE0MTVmNDAwYzNkMSIsIjYyNDMxMzlmZjQ5ZTIwZGRhN2Y1ZmYxZWRlMWI1YjU1OWEzOTI4MjUiLCIzNmM5OTg0Y2E1MWRkNmZmMWMzMDA0NDM0ODdhNzczODIyNTBjZTE5Il0sImF0dHJzIjpbXSwiY29sbGFwc2VTcGFjZSI6dHJ1ZSwiaWdub3JlQ2FzZSI6dHJ1ZSwibWF0Y2giOiJleGFjdCIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6dHJ1ZSwidHlwZSI6ImJsYW5rIn0sIlFFWENMT1pFUDAwMDAwMyI6eyJhdHRycyI6W10sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjp0cnVlLCJtYXRjaCI6InJlZ2V4IiwicGF0dGVybiI6Il4odGhlXFxzKyk/ZmVsbG93c2hpcFxccytvZlxccyt0aGVcXHMrcmluZyQiLCJzYWx0IjoiMzc1ZTZiNzZmM2Y5MThjMTIzYzFkMGUwZDYyMTgzNWNmOTU5OGI5YiIsInRyaW0iOnRydWUsInR5cGUiOiJibGFuayJ9fQ==" data-id="cloze-8" data-parent-id="ex-7">
+<div class="quarto-exercise-code-cloze-container" data-parent-id="ex-7" data-answer-payload="eyJRRVhDTE9aRVAwMDAwMDEiOnsiYW5zd2VycyI6WyIzYzZiM2RjYWJlYzFhZjIyNGQyODMxMzhmOGE3NGI0MjU1MzMyMTE0Il0sImF0dHJzIjp7Im9wdGlvbnMiOiJcIkZyb2RvXCJ8XCJTYW1cInxcIk1lcnJ5XCIiLCJzaHVmZmxlIjoidHJ1ZSJ9LCJjb2xsYXBzZVNwYWNlIjpmYWxzZSwiaWdub3JlQ2FzZSI6dHJ1ZSwibWF0Y2giOiJleGFjdCIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2UsInR5cGUiOiJjaG9vc2UifSwiUUVYQ0xPWkVQMDAwMDAyIjp7ImFuc3dlcnMiOlsiZjdkZjViZTMxMTcyNDMyZWUxYzIzODU2Njg4MjY1ODQxZmNhMDA1ZiIsIjg0ZDQ2OGRiY2U4M2E3MWVlZjYxYmU0ZGUxMTE1MjI3Mjk5MmNmMTQiLCI4MTcyNzc0YWIxMmUxYWViZWY2NGI5NzEwMjU4ZDc1MGYwNzEwNGQ5Il0sImF0dHJzIjpbXSwiY29sbGFwc2VTcGFjZSI6dHJ1ZSwiaWdub3JlQ2FzZSI6dHJ1ZSwibWF0Y2giOiJleGFjdCIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6dHJ1ZSwidHlwZSI6ImJsYW5rIn0sIlFFWENMT1pFUDAwMDAwMyI6eyJhdHRycyI6W10sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjp0cnVlLCJtYXRjaCI6InJlZ2V4IiwicGF0dGVybiI6Il4odGhlXFxzKyk/ZmVsbG93c2hpcFxccytvZlxccyt0aGVcXHMrcmluZyQiLCJzYWx0IjoiNmY3NjE3MWNjMDg1NGJlYzlhMDgwZGQ3ZTkxZGU4NTIyMTZiMDEwZSIsInRyaW0iOnRydWUsInR5cGUiOiJibGFuayJ9fQ==" data-id="cloze-8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python quarto-exercise-code-cloze-code code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fellowship configuration dictionary</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fellowship <span class="op">=</span> {</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Option selection using outer single quotes to wrap double-quoted strings:</span></span>
@@ -648,7 +653,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Since <code>.check-batch</code> renders as a standard container <code>div</code>, you can style it using standard CSS or inline styles to add borders, boxes, margins, or background colors around the entire batch:</p>
 <div class="check-batch" style="border: 2px dashed var(--ex-border-color); padding: 1rem; border-radius: 6px; margin-bottom: 2rem;">
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-9" data-in-batch="true" data-instant="false" data-lock="false" data-points="2" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-9">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-9" data-in-batch="true" data-instant="false" data-lock="false" data-points="2" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-9">
 <p>Which character is a hobbit?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-9-a" type="radio" name="ex-9" value="a" class="quarto-exercise-input"><label for="ex-9-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -664,7 +669,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
 <div class="quarto-exercise" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-10" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-10">
-<p>Complete the name: <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbIjc3ODBjMDAwMWI1M2ZhZTMyYjYyZWI5MjAyOWE5NmQ2NzE0YWNiYTEiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjM3NWU2Yjc2ZjNmOTE4YzEyM2MxZDBlMGQ2MjE4MzVjZjk1OThiOWIiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" id="blank-11"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span> Gamgee.</p>
+<p>Complete the name: <span class="quarto-exercise-blank-container" data-answer-payload="eyJhbnN3ZXJzIjpbImM5Mzc3ZDNkNTQ4NjhiZDViMmJlZTZmZTM0MTRmNGEwZjAxMDgxNGIiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImV4YWN0Iiwic2FsdCI6IjZmNzYxNzFjYzA4NTRiZWM5YTA4MGRkN2U5MWRlODUyMjE2YjAxMGUiLCJ0cmltIjp0cnVlfQ==" data-feedback-correct="Correct!" data-feedback-incorrect="" id="blank-11"><input type="text" class="quarto-exercise-blank-input" value="" aria-label="Fill in the blank"><span class="quarto-exercise-blank-correct-text" hidden=""></span><span class="quarto-exercise-blank-feedback" aria-live="polite" hidden=""></span></span> Gamgee.</p>
 <div class="quarto-exercise-actions">
 <span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
@@ -680,24 +685,39 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Generated HTML stores accepted blank, dropdown, and exercise answers as salted SHA-1 digests of their normalized values instead of plaintext. The browser normalizes and hashes the learner’s input the same way before comparing. Regex patterns are stored in an encoded form.</p>
 <p>This is static source obfuscation, not secure grading. Short or guessable answers can be recovered by hashing candidates, and regex patterns can be decoded. Use it to discourage casual answer lookup through view-source, DOM attributes, or obvious console inspection, not to secure a graded assessment.</p>
 </section>
+<section id="output-formats" class="level2">
+<h2 class="anchored" data-anchor-id="output-formats">Output Formats</h2>
+<p>HTML and reveal.js output is interactive. Other formats, such as PDF, Typst, and Markdown, print each question as a static list. Blanks and dropdowns appear as underlines.</p>
+<section id="reveal.js" class="level3">
+<h3 class="anchored" data-anchor-id="reveal.js">reveal.js</h3>
+<p>Exercises work in reveal.js slides. In a deck where <code>##</code> headings group questions and each <code>###</code> heading starts one question, set <code>slide-level</code> to 3:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">format</span><span class="kw">:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">revealjs</span><span class="kw">:</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">slide-level</span><span class="kw">:</span><span class="at"> </span><span class="dv">3</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="build-time-checks" class="level3">
+<h3 class="anchored" data-anchor-id="build-time-checks">Build-time checks</h3>
+<p>Regex patterns are validated at build time with the JavaScript engine bundled with Quarto (<code>QUARTO_DENO</code>). An invalid pattern fails the build with that engine’s error message. <code>ignore-case</code> lowercases letters with the same engine, so non-ASCII letters fold too. If <code>QUARTO_DENO</code> is unavailable, the build warns, <code>ignore-case</code> folds only ASCII letters, and invalid patterns are caught only in the browser.</p>
+</section>
+</section>
 <section id="visual-style" class="level2">
 <h2 class="anchored" data-anchor-id="visual-style">Visual Style</h2>
 <p>The visual options add small, extension-owned classes rather than a separate UI framework. They work with Quarto’s light and dark themes, Bootstrap themes, custom themes, and <code>theme: none</code>.</p>
 <section id="question-boxes" class="level3">
 <h3 class="anchored" data-anchor-id="question-boxes">Question boxes</h3>
 <p>Set <code>question-boxes: true</code> to place each <code>.exercise</code> in a subtle bordered box with padding and a theme-aware background. The default is <code>false</code>, so existing documents keep their current layout. Use <code>question-boxes="true"</code> or <code>question-boxes="false"</code> on an individual <code>.exercise</code> to override the document setting.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise question-boxes="true"}</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>Which answer is correct?</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>This one.</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>Not this one.</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="quarto-exercise quarto-exercise-boxed" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-12" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise question-boxes="true"}</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>Which answer is correct?</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>This one.</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>Not this one.</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="quarto-exercise quarto-exercise-boxed" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-12" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-12">
 <p>Which answer is correct?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-12-a" type="radio" name="ex-12" value="a" class="quarto-exercise-input"><label for="ex-12-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -719,26 +739,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="multiple-column-mcq" class="level3">
 <h3 class="anchored" data-anchor-id="multiple-column-mcq">Multiple-column MCQ</h3>
 <p>Set <code>option-columns</code> to the number of columns you want for multiple-choice options. Authors can choose any positive number of columns appropriate for their content. The grid preserves source order, keyboard order, selection behavior, and shuffling. On narrow screens it collapses to one column. The default is <code>1</code>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise option-columns="2"}</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>Choose all that apply.</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>First answer</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>Second answer</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>Third answer</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>Fourth answer</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiLCI1NGI1YTIwMGUwMDRlNDViNjc5ZTAyMjhiNDk1MTE4ZTIwNmY5ODUzIl0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjpmYWxzZSwibWF0Y2giOiJrZXkiLCJzYWx0IjoiMzc1ZTZiNzZmM2Y5MThjMTIzYzFkMGUwZDYyMTgzNWNmOTU5OGI5YiIsInRyaW0iOmZhbHNlfQ==" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-13" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="checkbox" id="ex-13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise option-columns="2"}</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>Choose all that apply.</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>First answer</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>Second answer</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>Third answer</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>Fourth answer</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiLCIyMTZkMjljZDlkMDRjYmY3ODVjM2MyMjRmNjIxZjAyZmNjOGVlOTg1Il0sImNvbGxhcHNlU3BhY2UiOmZhbHNlLCJpZ25vcmVDYXNlIjpmYWxzZSwibWF0Y2giOiJrZXkiLCJzYWx0IjoiNmY3NjE3MWNjMDg1NGJlYzlhMDgwZGQ3ZTkxZGU4NTIyMTZiMDEwZSIsInRyaW0iOmZhbHNlfQ==" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-13" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="checkbox" id="ex-13">
 <p>Choose all that apply.</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-2" style="--ex-option-columns: 2;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-13-a" type="checkbox" name="ex-13" value="a" class="quarto-exercise-input"><label for="ex-13-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -764,38 +784,38 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
 <p>To place independent exercises beside each other, use Quarto’s standard column layout. Each exercise keeps its own controls:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>::::: {.columns}</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>:::: {.column}</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>Which character is a dwarf?</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>Gimli</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>Legolas</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>::::</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>:::: {.column}</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>Which pair are hobbits?</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>Merry and Pippin</span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>Gimli and Legolas</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>::::</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>:::::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>::::: {.columns}</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>:::: {.column}</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>Which character is a dwarf?</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>Gimli</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>Legolas</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>::::</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>:::: {.column}</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>Which pair are hobbits?</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>Merry and Pippin</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>Gimli and Legolas</span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>::::</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>:::::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="columns">
 <div class="column">
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-14" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-14">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-14" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-14">
 <p>Which character is a dwarf?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-14-a" type="radio" name="ex-14" value="a" class="quarto-exercise-input"><label for="ex-14-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -813,7 +833,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
 </div><div class="column">
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-15" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-15">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-15" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-15">
 <p>Which pair are hobbits?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-15-a" type="radio" name="ex-15" value="a" class="quarto-exercise-input"><label for="ex-15-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -833,33 +853,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>For exercises checked as one batch, put <code>option-columns</code> on <code>.check-batch</code>. It arranges the exercises into that many columns while retaining one shared set of batch controls:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>::: {.check-batch option-columns="2"}</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>What does Gimli carry?</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>An axe</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>A bow</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>What kind of being is Treebeard?</span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>An Ent</span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>A hobbit</span>
-<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>::: {.check-batch option-columns="2"}</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>What does Gimli carry?</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>An axe</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>A bow</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>What kind of being is Treebeard?</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>An Ent</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>A hobbit</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="check-batch quarto-exercise-batch-grid" style="--ex-batch-columns: 2;">
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-16" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-16">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-16" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-16">
 <p>What does Gimli carry?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-16-a" type="radio" name="ex-16" value="a" class="quarto-exercise-input"><label for="ex-16-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -874,7 +894,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="quarto-exercise-actions">
 <span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-17" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-17">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-17" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-17">
 <p>What kind of being is Treebeard?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-17-a" type="radio" name="ex-17" value="a" class="quarto-exercise-input"><label for="ex-17-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -897,33 +917,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Since the extension outputs semantic HTML with dedicated class hooks, you can apply inline styles to exercise and batch containers or target exercises, batches, and generated answer choices from a stylesheet.</p>
 <p>To restyle the controls, override <code>.quarto-exercise-check-btn</code>, <code>.quarto-exercise-reset-btn</code>, or <code>.quarto-exercise-hint-btn</code> in your stylesheet.</p>
 <p>For instance, you can style a <code>.check-batch</code> with a custom border or background:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>Which hobbit is usually paired with Merry?</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>Pippin</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>Sam</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>Who is the dwarf in the Fellowship?</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>Gimli</span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>Legolas</span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>::: {.check-batch style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);"}</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>Which hobbit is usually paired with Merry?</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>Pippin</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>Sam</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>::: {.exercise}</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>Who is the dwarf in the Fellowship?</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>Gimli</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>Legolas</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="check-batch" style="border: 2px dashed var(--ex-border-color); padding: 1.5rem; border-radius: 8px; background: var(--bs-light, #f8f9fa);">
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-18" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-18">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-18" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-18">
 <p>Which hobbit is usually paired with Merry?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-18-a" type="radio" name="ex-18" value="a" class="quarto-exercise-input"><label for="ex-18-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -938,7 +958,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="quarto-exercise-actions">
 <span class="quarto-exercise-status" aria-live="polite"></span></div>
 </div>
-<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-19" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-19">
+<div class="quarto-exercise" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="batch" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-19" data-in-batch="true" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-19">
 <p>Who is the dwarf in the Fellowship?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-19-a" type="radio" name="ex-19" value="a" class="quarto-exercise-input"><label for="ex-19-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -955,29 +975,29 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>You can also style individual exercises. This example mixes the active theme’s primary and body colors, so the card automatically changes with the site’s light and dark themes.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode css code-with-copy"><code class="sourceCode css"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.fancy-card</span> {</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">background</span><span class="ch">:</span> <span class="fu">linear-gradient(</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">135</span><span class="dt">deg</span><span class="op">,</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">18</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span><span class="op">,</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">32</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">)</span><span class="op">;</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">color</span><span class="ch">:</span> <span class="fu">var(</span><span class="va">--bs-body-color</span><span class="op">,</span> <span class="bu">inherit</span><span class="fu">)</span><span class="op">;</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">padding</span><span class="ch">:</span> <span class="dv">1.5</span><span class="dt">rem</span><span class="op">;</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border</span><span class="ch">:</span> <span class="dv">1</span><span class="dt">px</span> <span class="dv">solid</span> <span class="fu">var(</span><span class="va">--bs-border-color</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-border-color</span><span class="fu">))</span><span class="op">;</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border-radius</span><span class="ch">:</span> <span class="dv">12</span><span class="dt">px</span><span class="op">;</span></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">box-shadow</span><span class="ch">:</span> <span class="dv">0</span> <span class="dv">8</span><span class="dt">px</span> <span class="dv">24</span><span class="dt">px</span> <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-color</span><span class="op">,</span> <span class="cn">#000</span><span class="fu">)</span> <span class="dv">15</span><span class="dt">%</span><span class="op">,</span> <span class="dv">transparent</span><span class="fu">)</span><span class="op">;</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="fu">.fancy-card</span> <span class="fu">.quarto-exercise-answer</span> {</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">background</span><span class="ch">:</span> <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">10</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span><span class="op">;</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border</span><span class="ch">:</span> <span class="dv">1</span><span class="dt">px</span> <span class="dv">solid</span> <span class="fu">var(</span><span class="va">--bs-border-color</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-border-color</span><span class="fu">))</span><span class="op">;</span></span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">padding</span><span class="ch">:</span> <span class="dv">0.75</span><span class="dt">rem</span><span class="op">;</span></span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border-radius</span><span class="ch">:</span> <span class="dv">8</span><span class="dt">px</span><span class="op">;</span></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">margin</span><span class="ch">:</span> <span class="dv">0.5</span><span class="dt">rem</span> <span class="dv">0</span><span class="op">;</span></span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  <span class="kw">color</span><span class="ch">:</span> <span class="bu">inherit</span><span class="op">;</span></span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a><span class="fu">.fancy-card</span> <span class="fu">.quarto-exercise-answer</span><span class="in">:hover</span> {</span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>  <span class="kw">background</span><span class="ch">:</span> <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">20</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span><span class="op">;</span></span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode css code-with-copy"><code class="sourceCode css"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.fancy-card</span> {</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">background</span><span class="ch">:</span> <span class="fu">linear-gradient(</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">135</span><span class="dt">deg</span><span class="op">,</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">18</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span><span class="op">,</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">32</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">)</span><span class="op">;</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">color</span><span class="ch">:</span> <span class="fu">var(</span><span class="va">--bs-body-color</span><span class="op">,</span> <span class="bu">inherit</span><span class="fu">)</span><span class="op">;</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">padding</span><span class="ch">:</span> <span class="dv">1.5</span><span class="dt">rem</span><span class="op">;</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border</span><span class="ch">:</span> <span class="dv">1</span><span class="dt">px</span> <span class="dv">solid</span> <span class="fu">var(</span><span class="va">--bs-border-color</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-border-color</span><span class="fu">))</span><span class="op">;</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border-radius</span><span class="ch">:</span> <span class="dv">12</span><span class="dt">px</span><span class="op">;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">box-shadow</span><span class="ch">:</span> <span class="dv">0</span> <span class="dv">8</span><span class="dt">px</span> <span class="dv">24</span><span class="dt">px</span> <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-color</span><span class="op">,</span> <span class="cn">#000</span><span class="fu">)</span> <span class="dv">15</span><span class="dt">%</span><span class="op">,</span> <span class="dv">transparent</span><span class="fu">)</span><span class="op">;</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="fu">.fancy-card</span> <span class="fu">.quarto-exercise-answer</span> {</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">background</span><span class="ch">:</span> <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">10</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span><span class="op">;</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border</span><span class="ch">:</span> <span class="dv">1</span><span class="dt">px</span> <span class="dv">solid</span> <span class="fu">var(</span><span class="va">--bs-border-color</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-border-color</span><span class="fu">))</span><span class="op">;</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">padding</span><span class="ch">:</span> <span class="dv">0.75</span><span class="dt">rem</span><span class="op">;</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">border-radius</span><span class="ch">:</span> <span class="dv">8</span><span class="dt">px</span><span class="op">;</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">margin</span><span class="ch">:</span> <span class="dv">0.5</span><span class="dt">rem</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  <span class="kw">color</span><span class="ch">:</span> <span class="bu">inherit</span><span class="op">;</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="fu">.fancy-card</span> <span class="fu">.quarto-exercise-answer</span><span class="in">:hover</span> {</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>  <span class="kw">background</span><span class="ch">:</span> <span class="fu">color-mix(</span><span class="dv">in srgb</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-primary</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--ex-accent</span><span class="fu">))</span> <span class="dv">20</span><span class="dt">%</span><span class="op">,</span> <span class="fu">var(</span><span class="va">--bs-body-bg</span><span class="op">,</span> <span class="cn">#fff</span><span class="fu">))</span><span class="op">;</span></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <style>
 .fancy-card {
   background: linear-gradient(
@@ -1004,18 +1024,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }
 </style>
 <p>Then apply the class to your exercise:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise .fancy-card}</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>Which two hobbits meet Treebeard?</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>Merry and Pippin</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>Frodo and Sam</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="quarto-exercise fancy-card" data-answer-payload="eyJhbnN3ZXJzIjpbImIyNmE3NTlhNWRhNjc2MTZiY2VkMDkyZmYyOGU2OTZiMmM2MzA0ZGYiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiIzNzVlNmI3NmYzZjkxOGMxMjNjMWQwZTBkNjIxODM1Y2Y5NTk4YjliIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-20" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-20">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>::: {.exercise .fancy-card}</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>Which two hobbits meet Treebeard?</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>::: {.answer correct=true}</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>Merry and Pippin</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>::: {.answer}</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>Frodo and Sam</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="quarto-exercise fancy-card" data-answer-payload="eyJhbnN3ZXJzIjpbIjFjYWU2ZjRlZDJkZjYyNDA5NzIzZmFlOWJmNWM5MjM0NDMyNzliNTAiXSwiY29sbGFwc2VTcGFjZSI6ZmFsc2UsImlnbm9yZUNhc2UiOmZhbHNlLCJtYXRjaCI6ImtleSIsInNhbHQiOiI2Zjc2MTcxY2MwODU0YmVjOWEwODBkZDdlOTFkZTg1MjIxNmIwMTBlIiwidHJpbSI6ZmFsc2V9" data-check-mode="exercise" data-explanation-policy="correct" data-feedback-correct="Correct!" data-feedback-incorrect="Not quite." data-id="ex-20" data-instant="false" data-lock="false" data-points="1" data-reset="true" data-reshuffle-on-reset="false" data-reveal="false" data-score="false" data-shuffle="false" data-type="radio" id="ex-20">
 <p>Which two hobbits meet Treebeard?</p>
 <fieldset class="quarto-exercise-fieldset"><legend class="visually-hidden">Answer choices</legend><div class="quarto-exercise-choices quarto-exercise-choices-grid quarto-exercise-options-cols-1" style="--ex-option-columns: 1;">
 <div class="quarto-exercise-answer" data-key="a"><div class="quarto-exercise-control"><input id="ex-20-a" type="radio" name="ex-20" value="a" class="quarto-exercise-input"><label for="ex-20-a" class="quarto-exercise-answer-label"></label></div><div class="quarto-exercise-answer-content">
@@ -1112,16 +1132,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td style="text-align: left;">Hover background color for buttons and controls in light mode.</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;"><code>--ex-control-primary-bg</code></td>
-<td style="text-align: left;"><code>#e9ecef</code></td>
-<td style="text-align: left;">Background color for primary action buttons in light mode.</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><code>--ex-control-primary-hover-bg</code></td>
-<td style="text-align: left;"><code>#dee2e6</code></td>
-<td style="text-align: left;">Hover background color for primary action buttons in light mode.</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;"><code>--ex-border-radius</code></td>
 <td style="text-align: left;"><code>4px</code></td>
 <td style="text-align: left;">Border radius applied to buttons, select dropdowns, and input containers.</td>
@@ -1157,41 +1167,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td style="text-align: left;">Number of columns in batch exercise grid layouts.</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><code>--ex-button-primary-bg</code></td>
-<td style="text-align: left;"><code>var(--bs-primary, var(--ex-accent))</code></td>
-<td style="text-align: left;">Background color for primary check buttons.</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><code>--ex-button-primary-color</code></td>
-<td style="text-align: left;"><code>var(--bs-white, #fff)</code></td>
-<td style="text-align: left;">Text color for primary check buttons.</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><code>--ex-button-secondary-bg</code></td>
-<td style="text-align: left;"><code>var(--bs-secondary-bg, var(--ex-control-bg))</code></td>
-<td style="text-align: left;">Background color for secondary reset buttons.</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><code>--ex-button-secondary-color</code></td>
-<td style="text-align: left;"><code>var(--bs-body-color, inherit)</code></td>
-<td style="text-align: left;">Text color for secondary reset buttons.</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><code>--ex-button-border</code></td>
-<td style="text-align: left;"><code>var(--bs-border-color, var(--ex-border-color))</code></td>
-<td style="text-align: left;">Border color for action buttons.</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;"><code>--ex-box-bg</code></td>
 <td style="text-align: left;"><code>var(--bs-body-bg, transparent)</code></td>
 <td style="text-align: left;">Background color for boxed exercise containers (<code>.quarto-exercise-boxed</code>).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;"><code>--ex-box-border</code></td>
 <td style="text-align: left;"><code>var(--bs-border-color, var(--ex-border-color))</code></td>
 <td style="text-align: left;">Border color for boxed exercise containers.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;"><code>--ex-box-radius</code></td>
 <td style="text-align: left;"><code>var(--bs-border-radius, var(--ex-border-radius))</code></td>
 <td style="text-align: left;">Border radius for boxed exercise containers.</td>
