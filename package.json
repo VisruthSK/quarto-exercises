@@ -1,9 +1,9 @@
 {
   "name": "quarto-exercises",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "packageManager": "pnpm@11.9.0",
-  "description": "Interactive practice exercises for Quarto HTML documents",
+  "description": "Interactive practice questions for Quarto HTML and reveal.js documents.",
   "scripts": {
     "test": "node tests/run.js",
     "coverage": "node --experimental-test-coverage tests/run.js",

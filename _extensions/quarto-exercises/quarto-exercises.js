@@ -28,7 +28,7 @@ function normalize(value, { trim = true, collapseSpace = false, ignoreCase = fal
   let text = value;
   if (trim) text = text.replace(/^[ \t\n\r\f\v]+|[ \t\n\r\f\v]+$/g, "");
   if (collapseSpace) text = text.replace(/[ \t\n\r\f\v]+/g, " ");
-  if (ignoreCase) text = text.replace(/[A-Z]+/g, letters => letters.toLowerCase());
+  if (ignoreCase) text = text.toLowerCase();
   return text;
 }
 
